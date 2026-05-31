@@ -749,8 +749,8 @@
           "de": "Nachricht an Client senden"
         },
         "titleFormatted": {
-          "en": "Send message [[header]]: [[text]]",
-          "de": "Nachricht senden [[header]]: [[text]]"
+          "en": "Send message [[header]]: [[text]] (timeout [[timeout_ms]] ms)",
+          "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)"
         },
         "args": [
           {
