@@ -25,9 +25,9 @@ export default class JellyfinServerDriver extends Homey.Driver {
   }
 
   async onPair(session: Homey.Driver.PairSession): Promise<void> {
-    let pendingDevice: ServerListDevice | null = null;
-
     session.setHandler('verify', async (payload: VerifyPayload): Promise<ServerListDevice> => {
+      this.log('verify called', { baseUrl: payload.baseUrl, userName: payload.userName });
+
       const baseUrl = (payload.baseUrl ?? '').trim().replace(/\/+$/, '');
       const apiKey = (payload.apiKey ?? '').trim();
       const requestedUser = (payload.userName ?? '').trim();
@@ -49,15 +49,25 @@ export default class JellyfinServerDriver extends Homey.Driver {
       try {
         info = await client.getSystemInfo();
       } catch (err) {
-        if (err instanceof JellyfinError) {
-          throw new Error(`Could not connect (${err.status ?? '??'}): ${err.message}`);
-        }
-        throw err;
+        const msg = err instanceof JellyfinError
+          ? `Could not reach Jellyfin (${err.status ?? '??'}): ${err.message}`
+          : `Could not reach Jellyfin: ${(err as Error).message}`;
+        this.error('verify getSystemInfo failed', msg);
+        throw new Error(msg);
+      }
+      this.log('verify systemInfo OK', { id: info.Id, name: info.ServerName, version: info.Version });
+
+      let users: { Id: string; Name: string }[] = [];
+      try {
+        users = await client.getUsers();
+      } catch (err) {
+        this.error('verify getUsers failed', (err as Error).message);
+        throw new Error(`Got system info but /Users failed: ${(err as Error).message}`);
       }
 
-      // Pick user id: requested by name, else first admin user.
-      const users = await client.getUsers().catch(() => []);
-      let chosen = users.find((u) => requestedUser && u.Name.toLowerCase() === requestedUser.toLowerCase());
+      let chosen = users.find(
+        (u) => requestedUser && u.Name.toLowerCase() === requestedUser.toLowerCase(),
+      );
       if (!chosen) chosen = users[0];
       if (!chosen) throw new Error('No users found on server');
 
@@ -71,16 +81,8 @@ export default class JellyfinServerDriver extends Homey.Driver {
           userName: chosen.Name,
         },
       };
-      pendingDevice = device;
+      this.log('verify returning device', device.name);
       return device;
-    });
-
-    session.setHandler('list_device', async (device: ServerListDevice) => {
-      pendingDevice = device;
-    });
-
-    session.setHandler('list_devices', async (): Promise<ServerListDevice[]> => {
-      return pendingDevice ? [pendingDevice] : [];
     });
   }
 }

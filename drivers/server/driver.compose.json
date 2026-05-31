@@ -16,7 +16,6 @@
     "xlarge": "/drivers/server/assets/images/xlarge.png"
   },
   "pair": [
-    { "id": "credentials" },
-    { "id": "add_devices", "template": "add_devices" }
+    { "id": "credentials" }
   ]
 }
