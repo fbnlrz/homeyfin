@@ -4,9 +4,11 @@
   "description": "Jellyfin integration for Homey",
   "main": "app.js",
   "scripts": {
-    "build": "tsc",
-    "validate": "homey app validate",
-    "run": "homey app run"
+    "build:manifest": "node scripts/build-app-json.mjs",
+    "build": "npm run build:manifest && tsc",
+    "validate": "npm run build:manifest && homey app validate",
+    "run": "npm run build:manifest && homey app run",
+    "install:app": "npm run build:manifest && homey app install"
   },
   "dependencies": {
     "source-map-support": "^0.5.21",

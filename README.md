@@ -33,10 +33,15 @@ that weren't seen before fire the `new_item_added` trigger.
 
 ```bash
 npm install
-npx tsc --noEmit              # type-check
-npx homey app validate         # validate manifest
-npx homey app run              # run against a local Homey Pro
+npm run build:manifest         # merges .homeycompose/ into app.json
+npx tsc --noEmit               # type-check
+npm run validate               # build manifest + homey app validate
+npm run run                    # build manifest + homey app run
 ```
+
+The Homey CLI does not auto-merge `.homeycompose/` for every command, so
+`scripts/build-app-json.mjs` regenerates `app.json` first. The npm
+`validate` / `run` / `install:app` scripts call it for you.
 
 ### Layout
 
