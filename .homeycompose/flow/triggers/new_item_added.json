@@ -1,0 +1,39 @@
+{
+  "title": {
+    "en": "New item added to library",
+    "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
+  },
+  "hint": {
+    "en": "Triggers when a new movie, episode or series is added.",
+    "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    },
+    {
+      "name": "item_type",
+      "type": "dropdown",
+      "title": { "en": "Type", "de": "Typ" },
+      "values": [
+        { "id": "any",     "label": { "en": "Any",     "de": "Alle" } },
+        { "id": "Movie",   "label": { "en": "Movie",   "de": "Film" } },
+        { "id": "Episode", "label": { "en": "Episode", "de": "Folge" } },
+        { "id": "Series",  "label": { "en": "Series",  "de": "Serie" } },
+        { "id": "Audio",   "label": { "en": "Audio",   "de": "Musik" } }
+      ]
+    }
+  ],
+  "tokens": [
+    { "name": "title",        "type": "string", "title": { "en": "Title",       "de": "Titel" } },
+    { "name": "type",         "type": "string", "title": { "en": "Type",        "de": "Typ" } },
+    { "name": "series",       "type": "string", "title": { "en": "Series",      "de": "Serie" } },
+    { "name": "season",       "type": "number", "title": { "en": "Season",      "de": "Staffel" } },
+    { "name": "episode",      "type": "number", "title": { "en": "Episode",     "de": "Folge" } },
+    { "name": "year",         "type": "number", "title": { "en": "Year",        "de": "Jahr" } },
+    { "name": "library_name", "type": "string", "title": { "en": "Library",     "de": "Bibliothek" } },
+    { "name": "poster_url",   "type": "string", "title": { "en": "Poster URL",  "de": "Poster-URL" } }
+  ]
+}

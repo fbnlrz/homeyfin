@@ -1,0 +1,8 @@
+{
+  "type": "number",
+  "title": { "en": "Series", "de": "Serien" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "decimals": 0
+}

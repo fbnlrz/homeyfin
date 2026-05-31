@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body>
+  <header class="homey-header">
+    <h1 class="homey-title">Select Jellyfin server</h1>
+    <p class="homey-subtitle">Pick a previously paired Jellyfin server.</p>
+  </header>
+
+  <ul id="servers" class="homey-list"></ul>
+  <p id="empty" style="display:none;color:#c00;">No paired Jellyfin server found. Add a server device first.</p>
+
+  <script type="application/javascript">
+    (async () => {
+      const ul = document.getElementById('servers');
+      const empty = document.getElementById('empty');
+      try {
+        const servers = await Homey.emit('list_servers');
+        if (!servers || servers.length === 0) {
+          empty.style.display = 'block';
+          return;
+        }
+        for (const s of servers) {
+          const li = document.createElement('li');
+          li.className = 'homey-list-item';
+          li.innerHTML = '<span class="homey-list-item-title">' + s.name + '</span>'
+                       + '<span class="homey-list-item-subtitle">' + s.baseUrl + '</span>';
+          li.addEventListener('click', async () => {
+            await Homey.emit('server_selected', s.id);
+            Homey.showView('list_devices');
+          });
+          ul.appendChild(li);
+        }
+      } catch (e) {
+        empty.textContent = e && e.message ? e.message : String(e);
+        empty.style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+</html>

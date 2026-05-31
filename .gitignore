@@ -1,0 +1,15 @@
+node_modules/
+.homeybuild/
+env.json
+.DS_Store
+.vscode/
+
+# Compiled TypeScript (root + drivers + lib + api)
+/app.js
+/app.js.map
+/api.js
+/api.js.map
+/drivers/**/*.js
+/drivers/**/*.js.map
+/lib/**/*.js
+/lib/**/*.js.map

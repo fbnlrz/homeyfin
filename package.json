@@ -1,0 +1,24 @@
+{
+  "name": "com.frlrnzn.homeyfin",
+  "version": "0.1.0",
+  "description": "Jellyfin integration for Homey",
+  "main": "app.js",
+  "scripts": {
+    "build": "tsc",
+    "validate": "homey app validate",
+    "run": "homey app run"
+  },
+  "dependencies": {
+    "source-map-support": "^0.5.21",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/homey": "npm:homey-apps-sdk-v3-types@^0.3.7",
+    "@types/node": "^20.11.30",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

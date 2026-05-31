@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Client online", "de": "Client online" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

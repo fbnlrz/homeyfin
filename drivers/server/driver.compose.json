@@ -1,0 +1,22 @@
+{
+  "name": { "en": "Jellyfin Server", "de": "Jellyfin-Server" },
+  "class": "other",
+  "capabilities": [
+    "library_movies_count",
+    "library_series_count",
+    "library_episodes_count",
+    "last_added_title",
+    "scan_in_progress"
+  ],
+  "platforms": ["local"],
+  "connectivity": ["lan"],
+  "images": {
+    "small": "/drivers/server/assets/images/small.png",
+    "large": "/drivers/server/assets/images/large.png",
+    "xlarge": "/drivers/server/assets/images/xlarge.png"
+  },
+  "pair": [
+    { "id": "credentials" },
+    { "id": "add_devices", "template": "add_devices" }
+  ]
+}

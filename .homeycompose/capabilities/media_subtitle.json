@@ -1,0 +1,7 @@
+{
+  "type": "string",
+  "title": { "en": "Subtitle", "de": "Untertitel" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

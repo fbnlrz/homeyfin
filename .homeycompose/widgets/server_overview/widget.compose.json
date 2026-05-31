@@ -1,0 +1,25 @@
+{
+  "name": { "en": "Server overview", "de": "Server-Übersicht" },
+  "height": 280,
+  "settings": [
+    {
+      "id": "serverId",
+      "type": "dropdown",
+      "title": { "en": "Server", "de": "Server" },
+      "value": "",
+      "values": []
+    },
+    {
+      "id": "refreshSeconds",
+      "type": "number",
+      "title": { "en": "Refresh interval (s)", "de": "Aktualisierung (s)" },
+      "value": 5,
+      "min": 2,
+      "max": 60
+    }
+  ],
+  "api": {
+    "getServers": { "method": "GET", "path": "/widget/servers" },
+    "getOverview": { "method": "GET", "path": "/widget/overview" }
+  }
+}

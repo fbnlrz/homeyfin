@@ -1,0 +1,28 @@
+{
+  "name": { "en": "Jellyfin Client", "de": "Jellyfin-Client" },
+  "class": "tv",
+  "capabilities": [
+    "speaker_playing",
+    "speaker_next",
+    "speaker_prev",
+    "volume_set",
+    "volume_mute",
+    "media_title",
+    "media_subtitle",
+    "media_position",
+    "media_duration",
+    "client_online"
+  ],
+  "platforms": ["local"],
+  "connectivity": ["lan"],
+  "images": {
+    "small": "/drivers/client/assets/images/small.png",
+    "large": "/drivers/client/assets/images/large.png",
+    "xlarge": "/drivers/client/assets/images/xlarge.png"
+  },
+  "pair": [
+    { "id": "select_server" },
+    { "id": "list_devices", "template": "list_devices", "navigation": { "next": "add_devices" } },
+    { "id": "add_devices", "template": "add_devices" }
+  ]
+}
