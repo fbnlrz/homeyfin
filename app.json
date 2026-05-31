@@ -84,7 +84,6 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
-      "icon": "/assets/images/movie.svg",
       "decimals": 0
     },
     "library_series_count": {
