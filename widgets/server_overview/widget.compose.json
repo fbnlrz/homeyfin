@@ -12,6 +12,7 @@
     }
   ],
   "api": {
-    "getOverview": { "method": "GET", "path": "/widget/overview" }
+    "getServers": { "method": "GET", "path": "/servers" },
+    "getOverview": { "method": "GET", "path": "/overview" }
   }
 }

@@ -43,24 +43,6 @@
       "filme"
     ]
   },
-  "api": {
-    "getServers": {
-      "method": "GET",
-      "path": "/widget/servers"
-    },
-    "getOverview": {
-      "method": "GET",
-      "path": "/widget/overview"
-    },
-    "getNowPlaying": {
-      "method": "GET",
-      "path": "/widget/now_playing"
-    },
-    "togglePlayback": {
-      "method": "POST",
-      "path": "/widget/playback/toggle"
-    }
-  },
   "capabilities": {
     "client_online": {
       "type": "boolean",
@@ -1059,11 +1041,11 @@
       "api": {
         "getNowPlaying": {
           "method": "GET",
-          "path": "/widget/now_playing"
+          "path": "/now_playing"
         },
         "togglePlayback": {
           "method": "POST",
-          "path": "/widget/playback/toggle"
+          "path": "/playback/toggle"
         }
       }
     },
@@ -1087,9 +1069,13 @@
         }
       ],
       "api": {
+        "getServers": {
+          "method": "GET",
+          "path": "/servers"
+        },
         "getOverview": {
           "method": "GET",
-          "path": "/widget/overview"
+          "path": "/overview"
         }
       }
     }

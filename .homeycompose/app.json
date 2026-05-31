@@ -28,23 +28,5 @@
   "tags": {
     "en": ["jellyfin", "media", "video", "movies"],
     "de": ["jellyfin", "medien", "video", "filme"]
-  },
-  "api": {
-    "getServers": {
-      "method": "GET",
-      "path": "/widget/servers"
-    },
-    "getOverview": {
-      "method": "GET",
-      "path": "/widget/overview"
-    },
-    "getNowPlaying": {
-      "method": "GET",
-      "path": "/widget/now_playing"
-    },
-    "togglePlayback": {
-      "method": "POST",
-      "path": "/widget/playback/toggle"
-    }
   }
 }

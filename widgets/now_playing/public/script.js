@@ -46,7 +46,7 @@ function onHomeyReady(Homey) {
 
   async function refresh() {
     try {
-      const data = await Homey.api('GET', '/widget/now_playing');
+      const data = await Homey.api('GET', '/now_playing');
       render(data);
     } catch (err) {
       const root = $('root');
@@ -59,7 +59,7 @@ function onHomeyReady(Homey) {
 
   $('toggle').addEventListener('click', async () => {
     try {
-      await Homey.api('POST', '/widget/playback/toggle', {});
+      await Homey.api('POST', '/playback/toggle', {});
       refresh();
     } catch (e) { /* ignore */ }
   });

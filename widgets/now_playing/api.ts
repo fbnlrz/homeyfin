@@ -1,5 +1,5 @@
-import type HomeyfinApp from './app';
-import type { ClientSnapshot } from './lib/ServerHub';
+import type HomeyfinApp from '../../app';
+import type { ClientSnapshot } from '../../lib/ServerHub';
 
 type HomeyRef = HomeyfinApp['homey'];
 
@@ -27,25 +27,6 @@ interface OverviewStream {
   posterUrl: string;
 }
 
-interface OverviewResponse {
-  server: ServerSummary | null;
-  online: boolean;
-  counts: { movies: number; series: number; episodes: number };
-  streams: OverviewStream[];
-  activeCount: number;
-  pausedCount: number;
-}
-
-interface NowPlayingResponse {
-  hasStream: boolean;
-  stream?: OverviewStream;
-  server?: ServerSummary;
-}
-
-function getApp(homey: HomeyRef): HomeyfinApp {
-  return homey.app as HomeyfinApp;
-}
-
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
   const driver = homey.drivers.getDriver('server');
   return driver.getDevices().map((d: any) => {
@@ -53,6 +34,11 @@ function listServerDevices(homey: HomeyRef): ServerSummary[] {
     const store = d.getStore() as { baseUrl: string };
     return { id, name: d.getName(), baseUrl: store.baseUrl };
   });
+}
+
+function selectServer(homey: HomeyRef, requestedId?: string): ServerSummary | null {
+  const servers = listServerDevices(homey);
+  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
 }
 
 function snapshotToStream(snap: ClientSnapshot): OverviewStream {
@@ -83,73 +69,17 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
   };
 }
 
-function selectServer(homey: HomeyRef, requestedId: string | undefined): ServerSummary | null {
-  const servers = listServerDevices(homey);
-  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
-}
-
 module.exports = {
-  async getServers({ homey }: ApiArgs): Promise<ServerSummary[]> {
-    return listServerDevices(homey);
-  },
-
-  async getOverview({ homey, query }: ApiArgs): Promise<OverviewResponse> {
-    const app = getApp(homey);
-    const server = selectServer(homey, query?.serverId);
-
-    if (!server) {
-      return {
-        server: null,
-        online: false,
-        counts: { movies: 0, series: 0, episodes: 0 },
-        streams: [],
-        activeCount: 0,
-        pausedCount: 0,
-      };
-    }
-
-    const hub = app.getHub(server.id);
-    if (!hub) {
-      return {
-        server,
-        online: false,
-        counts: { movies: 0, series: 0, episodes: 0 },
-        streams: [],
-        activeCount: 0,
-        pausedCount: 0,
-      };
-    }
-
-    const counts = hub.getLastCounts();
-    const streams = (await hub.getActiveStreams()).map(snapshotToStream);
-    const active = streams.filter((s) => !s.isPaused).length;
-    const paused = streams.filter((s) => s.isPaused).length;
-
-    return {
-      server,
-      online: hub.isSocketOpen(),
-      counts: {
-        movies: counts?.MovieCount ?? 0,
-        series: counts?.SeriesCount ?? 0,
-        episodes: counts?.EpisodeCount ?? 0,
-      },
-      streams,
-      activeCount: active,
-      pausedCount: paused,
-    };
-  },
-
-  async getNowPlaying({ homey, query }: ApiArgs): Promise<NowPlayingResponse> {
-    const app = getApp(homey);
-    const deviceId = query?.deviceId;
+  async getNowPlaying({ homey, query }: ApiArgs) {
+    const app = homey.app as HomeyfinApp;
     const server = selectServer(homey, query?.serverId);
     if (!server) return { hasStream: false };
     const hub = app.getHub(server.id);
     if (!hub) return { hasStream: false, server };
 
     let snap: ClientSnapshot | undefined;
-    if (deviceId) {
-      snap = hub.getClientSnapshot(deviceId);
+    if (query?.deviceId) {
+      snap = hub.getClientSnapshot(query.deviceId);
     } else {
       const streams = await hub.getActiveStreams();
       snap = streams[0];
@@ -158,10 +88,10 @@ module.exports = {
     return { hasStream: true, server, stream: snapshotToStream(snap) };
   },
 
-  async togglePlayback({ homey, body }: ApiArgs): Promise<{ ok: boolean }> {
-    const app = getApp(homey);
-    const deviceId = (body?.deviceId as string | undefined) || '';
-    const serverId = (body?.serverId as string | undefined) || '';
+  async togglePlayback({ homey, body }: ApiArgs) {
+    const app = homey.app as HomeyfinApp;
+    const deviceId = (body?.deviceId as string | undefined) ?? '';
+    const serverId = (body?.serverId as string | undefined) ?? '';
     const server = selectServer(homey, serverId);
     if (!server) throw new Error('No server');
     const hub = app.getHub(server.id);

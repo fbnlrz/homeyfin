@@ -12,7 +12,7 @@
     }
   ],
   "api": {
-    "getNowPlaying": { "method": "GET", "path": "/widget/now_playing" },
-    "togglePlayback": { "method": "POST", "path": "/widget/playback/toggle" }
+    "getNowPlaying": { "method": "GET", "path": "/now_playing" },
+    "togglePlayback": { "method": "POST", "path": "/playback/toggle" }
   }
 }

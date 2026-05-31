@@ -15,6 +15,6 @@
     "noImplicitAny": true,
     "strictNullChecks": true
   },
-  "include": ["app.ts", "api.ts", "drivers/**/*.ts", "lib/**/*.ts"],
+  "include": ["app.ts", "drivers/**/*.ts", "lib/**/*.ts", "widgets/**/*.ts"],
   "exclude": ["node_modules", ".homeybuild", "test"]
 }

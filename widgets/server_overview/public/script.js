@@ -125,7 +125,7 @@ function onHomeyReady(Homey) {
 
   async function refresh() {
     try {
-      const data = await Homey.api('GET', '/widget/overview');
+      const data = await Homey.api('GET', '/overview');
       render(data);
     } catch (err) {
       showError(err && err.message ? err.message : String(err));
