@@ -10,22 +10,110 @@ interface ServerStore {
   userName: string;
 }
 
+interface ServerSettings {
+  baseUrl?: string;
+  apiKey?: string;
+  userName?: string;
+  libraryPollMinutes?: number;
+  fallbackPollSeconds?: number;
+}
+
+const ITEM_CACHE_KEY_PREFIX = 'itemCache:';
+
 export default class JellyfinServerDevice extends Homey.Device {
   private hub?: ServerHub;
   private offCallbacks: Array<() => void> = [];
+  private serverId!: string;
 
   async onInit(): Promise<void> {
+    this.serverId = this.getData().id.replace(/^server:/, '');
+    await this.bootstrapHub();
+  }
+
+  private async bootstrapHub(): Promise<void> {
     const store = this.getStore() as ServerStore;
-    const serverId = this.getData().id.replace(/^server:/, '');
+    const settings = this.getSettings() as ServerSettings;
     const app = this.homey.app as HomeyfinApp;
 
+    // First-time: sync store → settings so the UI shows the connection details.
+    if (!settings.baseUrl && store.baseUrl) {
+      await this.setSettings({
+        baseUrl: store.baseUrl,
+        apiKey: store.apiKey,
+        userName: store.userName,
+      }).catch(() => undefined);
+    }
+
+    const baseUrl = settings.baseUrl?.trim() || store.baseUrl;
+    const apiKey = settings.apiKey?.trim() || store.apiKey;
+    const userId = store.userId;
+    if (!baseUrl || !apiKey || !userId) {
+      await this.setUnavailable('Missing connection details').catch(() => undefined);
+      return;
+    }
+
+    const persistedRaw = this.homey.settings.get(ITEM_CACHE_KEY_PREFIX + this.serverId);
+    const persistedItemIds: string[] = Array.isArray(persistedRaw) ? persistedRaw : [];
+
     this.hub = await app.getOrCreateHub({
-      serverId,
-      baseUrl: store.baseUrl,
-      apiKey: store.apiKey,
-      userId: store.userId,
+      serverId: this.serverId,
+      baseUrl,
+      apiKey,
+      userId,
+      persistedItemIds,
+      saveItemIds: (ids) => this.homey.settings.set(ITEM_CACHE_KEY_PREFIX + this.serverId, ids),
+      libraryPollMs: (settings.libraryPollMinutes ?? 5) * 60_000,
+      fallbackPollMs: (settings.fallbackPollSeconds ?? 30) * 1_000,
     });
 
+    this.registerHubHandlers();
+
+    const cached = this.hub.getLastCounts();
+    if (cached) await this.applyCounts(cached);
+    await this.safeSet('scan_in_progress', false);
+
+    this.registerFlowHandlers();
+    this.setAvailable().catch(() => undefined);
+  }
+
+  async onSettings({ newSettings, changedKeys }: {
+    oldSettings: ServerSettings;
+    newSettings: ServerSettings;
+    changedKeys: string[];
+  }): Promise<void> {
+    const connectionTouched = ['baseUrl', 'apiKey', 'userName'].some((k) => changedKeys.includes(k));
+    const pollTouched = ['libraryPollMinutes', 'fallbackPollSeconds'].some((k) => changedKeys.includes(k));
+
+    if (connectionTouched || pollTouched) {
+      this.log('Settings changed; recreating hub', changedKeys);
+      this.unregister();
+      const app = this.homey.app as HomeyfinApp;
+      await app.releaseHub(this.serverId);
+      await this.setStoreValue('baseUrl', newSettings.baseUrl ?? '').catch(() => undefined);
+      await this.setStoreValue('apiKey', newSettings.apiKey ?? '').catch(() => undefined);
+      if (newSettings.userName) {
+        await this.setStoreValue('userName', newSettings.userName).catch(() => undefined);
+      }
+      await this.bootstrapHub();
+    }
+  }
+
+  async onDeleted(): Promise<void> {
+    this.unregister();
+    const app = this.homey.app as HomeyfinApp;
+    await app.releaseHub(this.serverId);
+    this.homey.settings.unset(ITEM_CACHE_KEY_PREFIX + this.serverId);
+  }
+
+  private unregister(): void {
+    for (const off of this.offCallbacks) off();
+    this.offCallbacks = [];
+  }
+
+  // --- Hub event wiring ---
+
+  private registerHubHandlers(): void {
+    if (!this.hub) return;
     const onCounts = (counts: ItemCounts) => this.applyCounts(counts).catch((e) => this.error(e));
     const onNewItem = (ev: NewItemEvent) => this.handleNewItem(ev).catch((e) => this.error(e));
     const onScan = (duration: number) =>
@@ -44,21 +132,6 @@ export default class JellyfinServerDevice extends Homey.Device {
       () => this.hub?.off('library:scan_finished', onScan),
       () => this.hub?.off('user:logged_in', onUser),
     );
-
-    const cached = this.hub.getLastCounts();
-    if (cached) await this.applyCounts(cached);
-    await this.setCapabilityValue('scan_in_progress', false).catch(() => undefined);
-
-    this.registerFlowHandlers();
-    this.setAvailable().catch(() => undefined);
-  }
-
-  async onDeleted(): Promise<void> {
-    for (const off of this.offCallbacks) off();
-    this.offCallbacks = [];
-    const serverId = this.getData().id.replace(/^server:/, '');
-    const app = this.homey.app as HomeyfinApp;
-    await app.releaseHub(serverId);
   }
 
   // --- Flow registration ---
@@ -76,7 +149,7 @@ export default class JellyfinServerDevice extends Homey.Device {
       const library = args.library as { id: string } | undefined;
       if (!this.hub) throw new Error('Server not connected');
       this.hub.markScanStarted();
-      await this.setCapabilityValue('scan_in_progress', true).catch(() => undefined);
+      await this.safeSet('scan_in_progress', true);
       await this.hub.client.refreshLibrary(library?.id);
     });
     scanAction.registerArgumentAutocompleteListener('library', async (query) => {

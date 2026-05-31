@@ -14,10 +14,13 @@ export default class HomeyfinApp extends Homey.App {
   }
 
   /**
-   * Returns an existing hub or creates one. Idempotent: subsequent calls with
-   * the same serverId just return the same instance.
+   * Returns an existing hub or creates one. Subsequent calls with the same
+   * serverId return the same instance. Callers may pass tuning options
+   * (poll intervals) and a persistence callback for the new-item cache.
    */
-  async getOrCreateHub(opts: Omit<ServerHubOptions, 'homeyDeviceId' | 'appVersion'>): Promise<ServerHub> {
+  async getOrCreateHub(
+    opts: Omit<ServerHubOptions, 'homeyDeviceId' | 'appVersion'>,
+  ): Promise<ServerHub> {
     const existing = this.hubs.get(opts.serverId);
     if (existing) return existing;
 
@@ -42,7 +45,6 @@ export default class HomeyfinApp extends Homey.App {
     return this.hubs.get(serverId);
   }
 
-  /** Returns the list of currently registered hubs (for the client driver's pairing UI). */
   listHubs(): ServerHub[] {
     return Array.from(this.hubs.values());
   }

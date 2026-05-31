@@ -6,5 +6,13 @@
   "getOverview": {
     "method": "GET",
     "path": "/widget/overview"
+  },
+  "getNowPlaying": {
+    "method": "GET",
+    "path": "/widget/now_playing"
+  },
+  "togglePlayback": {
+    "method": "POST",
+    "path": "/widget/playback/toggle"
   }
 }

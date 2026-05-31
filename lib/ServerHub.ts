@@ -16,6 +16,13 @@ export interface ServerHubOptions {
   homeyDeviceId: string;
   appVersion: string;
   debug?: boolean;
+  /** Persistent state across restarts (callbacks). */
+  persistedItemIds?: string[];
+  saveItemIds?: (ids: string[]) => void | Promise<void>;
+  /** Library refresh interval in milliseconds. */
+  libraryPollMs?: number;
+  /** Fallback session-poll interval when WebSocket is disconnected. */
+  fallbackPollMs?: number;
 }
 
 export interface ClientSnapshot {
@@ -31,6 +38,7 @@ export interface ClientSnapshot {
   positionSeconds?: number;
   durationSeconds?: number;
   nowPlaying?: NowPlayingItem;
+  posterUrl?: string;
 }
 
 export interface NewItemEvent {
@@ -40,23 +48,13 @@ export interface NewItemEvent {
 }
 
 const TICKS_PER_SECOND = 10_000_000;
-const POLL_INTERVAL_MS = 5 * 60 * 1000;
+const DEFAULT_LIBRARY_POLL_MS = 5 * 60 * 1000;
+const DEFAULT_FALLBACK_POLL_MS = 30 * 1000;
+const MAX_PERSISTED_IDS = 500;
 
 /**
  * Holds a single connection to a Jellyfin server and translates raw events
  * into per-client and per-library events that Homey devices subscribe to.
- *
- * Events (typed loosely as the EventEmitter contract):
- *  - `client:<deviceId>:update`         (snapshot: ClientSnapshot)
- *  - `client:<deviceId>:playback_started`  (snapshot, item)
- *  - `client:<deviceId>:playback_paused`   (snapshot, item)
- *  - `client:<deviceId>:playback_resumed`  (snapshot, item)
- *  - `client:<deviceId>:playback_stopped`  (snapshot, lastItem)
- *  - `client:<deviceId>:now_playing_changed` (snapshot, item)
- *  - `library:counts` (counts)
- *  - `library:new_item` (NewItemEvent)
- *  - `library:scan_finished` (durationSeconds)
- *  - `user:logged_in` ({ user, client, deviceName })
  */
 export class ServerHub extends EventEmitter {
   readonly client: JellyfinClient;
@@ -66,13 +64,28 @@ export class ServerHub extends EventEmitter {
   private lastItemIds = new Set<string>();
   private bootstrapped = false;
   private lastCounts?: ItemCounts;
-  private pollTimer?: NodeJS.Timeout;
+  private libraryPollTimer?: NodeJS.Timeout;
+  private fallbackPollTimer?: NodeJS.Timeout;
   private scanStartedAt?: number;
   private knownSessionKeys = new Set<string>();
+  private socketOpen = false;
+
+  private readonly libraryPollMs: number;
+  private readonly fallbackPollMs: number;
+  private readonly saveItemIds?: (ids: string[]) => void | Promise<void>;
 
   constructor(private readonly opts: ServerHubOptions) {
     super();
     this.setMaxListeners(50);
+
+    this.libraryPollMs = opts.libraryPollMs ?? DEFAULT_LIBRARY_POLL_MS;
+    this.fallbackPollMs = opts.fallbackPollMs ?? DEFAULT_FALLBACK_POLL_MS;
+    this.saveItemIds = opts.saveItemIds;
+
+    if (opts.persistedItemIds && opts.persistedItemIds.length > 0) {
+      this.lastItemIds = new Set(opts.persistedItemIds);
+      this.bootstrapped = true;
+    }
 
     this.client = new JellyfinClient({
       baseUrl: opts.baseUrl,
@@ -90,6 +103,14 @@ export class ServerHub extends EventEmitter {
       debug: opts.debug,
     });
 
+    this.socket.on('open', () => {
+      this.socketOpen = true;
+      this.stopFallbackPoll();
+    });
+    this.socket.on('close', () => {
+      this.socketOpen = false;
+      this.startFallbackPoll();
+    });
     this.socket.on('sessions', (data) => this.handleSessions(data as JellyfinSession[]));
     this.socket.on('libraryChanged', () => {
       this.refreshLibrary().catch((err) => this.emit('error', err));
@@ -109,22 +130,26 @@ export class ServerHub extends EventEmitter {
     return this.opts.userId;
   }
 
+  isSocketOpen(): boolean {
+    return this.socketOpen;
+  }
+
   async start(): Promise<void> {
     this.socket.start();
     await this.refreshLibrary().catch((err) => {
       if (this.opts.debug) console.log('[ServerHub] initial refresh failed', err);
     });
-    this.pollTimer = setInterval(() => {
+    this.libraryPollTimer = setInterval(() => {
       this.refreshLibrary().catch(() => undefined);
-      this.pollSessions().catch(() => undefined);
-    }, POLL_INTERVAL_MS);
+    }, this.libraryPollMs);
   }
 
   async stop(): Promise<void> {
-    if (this.pollTimer) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = undefined;
+    if (this.libraryPollTimer) {
+      clearInterval(this.libraryPollTimer);
+      this.libraryPollTimer = undefined;
     }
+    this.stopFallbackPoll();
     this.socket.stop();
     this.removeAllListeners();
   }
@@ -132,6 +157,22 @@ export class ServerHub extends EventEmitter {
   /** Returns the most recent snapshot for a Jellyfin client deviceId, if any. */
   getClientSnapshot(deviceId: string): ClientSnapshot | undefined {
     return this.lastSnapshots.get(deviceId);
+  }
+
+  // --- Fallback polling --------------------------------------------------
+
+  private startFallbackPoll(): void {
+    if (this.fallbackPollTimer) return;
+    this.fallbackPollTimer = setInterval(() => {
+      this.pollSessions().catch(() => undefined);
+    }, this.fallbackPollMs);
+  }
+
+  private stopFallbackPoll(): void {
+    if (this.fallbackPollTimer) {
+      clearInterval(this.fallbackPollTimer);
+      this.fallbackPollTimer = undefined;
+    }
   }
 
   // --- Sessions handling -------------------------------------------------
@@ -145,9 +186,55 @@ export class ServerHub extends EventEmitter {
     }
   }
 
+  /**
+   * Pure diff function — `prev` and `next` snapshot maps in, list of events
+   * to emit out. Kept static for testability.
+   */
+  static diffSessions(
+    prev: Map<string, ClientSnapshot>,
+    next: Map<string, ClientSnapshot>,
+  ): Array<{ deviceId: string; type: 'started' | 'paused' | 'resumed' | 'stopped' | 'changed' }> {
+    const out: Array<{
+      deviceId: string;
+      type: 'started' | 'paused' | 'resumed' | 'stopped' | 'changed';
+    }> = [];
+
+    for (const [deviceId, nx] of next) {
+      const pv = prev.get(deviceId);
+      const prevItem = pv?.nowPlaying;
+      const nextItem = nx.nowPlaying;
+
+      if (!prevItem && nextItem) {
+        out.push({ deviceId, type: 'started' });
+        out.push({ deviceId, type: 'changed' });
+        continue;
+      }
+      if (prevItem && !nextItem && nx.online) {
+        out.push({ deviceId, type: 'stopped' });
+        continue;
+      }
+      if (prevItem && nextItem) {
+        if (prevItem.Id !== nextItem.Id) {
+          out.push({ deviceId, type: 'changed' });
+          out.push({ deviceId, type: 'started' });
+        }
+        if (pv && pv.isPaused !== nx.isPaused) {
+          out.push({ deviceId, type: nx.isPaused ? 'paused' : 'resumed' });
+        }
+      }
+    }
+    for (const [deviceId, pv] of prev) {
+      if (!next.has(deviceId) && pv.nowPlaying) {
+        out.push({ deviceId, type: 'stopped' });
+      }
+    }
+    return out;
+  }
+
   private handleSessions(sessions: JellyfinSession[]): void {
     const seenDeviceIds = new Set<string>();
     const seenSessionKeys = new Set<string>();
+    const nextMap = new Map<string, ClientSnapshot>();
 
     for (const s of sessions) {
       if (!s.DeviceId) continue;
@@ -164,22 +251,48 @@ export class ServerHub extends EventEmitter {
       }
 
       const snapshot = this.toSnapshot(s);
-      const prev = this.lastSnapshots.get(s.DeviceId);
-      this.lastSnapshots.set(s.DeviceId, snapshot);
-      this.emit(`client:${s.DeviceId}:update`, snapshot);
-
-      this.detectPlaybackTransitions(prev, snapshot);
+      nextMap.set(s.DeviceId, snapshot);
     }
 
-    // Sessions that disappeared → emit stopped/offline.
+    // Devices that disappeared keep their last snapshot but become offline.
     for (const [deviceId, prev] of this.lastSnapshots) {
       if (seenDeviceIds.has(deviceId)) continue;
-      if (!prev.online && !prev.nowPlaying) continue;
-      const offline: ClientSnapshot = { ...prev, online: false, nowPlaying: undefined, isPaused: false };
-      this.lastSnapshots.set(deviceId, offline);
-      this.emit(`client:${deviceId}:update`, offline);
-      if (prev.nowPlaying) {
-        this.emit(`client:${deviceId}:playback_stopped`, offline, prev.nowPlaying);
+      const offline: ClientSnapshot = {
+        ...prev,
+        online: false,
+        isPaused: false,
+        nowPlaying: undefined,
+      };
+      nextMap.set(deviceId, offline);
+    }
+
+    const events = ServerHub.diffSessions(this.lastSnapshots, nextMap);
+
+    for (const [deviceId, snap] of nextMap) {
+      this.lastSnapshots.set(deviceId, snap);
+      this.emit(`client:${deviceId}:update`, snap);
+    }
+
+    for (const ev of events) {
+      const snap = nextMap.get(ev.deviceId);
+      if (!snap) continue;
+      const item = snap.nowPlaying ?? this.lastSnapshots.get(ev.deviceId)?.nowPlaying;
+      switch (ev.type) {
+        case 'started':
+          if (item) this.emit(`client:${ev.deviceId}:playback_started`, snap, item);
+          break;
+        case 'paused':
+          if (item) this.emit(`client:${ev.deviceId}:playback_paused`, snap, item);
+          break;
+        case 'resumed':
+          if (item) this.emit(`client:${ev.deviceId}:playback_resumed`, snap, item);
+          break;
+        case 'stopped':
+          this.emit(`client:${ev.deviceId}:playback_stopped`, snap, item);
+          break;
+        case 'changed':
+          if (item) this.emit(`client:${ev.deviceId}:now_playing_changed`, snap, item);
+          break;
       }
     }
 
@@ -188,6 +301,7 @@ export class ServerHub extends EventEmitter {
 
   private toSnapshot(s: JellyfinSession): ClientSnapshot {
     const ps = s.PlayState ?? {};
+    const item = s.NowPlayingItem;
     return {
       deviceId: s.DeviceId,
       sessionId: s.Id,
@@ -201,44 +315,15 @@ export class ServerHub extends EventEmitter {
       positionSeconds:
         typeof ps.PositionTicks === 'number' ? Math.round(ps.PositionTicks / TICKS_PER_SECOND) : undefined,
       durationSeconds:
-        typeof s.NowPlayingItem?.RunTimeTicks === 'number'
-          ? Math.round(s.NowPlayingItem.RunTimeTicks / TICKS_PER_SECOND)
+        typeof item?.RunTimeTicks === 'number'
+          ? Math.round(item.RunTimeTicks / TICKS_PER_SECOND)
           : undefined,
-      nowPlaying: s.NowPlayingItem,
+      nowPlaying: item,
+      posterUrl:
+        item && item.ImageTags?.Primary
+          ? this.client.imageUrl(item.Id, 'Primary', item.ImageTags.Primary, 600)
+          : undefined,
     };
-  }
-
-  private detectPlaybackTransitions(prev: ClientSnapshot | undefined, next: ClientSnapshot): void {
-    const ch = `client:${next.deviceId}`;
-
-    const prevItem = prev?.nowPlaying;
-    const nextItem = next.nowPlaying;
-
-    // Started: nothing playing before → something now.
-    if (!prevItem && nextItem) {
-      this.emit(`${ch}:playback_started`, next, nextItem);
-      this.emit(`${ch}:now_playing_changed`, next, nextItem);
-      return;
-    }
-
-    // Stopped: something playing before → nothing now.
-    if (prevItem && !nextItem) {
-      this.emit(`${ch}:playback_stopped`, next, prevItem);
-      return;
-    }
-
-    if (prevItem && nextItem) {
-      // Item changed (next episode etc.)
-      if (prevItem.Id !== nextItem.Id) {
-        this.emit(`${ch}:now_playing_changed`, next, nextItem);
-        this.emit(`${ch}:playback_started`, next, nextItem);
-      }
-      // Pause / resume
-      if (prev && prev.isPaused !== next.isPaused) {
-        if (next.isPaused) this.emit(`${ch}:playback_paused`, next, nextItem);
-        else this.emit(`${ch}:playback_resumed`, next, nextItem);
-      }
-    }
   }
 
   // --- Library handling --------------------------------------------------
@@ -247,7 +332,7 @@ export class ServerHub extends EventEmitter {
     try {
       const [counts, latest, folders] = await Promise.all([
         this.client.getItemCounts(this.opts.userId).catch(() => undefined),
-        this.client.getLatestItems({ userId: this.opts.userId, limit: 30 }).catch(() => []),
+        this.client.getLatestItems({ userId: this.opts.userId, limit: 50 }).catch(() => []),
         this.client.getMediaFolders().catch(() => ({ Items: [] as { Id: string; Name: string }[] })),
       ]);
 
@@ -272,40 +357,60 @@ export class ServerHub extends EventEmitter {
           }
         }
       }
-      this.lastItemIds = currentIds;
+
+      // Persist a bounded set so the cache doesn't grow unboundedly.
+      const merged = Array.from(new Set([...currentIds, ...this.lastItemIds])).slice(
+        0,
+        MAX_PERSISTED_IDS,
+      );
+      this.lastItemIds = new Set(merged);
       this.bootstrapped = true;
+      if (this.saveItemIds) {
+        try {
+          await this.saveItemIds(merged);
+        } catch (err) {
+          if (this.opts.debug) console.log('[ServerHub] saveItemIds failed', err);
+        }
+      }
     } catch (err) {
       if (this.opts.debug) console.log('[ServerHub] refreshLibrary failed', err);
     }
   }
 
   private handleScheduledTask(data: unknown): void {
-    const entry = data as { Key?: string; Status?: string; StartTimeUtc?: string; EndTimeUtc?: string } | undefined;
+    const entry = data as
+      | { Key?: string; Status?: string; StartTimeUtc?: string; EndTimeUtc?: string }
+      | undefined;
     if (!entry) return;
-    // Refresh-library scheduled task key is "RefreshLibrary".
     if (entry.Key && entry.Key.toLowerCase().includes('refreshlibrary')) {
+      let duration = 0;
       if (entry.StartTimeUtc && entry.EndTimeUtc) {
-        const duration = Math.max(
+        duration = Math.max(
           0,
           Math.round((Date.parse(entry.EndTimeUtc) - Date.parse(entry.StartTimeUtc)) / 1000),
         );
-        this.emit('library:scan_finished', duration);
       } else if (this.scanStartedAt) {
-        this.emit('library:scan_finished', Math.round((Date.now() - this.scanStartedAt) / 1000));
+        duration = Math.round((Date.now() - this.scanStartedAt) / 1000);
         this.scanStartedAt = undefined;
-      } else {
-        this.emit('library:scan_finished', 0);
       }
+      this.emit('library:scan_finished', duration);
+      // Refresh counts immediately after a scan.
+      this.refreshLibrary().catch(() => undefined);
     }
   }
 
   private handleActivityLog(entries: unknown[]): void {
     for (const raw of entries) {
-      const entry = raw as { Type?: string; UserId?: string; Name?: string; ShortOverview?: string } | undefined;
+      const entry = raw as
+        | { Type?: string; Name?: string; ShortOverview?: string; Severity?: string }
+        | undefined;
       if (!entry || !entry.Type) continue;
-      // Jellyfin emits a "SessionStarted" or similar activity entry when a user logs in.
-      // Real fan-out happens in handleSessions via knownSessionKeys diff; this hook is
-      // reserved for future use (e.g. surface playback errors as Homey events).
+
+      const type = entry.Type;
+      // Surface notable activity log events for trigger fan-out.
+      if (type === 'SessionStarted' || type === 'SessionEnded' || type === 'AuthenticationFailed') {
+        this.emit('activity', { type, name: entry.Name, overview: entry.ShortOverview });
+      }
     }
   }
 
@@ -316,5 +421,17 @@ export class ServerHub extends EventEmitter {
 
   getLastCounts(): ItemCounts | undefined {
     return this.lastCounts;
+  }
+
+  /** Returns currently online sessions with NowPlayingItem (used by widget API). */
+  async getActiveStreams(): Promise<ClientSnapshot[]> {
+    try {
+      const sessions = await this.client.getSessions();
+      return sessions
+        .filter((s) => !!s.NowPlayingItem)
+        .map((s) => this.toSnapshot(s));
+    } catch {
+      return Array.from(this.lastSnapshots.values()).filter((s) => s.nowPlaying);
+    }
   }
 }

@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./.testbuild",
+    "noEmit": true
+  },
+  "include": ["app.ts", "api.ts", "drivers/**/*.ts", "lib/**/*.ts", "test/**/*.ts"]
+}

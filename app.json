@@ -834,6 +834,9 @@
         "speaker_playing",
         "speaker_next",
         "speaker_prev",
+        "speaker_track",
+        "speaker_artist",
+        "speaker_album",
         "volume_set",
         "volume_mute",
         "media_title",
@@ -869,6 +872,32 @@
           "template": "add_devices"
         }
       ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Behavior",
+            "de": "Verhalten"
+          },
+          "children": [
+            {
+              "id": "stoppedDebounceMs",
+              "type": "number",
+              "label": {
+                "en": "Stop debounce (ms)",
+                "de": "Stop-Entprellzeit (ms)"
+              },
+              "hint": {
+                "en": "Wait this long after a session disappears before firing the Stopped trigger. Helps with brief network blips.",
+                "de": "So lange warten, nachdem eine Session verschwindet, bevor der Stop-Trigger feuert. Hilft gegen kurze Netzwerkaussetzer."
+              },
+              "value": 4000,
+              "min": 0,
+              "max": 30000
+            }
+          ]
+        }
+      ],
       "id": "client"
     },
     {
@@ -900,6 +929,92 @@
           "id": "credentials"
         }
       ],
+      "repair": [
+        {
+          "id": "credentials"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Connection",
+            "de": "Verbindung"
+          },
+          "children": [
+            {
+              "id": "baseUrl",
+              "type": "text",
+              "label": {
+                "en": "Server URL",
+                "de": "Server-URL"
+              },
+              "hint": {
+                "en": "e.g. http://192.168.1.10:8096",
+                "de": "z. B. http://192.168.1.10:8096"
+              },
+              "value": ""
+            },
+            {
+              "id": "apiKey",
+              "type": "password",
+              "label": {
+                "en": "API Key",
+                "de": "API-Schlüssel"
+              },
+              "value": ""
+            },
+            {
+              "id": "userName",
+              "type": "text",
+              "label": {
+                "en": "Default user",
+                "de": "Standard-Benutzer"
+              },
+              "hint": {
+                "en": "User whose latest items / counts are reported.",
+                "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden."
+              },
+              "value": ""
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Polling",
+            "de": "Polling"
+          },
+          "children": [
+            {
+              "id": "libraryPollMinutes",
+              "type": "number",
+              "label": {
+                "en": "Library refresh (min)",
+                "de": "Bibliotheks-Refresh (min)"
+              },
+              "value": 5,
+              "min": 1,
+              "max": 120
+            },
+            {
+              "id": "fallbackPollSeconds",
+              "type": "number",
+              "label": {
+                "en": "Session fallback poll (s)",
+                "de": "Session-Fallback-Polling (s)"
+              },
+              "hint": {
+                "en": "How often to poll /Sessions when the WebSocket is disconnected.",
+                "de": "Wie oft /Sessions abgefragt werden, wenn die WebSocket-Verbindung weg ist."
+              },
+              "value": 30,
+              "min": 5,
+              "max": 300
+            }
+          ]
+        }
+      ],
       "id": "server"
     }
   ],
@@ -911,9 +1026,47 @@
     "getOverview": {
       "method": "GET",
       "path": "/widget/overview"
+    },
+    "getNowPlaying": {
+      "method": "GET",
+      "path": "/widget/now_playing"
+    },
+    "togglePlayback": {
+      "method": "POST",
+      "path": "/widget/playback/toggle"
     }
   },
   "widgets": {
+    "now_playing": {
+      "name": {
+        "en": "Now playing",
+        "de": "Läuft gerade"
+      },
+      "height": 200,
+      "settings": [
+        {
+          "id": "refreshSeconds",
+          "type": "number",
+          "title": {
+            "en": "Refresh interval (s)",
+            "de": "Aktualisierung (s)"
+          },
+          "value": 3,
+          "min": 1,
+          "max": 30
+        }
+      ],
+      "api": {
+        "getNowPlaying": {
+          "method": "GET",
+          "path": "/widget/now_playing"
+        },
+        "togglePlayback": {
+          "method": "POST",
+          "path": "/widget/playback/toggle"
+        }
+      }
+    },
     "server_overview": {
       "name": {
         "en": "Server overview",
@@ -921,16 +1074,6 @@
       },
       "height": 280,
       "settings": [
-        {
-          "id": "serverId",
-          "type": "dropdown",
-          "title": {
-            "en": "Server",
-            "de": "Server"
-          },
-          "value": "",
-          "values": []
-        },
         {
           "id": "refreshSeconds",
           "type": "number",
@@ -944,10 +1087,6 @@
         }
       ],
       "api": {
-        "getServers": {
-          "method": "GET",
-          "path": "/widget/servers"
-        },
         "getOverview": {
           "method": "GET",
           "path": "/widget/overview"

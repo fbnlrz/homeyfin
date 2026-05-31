@@ -6,6 +6,7 @@ type HomeyRef = HomeyfinApp['homey'];
 interface ApiArgs {
   homey: HomeyRef;
   query?: Record<string, string>;
+  body?: Record<string, unknown>;
 }
 
 interface ServerSummary {
@@ -35,11 +36,17 @@ interface OverviewResponse {
   pausedCount: number;
 }
 
+interface NowPlayingResponse {
+  hasStream: boolean;
+  stream?: OverviewStream;
+  server?: ServerSummary;
+}
+
 function getApp(homey: HomeyRef): HomeyfinApp {
   return homey.app as HomeyfinApp;
 }
 
-function listServerDevices(homey: HomeyRef): Array<{ id: string; name: string; baseUrl: string }> {
+function listServerDevices(homey: HomeyRef): ServerSummary[] {
   const driver = homey.drivers.getDriver('server');
   return driver.getDevices().map((d: any) => {
     const id = d.getData().id.replace(/^server:/, '');
@@ -48,7 +55,7 @@ function listServerDevices(homey: HomeyRef): Array<{ id: string; name: string; b
   });
 }
 
-function snapshotToStream(snap: ClientSnapshot, posterUrl: string): OverviewStream {
+function snapshotToStream(snap: ClientSnapshot): OverviewStream {
   let title = '';
   let subtitle = '';
   const item = snap.nowPlaying;
@@ -72,8 +79,13 @@ function snapshotToStream(snap: ClientSnapshot, posterUrl: string): OverviewStre
     isPaused: snap.isPaused,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterUrl,
+    posterUrl: snap.posterUrl ?? '',
   };
+}
+
+function selectServer(homey: HomeyRef, requestedId: string | undefined): ServerSummary | null {
+  const servers = listServerDevices(homey);
+  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
 }
 
 module.exports = {
@@ -83,10 +95,7 @@ module.exports = {
 
   async getOverview({ homey, query }: ApiArgs): Promise<OverviewResponse> {
     const app = getApp(homey);
-    const servers = listServerDevices(homey);
-    const requestedId = query?.serverId;
-    const server =
-      (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
+    const server = selectServer(homey, query?.serverId);
 
     if (!server) {
       return {
@@ -112,45 +121,13 @@ module.exports = {
     }
 
     const counts = hub.getLastCounts();
-    const sessions = await hub.client.getSessions().catch(() => []);
-    const streams: OverviewStream[] = [];
-    let active = 0;
-    let paused = 0;
-
-    for (const s of sessions) {
-      if (!s.NowPlayingItem) continue;
-      const snap: ClientSnapshot = {
-        deviceId: s.DeviceId,
-        sessionId: s.Id,
-        clientName: s.Client,
-        deviceName: s.DeviceName,
-        userName: s.UserName,
-        online: true,
-        isPaused: s.PlayState?.IsPaused === true,
-        isMuted: s.PlayState?.IsMuted === true,
-        volumeLevel: s.PlayState?.VolumeLevel,
-        positionSeconds:
-          typeof s.PlayState?.PositionTicks === 'number'
-            ? Math.round(s.PlayState.PositionTicks / 10_000_000)
-            : 0,
-        durationSeconds:
-          typeof s.NowPlayingItem.RunTimeTicks === 'number'
-            ? Math.round(s.NowPlayingItem.RunTimeTicks / 10_000_000)
-            : 0,
-        nowPlaying: s.NowPlayingItem,
-      };
-      if (snap.isPaused) paused += 1;
-      else active += 1;
-      const posterUrl =
-        s.NowPlayingItem.ImageTags?.Primary
-          ? hub.client.imageUrl(s.NowPlayingItem.Id, 'Primary', s.NowPlayingItem.ImageTags.Primary, 300)
-          : '';
-      streams.push(snapshotToStream(snap, posterUrl));
-    }
+    const streams = (await hub.getActiveStreams()).map(snapshotToStream);
+    const active = streams.filter((s) => !s.isPaused).length;
+    const paused = streams.filter((s) => s.isPaused).length;
 
     return {
       server,
-      online: true,
+      online: hub.isSocketOpen(),
       counts: {
         movies: counts?.MovieCount ?? 0,
         series: counts?.SeriesCount ?? 0,
@@ -160,5 +137,45 @@ module.exports = {
       activeCount: active,
       pausedCount: paused,
     };
+  },
+
+  async getNowPlaying({ homey, query }: ApiArgs): Promise<NowPlayingResponse> {
+    const app = getApp(homey);
+    const deviceId = query?.deviceId;
+    const server = selectServer(homey, query?.serverId);
+    if (!server) return { hasStream: false };
+    const hub = app.getHub(server.id);
+    if (!hub) return { hasStream: false, server };
+
+    let snap: ClientSnapshot | undefined;
+    if (deviceId) {
+      snap = hub.getClientSnapshot(deviceId);
+    } else {
+      const streams = await hub.getActiveStreams();
+      snap = streams[0];
+    }
+    if (!snap || !snap.nowPlaying) return { hasStream: false, server };
+    return { hasStream: true, server, stream: snapshotToStream(snap) };
+  },
+
+  async togglePlayback({ homey, body }: ApiArgs): Promise<{ ok: boolean }> {
+    const app = getApp(homey);
+    const deviceId = (body?.deviceId as string | undefined) || '';
+    const serverId = (body?.serverId as string | undefined) || '';
+    const server = selectServer(homey, serverId);
+    if (!server) throw new Error('No server');
+    const hub = app.getHub(server.id);
+    if (!hub) throw new Error('Hub not connected');
+
+    let snap: ClientSnapshot | undefined;
+    if (deviceId) {
+      snap = hub.getClientSnapshot(deviceId);
+    } else {
+      const streams = await hub.getActiveStreams();
+      snap = streams[0];
+    }
+    if (!snap?.sessionId) throw new Error('No active session');
+    await hub.client.sendPlaystate(snap.sessionId, snap.isPaused ? 'Unpause' : 'Pause');
+    return { ok: true };
   },
 };

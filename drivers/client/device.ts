@@ -10,10 +10,21 @@ interface ClientStore {
   deviceName: string;
 }
 
+interface ClientSettings {
+  stoppedDebounceMs?: number;
+}
+
+const POSITION_TICK_MS = 1000;
+
 export default class JellyfinClientDevice extends Homey.Device {
   private hub?: ServerHub;
   private offCallbacks: Array<() => void> = [];
   private store!: ClientStore;
+  private positionTimer?: NodeJS.Timeout;
+  private stoppedDebounceTimer?: NodeJS.Timeout;
+  private pendingStop?: { snap: ClientSnapshot; item: NowPlayingItem | undefined };
+  private albumArtImage?: Homey.Image;
+  private lastArtworkUrl = '';
 
   async onInit(): Promise<void> {
     this.store = this.getStore() as ClientStore;
@@ -21,15 +32,16 @@ export default class JellyfinClientDevice extends Homey.Device {
 
     this.hub = app.getHub(this.store.serverId);
     if (!this.hub) {
-      this.setUnavailable(this.homey.__('Server not paired') ?? 'Server not paired').catch(() => undefined);
-      // Retry shortly in case server device init is still running.
+      this.setUnavailable('Jellyfin server not connected yet').catch(() => undefined);
       this.homey.setTimeout(() => this.onInit().catch((e) => this.error(e)), 5_000);
       return;
     }
 
+    await this.setupAlbumArt().catch((err) => this.error('setupAlbumArt failed', (err as Error).message));
     this.registerCapabilityHandlers();
     this.registerHubHandlers();
     this.registerFlowHandlers();
+    this.startPositionTicker();
 
     const snap = this.hub.getClientSnapshot(this.store.deviceId);
     if (snap) await this.applySnapshot(snap);
@@ -39,25 +51,64 @@ export default class JellyfinClientDevice extends Homey.Device {
   }
 
   async onDeleted(): Promise<void> {
-    for (const off of this.offCallbacks) off();
-    this.offCallbacks = [];
+    this.teardown();
   }
 
-  // --- Hub event wiring ---
+  async onSettings(): Promise<void> {
+    // No restart needed; debounce setting is read on the fly.
+  }
+
+  private teardown(): void {
+    for (const off of this.offCallbacks) off();
+    this.offCallbacks = [];
+    if (this.positionTimer) {
+      clearInterval(this.positionTimer);
+      this.positionTimer = undefined;
+    }
+    if (this.stoppedDebounceTimer) {
+      clearTimeout(this.stoppedDebounceTimer);
+      this.stoppedDebounceTimer = undefined;
+    }
+  }
+
+  private async setupAlbumArt(): Promise<void> {
+    this.albumArtImage = await this.homey.images.createImage();
+    (this.albumArtImage as any).setUrl('');
+    await this.setAlbumArtImage(this.albumArtImage).catch(() => undefined);
+  }
+
+  // --- Position ticker ---------------------------------------------------
+
+  private startPositionTicker(): void {
+    if (this.positionTimer) return;
+    this.positionTimer = setInterval(() => {
+      const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+      if (!snap || !snap.online || snap.isPaused || !snap.nowPlaying) return;
+      const current = (this.getCapabilityValue('media_position') as number | null) ?? 0;
+      const duration = snap.durationSeconds ?? 0;
+      const next = duration > 0 ? Math.min(current + 1, duration) : current + 1;
+      this.safeSet('media_position', next).catch(() => undefined);
+    }, POSITION_TICK_MS);
+  }
+
+  // --- Hub event wiring --------------------------------------------------
 
   private registerHubHandlers(): void {
     if (!this.hub) return;
     const deviceId = this.store.deviceId;
 
-    const onUpdate = (snap: ClientSnapshot) => this.applySnapshot(snap).catch((e) => this.error(e));
-    const onStarted = (snap: ClientSnapshot, item: NowPlayingItem) =>
+    const onUpdate = (snap: ClientSnapshot) =>
+      this.applySnapshot(snap).catch((e) => this.error(e));
+    const onStarted = (snap: ClientSnapshot, item: NowPlayingItem) => {
+      this.cancelPendingStop();
       this.fireMediaTrigger('playback_started', item, snap);
+    };
     const onPaused = (snap: ClientSnapshot, item: NowPlayingItem) =>
       this.fireMediaTrigger('playback_paused', item, snap);
     const onResumed = (snap: ClientSnapshot, item: NowPlayingItem) =>
       this.fireMediaTrigger('playback_resumed', item, snap);
-    const onStopped = (snap: ClientSnapshot, item: NowPlayingItem) =>
-      this.fireMediaTrigger('playback_stopped', item, snap);
+    const onStopped = (snap: ClientSnapshot, item: NowPlayingItem | undefined) =>
+      this.scheduleStop(snap, item);
     const onChanged = (snap: ClientSnapshot, item: NowPlayingItem) =>
       this.fireMediaTrigger('now_playing_changed', item, snap);
 
@@ -79,7 +130,38 @@ export default class JellyfinClientDevice extends Homey.Device {
     );
   }
 
-  // --- Capability listeners (Homey → Jellyfin) ---
+  private scheduleStop(snap: ClientSnapshot, item: NowPlayingItem | undefined): void {
+    const settings = this.getSettings() as ClientSettings;
+    const delay = Math.max(0, settings.stoppedDebounceMs ?? 4000);
+    this.cancelPendingStop();
+    this.pendingStop = { snap, item };
+    if (delay === 0) {
+      this.firePendingStop();
+      return;
+    }
+    this.stoppedDebounceTimer = this.homey.setTimeout(() => this.firePendingStop(), delay);
+  }
+
+  private cancelPendingStop(): void {
+    if (this.stoppedDebounceTimer) {
+      clearTimeout(this.stoppedDebounceTimer);
+      this.stoppedDebounceTimer = undefined;
+    }
+    this.pendingStop = undefined;
+  }
+
+  private firePendingStop(): void {
+    if (!this.pendingStop) return;
+    const { snap, item } = this.pendingStop;
+    this.pendingStop = undefined;
+    this.stoppedDebounceTimer = undefined;
+    // Re-check: if a new session for this device exists, suppress the stop.
+    const current = this.hub?.getClientSnapshot(this.store.deviceId);
+    if (current?.nowPlaying) return;
+    if (item) this.fireMediaTrigger('playback_stopped', item, snap);
+  }
+
+  // --- Capability listeners (Homey → Jellyfin) ---------------------------
 
   private registerCapabilityHandlers(): void {
     this.registerCapabilityListener('speaker_playing', async (value: boolean) => {
@@ -108,12 +190,12 @@ export default class JellyfinClientDevice extends Homey.Device {
   private async requireSessionId(): Promise<string> {
     const snap = this.hub?.getClientSnapshot(this.store.deviceId);
     if (!snap || !snap.online || !snap.sessionId) {
-      throw new Error(this.homey.__('Client is offline') ?? 'Client is offline');
+      throw new Error('Client is offline');
     }
     return snap.sessionId;
   }
 
-  // --- Flow registration ---
+  // --- Flow registration -------------------------------------------------
 
   private registerFlowHandlers(): void {
     this.homey.flow
@@ -143,7 +225,7 @@ export default class JellyfinClientDevice extends Homey.Device {
       });
   }
 
-  // --- Snapshot application ---
+  // --- Snapshot application ----------------------------------------------
 
   private async applySnapshot(snap: ClientSnapshot): Promise<void> {
     await this.safeSet('client_online', snap.online);
@@ -156,15 +238,43 @@ export default class JellyfinClientDevice extends Homey.Device {
     }
     await this.safeSet('volume_mute', snap.isMuted);
 
-    if (snap.nowPlaying) {
-      await this.safeSet('media_title', this.titleFor(snap.nowPlaying));
-      await this.safeSet('media_subtitle', this.subtitleFor(snap.nowPlaying));
+    const item = snap.nowPlaying;
+    if (item) {
+      await this.safeSet('media_title', this.titleFor(item));
+      await this.safeSet('media_subtitle', this.subtitleFor(item));
+      await this.safeSet('speaker_track', item.Name ?? '');
+      await this.safeSet('speaker_artist', item.SeriesName ?? item.Type ?? '');
+      await this.safeSet(
+        'speaker_album',
+        item.SeasonName ?? (item.ProductionYear ? String(item.ProductionYear) : ''),
+      );
     } else {
       await this.safeSet('media_title', '');
       await this.safeSet('media_subtitle', '');
+      await this.safeSet('speaker_track', '');
+      await this.safeSet('speaker_artist', '');
+      await this.safeSet('speaker_album', '');
     }
-    await this.safeSet('media_position', snap.positionSeconds ?? 0);
+
+    // Snapshot wins over the local ticker — keep them in sync on every update.
+    if (typeof snap.positionSeconds === 'number') {
+      await this.safeSet('media_position', snap.positionSeconds);
+    }
     await this.safeSet('media_duration', snap.durationSeconds ?? 0);
+
+    await this.updateAlbumArt(snap.posterUrl ?? '');
+  }
+
+  private async updateAlbumArt(url: string): Promise<void> {
+    if (url === this.lastArtworkUrl) return;
+    this.lastArtworkUrl = url;
+    if (!this.albumArtImage) return;
+    try {
+      (this.albumArtImage as any).setUrl(url || '');
+      await this.albumArtImage.update();
+    } catch (err) {
+      this.error('updateAlbumArt failed', (err as Error).message);
+    }
   }
 
   private titleFor(item: NowPlayingItem): string {

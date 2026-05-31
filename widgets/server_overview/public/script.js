@@ -3,7 +3,6 @@
 function onHomeyReady(Homey) {
   const settings = Homey.getSettings() || {};
   const refreshSeconds = Math.max(2, Math.min(60, Number(settings.refreshSeconds) || 5));
-  const serverId = settings.serverId || '';
 
   const $ = (id) => document.getElementById(id);
 
@@ -126,7 +125,7 @@ function onHomeyReady(Homey) {
 
   async function refresh() {
     try {
-      const data = await Homey.api('GET', '/widget/overview' + (serverId ? `?serverId=${encodeURIComponent(serverId)}` : ''));
+      const data = await Homey.api('GET', '/widget/overview');
       render(data);
     } catch (err) {
       showError(err && err.message ? err.message : String(err));

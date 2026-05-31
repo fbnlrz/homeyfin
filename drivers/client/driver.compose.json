@@ -5,6 +5,9 @@
     "speaker_playing",
     "speaker_next",
     "speaker_prev",
+    "speaker_track",
+    "speaker_artist",
+    "speaker_album",
     "volume_set",
     "volume_mute",
     "media_title",
@@ -24,5 +27,25 @@
     { "id": "select_server" },
     { "id": "list_devices", "template": "list_devices", "navigation": { "next": "add_devices" } },
     { "id": "add_devices", "template": "add_devices" }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": { "en": "Behavior", "de": "Verhalten" },
+      "children": [
+        {
+          "id": "stoppedDebounceMs",
+          "type": "number",
+          "label": { "en": "Stop debounce (ms)", "de": "Stop-Entprellzeit (ms)" },
+          "hint": {
+            "en": "Wait this long after a session disappears before firing the Stopped trigger. Helps with brief network blips.",
+            "de": "So lange warten, nachdem eine Session verschwindet, bevor der Stop-Trigger feuert. Hilft gegen kurze Netzwerkaussetzer."
+          },
+          "value": 4000,
+          "min": 0,
+          "max": 30000
+        }
+      ]
+    }
   ]
 }
