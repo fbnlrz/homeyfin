@@ -5,7 +5,7 @@
     "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=client" },
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
     {
       "name": "header",
       "type": "text",

@@ -27,7 +27,7 @@
                        + '<span class="homey-list-item-subtitle">' + s.baseUrl + '</span>';
           li.addEventListener('click', async () => {
             await Homey.emit('server_selected', s.id);
-            Homey.showView('list_devices');
+            Homey.showView('list_users');
           });
           ul.appendChild(li);
         }

@@ -30,6 +30,7 @@ export interface ClientSnapshot {
   sessionId: string;
   clientName: string;
   deviceName: string;
+  userId?: string;
   userName?: string;
   online: boolean;
   isPaused: boolean;
@@ -39,6 +40,7 @@ export interface ClientSnapshot {
   durationSeconds?: number;
   nowPlaying?: NowPlayingItem;
   posterUrl?: string;
+  lastActivityMs?: number;
 }
 
 export interface NewItemEvent {
@@ -61,6 +63,7 @@ export class ServerHub extends EventEmitter {
   private socket: JellyfinSocket;
 
   private lastSnapshots = new Map<string, ClientSnapshot>();
+  private lastUserSnapshots = new Map<string, ClientSnapshot>();
   private lastItemIds = new Set<string>();
   private bootstrapped = false;
   private lastCounts?: ItemCounts;
@@ -157,6 +160,29 @@ export class ServerHub extends EventEmitter {
   /** Returns the most recent snapshot for a Jellyfin client deviceId, if any. */
   getClientSnapshot(deviceId: string): ClientSnapshot | undefined {
     return this.lastSnapshots.get(deviceId);
+  }
+
+  /**
+   * Returns the most recent "active" snapshot for a Jellyfin user — the
+   * session with NowPlayingItem; if none, the most-recently-active one.
+   * Used by user-device drivers.
+   */
+  getUserSnapshot(userId: string): ClientSnapshot | undefined {
+    return this.lastUserSnapshots.get(userId);
+  }
+
+  /** Picks the most active snapshot for a user from a list of candidates. */
+  static pickActiveSnapshot(snaps: ClientSnapshot[]): ClientSnapshot | undefined {
+    if (snaps.length === 0) return undefined;
+    return [...snaps].sort((a, b) => {
+      const aHas = a.nowPlaying ? 1 : 0;
+      const bHas = b.nowPlaying ? 1 : 0;
+      if (aHas !== bHas) return bHas - aHas;
+      const aOnline = a.online ? 1 : 0;
+      const bOnline = b.online ? 1 : 0;
+      if (aOnline !== bOnline) return bOnline - aOnline;
+      return (b.lastActivityMs ?? 0) - (a.lastActivityMs ?? 0);
+    })[0];
   }
 
   // --- Fallback polling --------------------------------------------------
@@ -296,6 +322,60 @@ export class ServerHub extends EventEmitter {
       }
     }
 
+    // Build per-user "active" snapshot map and diff it the same way.
+    const byUser = new Map<string, ClientSnapshot[]>();
+    for (const snap of nextMap.values()) {
+      if (!snap.userId) continue;
+      const list = byUser.get(snap.userId) ?? [];
+      list.push(snap);
+      byUser.set(snap.userId, list);
+    }
+    const nextUserMap = new Map<string, ClientSnapshot>();
+    for (const [userId, list] of byUser) {
+      const active = ServerHub.pickActiveSnapshot(list);
+      if (active) nextUserMap.set(userId, active);
+    }
+    // Users that disappeared: keep their last snapshot but mark offline so the diff
+    // emits a stopped event exactly once.
+    for (const [userId, prev] of this.lastUserSnapshots) {
+      if (nextUserMap.has(userId)) continue;
+      const offline: ClientSnapshot = {
+        ...prev,
+        online: false,
+        isPaused: false,
+        nowPlaying: undefined,
+      };
+      nextUserMap.set(userId, offline);
+    }
+
+    const userEvents = ServerHub.diffSessions(this.lastUserSnapshots, nextUserMap);
+    for (const [userId, snap] of nextUserMap) {
+      this.lastUserSnapshots.set(userId, snap);
+      this.emit(`user:${userId}:update`, snap);
+    }
+    for (const ev of userEvents) {
+      const snap = nextUserMap.get(ev.deviceId); // deviceId field reused for the key
+      if (!snap) continue;
+      const item = snap.nowPlaying ?? this.lastUserSnapshots.get(ev.deviceId)?.nowPlaying;
+      switch (ev.type) {
+        case 'started':
+          if (item) this.emit(`user:${ev.deviceId}:playback_started`, snap, item);
+          break;
+        case 'paused':
+          if (item) this.emit(`user:${ev.deviceId}:playback_paused`, snap, item);
+          break;
+        case 'resumed':
+          if (item) this.emit(`user:${ev.deviceId}:playback_resumed`, snap, item);
+          break;
+        case 'stopped':
+          this.emit(`user:${ev.deviceId}:playback_stopped`, snap, item);
+          break;
+        case 'changed':
+          if (item) this.emit(`user:${ev.deviceId}:now_playing_changed`, snap, item);
+          break;
+      }
+    }
+
     this.knownSessionKeys = seenSessionKeys;
   }
 
@@ -307,6 +387,7 @@ export class ServerHub extends EventEmitter {
       sessionId: s.Id,
       clientName: s.Client,
       deviceName: s.DeviceName,
+      userId: s.UserId,
       userName: s.UserName,
       online: true,
       isPaused: ps.IsPaused === true,
@@ -323,6 +404,7 @@ export class ServerHub extends EventEmitter {
         item && item.ImageTags?.Primary
           ? this.client.imageUrl(item.Id, 'Primary', item.ImageTags.Primary, 600)
           : undefined,
+      lastActivityMs: s.LastActivityDate ? Date.parse(s.LastActivityDate) : undefined,
     };
   }
 

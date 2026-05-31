@@ -3,23 +3,22 @@ import type HomeyfinApp from '../../app';
 import { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
 import type { NowPlayingItem } from '../../lib/JellyfinClient';
 
-interface ClientStore {
+interface UserStore {
   serverId: string;
-  deviceId: string;
-  clientName: string;
-  deviceName: string;
+  userId: string;
+  userName: string;
 }
 
-interface ClientSettings {
+interface UserSettings {
   stoppedDebounceMs?: number;
 }
 
 const POSITION_TICK_MS = 1000;
 
-export default class JellyfinClientDevice extends Homey.Device {
+export default class JellyfinUserDevice extends Homey.Device {
   private hub?: ServerHub;
   private offCallbacks: Array<() => void> = [];
-  private store!: ClientStore;
+  private store!: UserStore;
   private positionTimer?: NodeJS.Timeout;
   private stoppedDebounceTimer?: NodeJS.Timeout;
   private pendingStop?: { snap: ClientSnapshot; item: NowPlayingItem | undefined };
@@ -27,7 +26,7 @@ export default class JellyfinClientDevice extends Homey.Device {
   private lastArtworkUrl = '';
 
   async onInit(): Promise<void> {
-    this.store = this.getStore() as ClientStore;
+    this.store = this.getStore() as UserStore;
     const app = this.homey.app as HomeyfinApp;
 
     this.hub = app.getHub(this.store.serverId);
@@ -43,7 +42,7 @@ export default class JellyfinClientDevice extends Homey.Device {
     this.registerFlowHandlers();
     this.startPositionTicker();
 
-    const snap = this.hub.getClientSnapshot(this.store.deviceId);
+    const snap = this.hub.getUserSnapshot(this.store.userId);
     if (snap) await this.applySnapshot(snap);
     else await this.safeSet('client_online', false);
 
@@ -73,9 +72,6 @@ export default class JellyfinClientDevice extends Homey.Device {
 
   private async setupAlbumArt(): Promise<void> {
     this.albumArtImage = await this.homey.images.createImage();
-    // setStream is invoked lazily by Homey whenever the image is requested,
-    // so we can refer to this.lastArtworkUrl which gets updated on each
-    // snapshot. This works for HTTP URLs (Homey's setUrl only accepts HTTPS).
     (this.albumArtImage as any).setStream(async (stream: NodeJS.WritableStream) => {
       const url = this.lastArtworkUrl;
       if (!url) {
@@ -88,7 +84,6 @@ export default class JellyfinClientDevice extends Homey.Device {
           stream.end();
           return;
         }
-        // Web ReadableStream → AsyncIterable → write to Node stream.
         for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
           stream.write(chunk);
         }
@@ -106,7 +101,7 @@ export default class JellyfinClientDevice extends Homey.Device {
   private startPositionTicker(): void {
     if (this.positionTimer) return;
     this.positionTimer = setInterval(() => {
-      const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+      const snap = this.hub?.getUserSnapshot(this.store.userId);
       if (!snap || !snap.online || snap.isPaused || !snap.nowPlaying) return;
       const current = (this.getCapabilityValue('media_position') as number | null) ?? 0;
       const duration = snap.durationSeconds ?? 0;
@@ -119,7 +114,7 @@ export default class JellyfinClientDevice extends Homey.Device {
 
   private registerHubHandlers(): void {
     if (!this.hub) return;
-    const deviceId = this.store.deviceId;
+    const userId = this.store.userId;
 
     const onUpdate = (snap: ClientSnapshot) =>
       this.applySnapshot(snap).catch((e) => this.error(e));
@@ -136,7 +131,7 @@ export default class JellyfinClientDevice extends Homey.Device {
     const onChanged = (snap: ClientSnapshot, item: NowPlayingItem) =>
       this.fireMediaTrigger('now_playing_changed', item, snap);
 
-    const ev = (suffix: string) => `client:${deviceId}:${suffix}`;
+    const ev = (suffix: string) => `user:${userId}:${suffix}`;
     this.hub.on(ev('update'), onUpdate);
     this.hub.on(ev('playback_started'), onStarted);
     this.hub.on(ev('playback_paused'), onPaused);
@@ -155,7 +150,7 @@ export default class JellyfinClientDevice extends Homey.Device {
   }
 
   private scheduleStop(snap: ClientSnapshot, item: NowPlayingItem | undefined): void {
-    const settings = this.getSettings() as ClientSettings;
+    const settings = this.getSettings() as UserSettings;
     const delay = Math.max(0, settings.stoppedDebounceMs ?? 4000);
     this.cancelPendingStop();
     this.pendingStop = { snap, item };
@@ -179,8 +174,7 @@ export default class JellyfinClientDevice extends Homey.Device {
     const { snap, item } = this.pendingStop;
     this.pendingStop = undefined;
     this.stoppedDebounceTimer = undefined;
-    // Re-check: if a new session for this device exists, suppress the stop.
-    const current = this.hub?.getClientSnapshot(this.store.deviceId);
+    const current = this.hub?.getUserSnapshot(this.store.userId);
     if (current?.nowPlaying) return;
     if (item) this.fireMediaTrigger('playback_stopped', item, snap);
   }
@@ -212,9 +206,9 @@ export default class JellyfinClientDevice extends Homey.Device {
   }
 
   private async requireSessionId(): Promise<string> {
-    const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+    const snap = this.hub?.getUserSnapshot(this.store.userId);
     if (!snap || !snap.online || !snap.sessionId) {
-      throw new Error('Client is offline');
+      throw new Error('User has no active Jellyfin session right now');
     }
     return snap.sessionId;
   }
@@ -225,14 +219,14 @@ export default class JellyfinClientDevice extends Homey.Device {
     this.homey.flow
       .getConditionCard('is_playing')
       .registerRunListener(async () => {
-        const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+        const snap = this.hub?.getUserSnapshot(this.store.userId);
         return Boolean(snap?.nowPlaying && !snap.isPaused);
       });
 
     this.homey.flow
       .getConditionCard('media_type_is')
       .registerRunListener(async (args: { media_type: string }) => {
-        const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+        const snap = this.hub?.getUserSnapshot(this.store.userId);
         return snap?.nowPlaying?.Type === args.media_type;
       });
 
@@ -280,7 +274,6 @@ export default class JellyfinClientDevice extends Homey.Device {
       await this.safeSet('speaker_album', '');
     }
 
-    // Snapshot wins over the local ticker — keep them in sync on every update.
     if (typeof snap.positionSeconds === 'number') {
       await this.safeSet('media_position', snap.positionSeconds);
     }
@@ -327,7 +320,7 @@ export default class JellyfinClientDevice extends Homey.Device {
       season: typeof item.ParentIndexNumber === 'number' ? item.ParentIndexNumber : 0,
       episode: typeof item.IndexNumber === 'number' ? item.IndexNumber : 0,
       runtime: snap.durationSeconds ?? 0,
-      user: snap.userName ?? '',
+      user: snap.userName ?? this.store.userName,
     };
     try {
       await this.homey.flow.getDeviceTriggerCard(cardId).trigger(this, tokens, undefined);
@@ -346,4 +339,4 @@ export default class JellyfinClientDevice extends Homey.Device {
   }
 }
 
-module.exports = JellyfinClientDevice;
+module.exports = JellyfinUserDevice;

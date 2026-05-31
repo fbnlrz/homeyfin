@@ -1,6 +1,6 @@
 {
   "title": { "en": "Playback started", "de": "Wiedergabe gestartet" },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=client" }],
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }],
   "tokens": [
     { "name": "title",   "type": "string", "title": { "en": "Title",   "de": "Titel" } },
     { "name": "type",    "type": "string", "title": { "en": "Type",    "de": "Typ" } },

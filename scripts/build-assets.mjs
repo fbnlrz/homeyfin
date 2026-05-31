@@ -184,9 +184,9 @@ const tasks = [
   { file: 'drivers/server/assets/images/small.png',  w: 75,   h: 75,   fn: iconPixel },
   { file: 'drivers/server/assets/images/large.png',  w: 500,  h: 500,  fn: iconPixel },
   { file: 'drivers/server/assets/images/xlarge.png', w: 1000, h: 1000, fn: iconPixel },
-  { file: 'drivers/client/assets/images/small.png',  w: 75,   h: 75,   fn: iconPixel },
-  { file: 'drivers/client/assets/images/large.png',  w: 500,  h: 500,  fn: iconPixel },
-  { file: 'drivers/client/assets/images/xlarge.png', w: 1000, h: 1000, fn: iconPixel },
+  { file: 'drivers/user/assets/images/small.png',    w: 75,   h: 75,   fn: iconPixel },
+  { file: 'drivers/user/assets/images/large.png',    w: 500,  h: 500,  fn: iconPixel },
+  { file: 'drivers/user/assets/images/xlarge.png',   w: 1000, h: 1000, fn: iconPixel },
   // Widget previews
   { file: 'widgets/server_overview/preview-light.png', w: 800, h: 280, fn: widgetPreview('light') },
   { file: 'widgets/server_overview/preview-dark.png',  w: 800, h: 280, fn: widgetPreview('dark') },

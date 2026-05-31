@@ -325,7 +325,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ],
         "tokens": [
@@ -381,7 +381,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ],
         "tokens": [
@@ -445,7 +445,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ],
         "tokens": [
@@ -509,7 +509,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ],
         "tokens": [
@@ -581,7 +581,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ],
         "tokens": [
@@ -687,7 +687,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           }
         ]
       },
@@ -705,7 +705,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           },
           {
             "name": "media_type",
@@ -756,7 +756,7 @@
           {
             "name": "device",
             "type": "device",
-            "filter": "driver_id=client"
+            "filter": "driver_id=user"
           },
           {
             "name": "header",
@@ -826,82 +826,6 @@
   "drivers": [
     {
       "name": {
-        "en": "Jellyfin Client",
-        "de": "Jellyfin-Client"
-      },
-      "class": "tv",
-      "capabilities": [
-        "speaker_playing",
-        "speaker_next",
-        "speaker_prev",
-        "speaker_track",
-        "speaker_artist",
-        "speaker_album",
-        "volume_set",
-        "volume_mute",
-        "media_title",
-        "media_subtitle",
-        "media_position",
-        "media_duration",
-        "client_online"
-      ],
-      "platforms": [
-        "local"
-      ],
-      "connectivity": [
-        "lan"
-      ],
-      "images": {
-        "small": "/drivers/client/assets/images/small.png",
-        "large": "/drivers/client/assets/images/large.png",
-        "xlarge": "/drivers/client/assets/images/xlarge.png"
-      },
-      "pair": [
-        {
-          "id": "select_server"
-        },
-        {
-          "id": "list_devices",
-          "template": "list_devices",
-          "navigation": {
-            "next": "add_devices"
-          }
-        },
-        {
-          "id": "add_devices",
-          "template": "add_devices"
-        }
-      ],
-      "settings": [
-        {
-          "type": "group",
-          "label": {
-            "en": "Behavior",
-            "de": "Verhalten"
-          },
-          "children": [
-            {
-              "id": "stoppedDebounceMs",
-              "type": "number",
-              "label": {
-                "en": "Stop debounce (ms)",
-                "de": "Stop-Entprellzeit (ms)"
-              },
-              "hint": {
-                "en": "Wait this long after a session disappears before firing the Stopped trigger. Helps with brief network blips.",
-                "de": "So lange warten, nachdem eine Session verschwindet, bevor der Stop-Trigger feuert. Hilft gegen kurze Netzwerkaussetzer."
-              },
-              "value": 4000,
-              "min": 0,
-              "max": 30000
-            }
-          ]
-        }
-      ],
-      "id": "client"
-    },
-    {
-      "name": {
         "en": "Jellyfin Server",
         "de": "Jellyfin-Server"
       },
@@ -926,12 +850,24 @@
       },
       "pair": [
         {
-          "id": "credentials"
+          "id": "credentials",
+          "navigation": {
+            "next": "select_user"
+          }
+        },
+        {
+          "id": "select_user"
         }
       ],
       "repair": [
         {
-          "id": "credentials"
+          "id": "credentials",
+          "navigation": {
+            "next": "select_user"
+          }
+        },
+        {
+          "id": "select_user"
         }
       ],
       "settings": [
@@ -1016,6 +952,74 @@
         }
       ],
       "id": "server"
+    },
+    {
+      "name": {
+        "en": "Jellyfin User",
+        "de": "Jellyfin-Benutzer"
+      },
+      "class": "tv",
+      "capabilities": [
+        "speaker_playing",
+        "speaker_next",
+        "speaker_prev",
+        "speaker_track",
+        "speaker_artist",
+        "speaker_album",
+        "volume_set",
+        "volume_mute",
+        "media_title",
+        "media_subtitle",
+        "media_position",
+        "media_duration",
+        "client_online"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/user/assets/images/small.png",
+        "large": "/drivers/user/assets/images/large.png",
+        "xlarge": "/drivers/user/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "select_server"
+        },
+        {
+          "id": "list_users"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Behavior",
+            "de": "Verhalten"
+          },
+          "children": [
+            {
+              "id": "stoppedDebounceMs",
+              "type": "number",
+              "label": {
+                "en": "Stop debounce (ms)",
+                "de": "Stop-Entprellzeit (ms)"
+              },
+              "hint": {
+                "en": "Wait this long after the user's session disappears before firing the Stopped trigger. Helps with brief network blips or app switches.",
+                "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert. Hilft gegen kurze Netzaussetzer."
+              },
+              "value": 4000,
+              "min": 0,
+              "max": 30000
+            }
+          ]
+        }
+      ],
+      "id": "user"
     }
   ],
   "widgets": {

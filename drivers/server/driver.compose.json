@@ -16,10 +16,12 @@
     "xlarge": "/drivers/server/assets/images/xlarge.png"
   },
   "pair": [
-    { "id": "credentials" }
+    { "id": "credentials", "navigation": { "next": "select_user" } },
+    { "id": "select_user" }
   ],
   "repair": [
-    { "id": "credentials" }
+    { "id": "credentials", "navigation": { "next": "select_user" } },
+    { "id": "select_user" }
   ],
   "settings": [
     {

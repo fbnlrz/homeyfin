@@ -1,11 +1,14 @@
 import Homey from 'homey';
-import { JellyfinClient, JellyfinError } from '../../lib/JellyfinClient';
+import { JellyfinClient, JellyfinError, JellyfinUser } from '../../lib/JellyfinClient';
 import type HomeyfinApp from '../../app';
 
 interface VerifyPayload {
   baseUrl: string;
   apiKey: string;
-  userName?: string;
+}
+
+interface FinalizePayload {
+  userId: string;
 }
 
 interface ServerListDevice {
@@ -19,20 +22,28 @@ interface ServerListDevice {
   };
 }
 
-async function verifyConnection(
+interface PairState {
+  baseUrl: string;
+  apiKey: string;
+  serverId: string;
+  serverName: string;
+  users: Array<JellyfinUser & { IsAdministrator?: boolean }>;
+}
+
+async function probeServer(
   homey: any,
   appVersion: string,
-  payload: VerifyPayload,
-): Promise<ServerListDevice> {
-  const baseUrl = (payload.baseUrl ?? '').trim().replace(/\/+$/, '');
-  const apiKey = (payload.apiKey ?? '').trim();
-  const requestedUser = (payload.userName ?? '').trim();
-  if (!baseUrl || !apiKey) throw new Error('URL and API key are required');
+  baseUrl: string,
+  apiKey: string,
+): Promise<PairState> {
+  const cleanUrl = baseUrl.trim().replace(/\/+$/, '');
+  const cleanKey = apiKey.trim();
+  if (!cleanUrl || !cleanKey) throw new Error('URL and API key are required');
 
   const homeyDeviceId = `homey-${await homey.cloud.getHomeyId().catch(() => 'unknown')}`;
   const client = new JellyfinClient({
-    baseUrl,
-    apiKey,
+    baseUrl: cleanUrl,
+    apiKey: cleanKey,
     deviceId: homeyDeviceId,
     deviceName: 'Homey',
     clientName: 'Homeyfin',
@@ -43,29 +54,27 @@ async function verifyConnection(
   try {
     info = await client.getSystemInfo();
   } catch (err) {
-    const msg = err instanceof JellyfinError
-      ? `Could not reach Jellyfin (${err.status ?? '??'}): ${err.message}`
-      : `Could not reach Jellyfin: ${(err as Error).message}`;
-    throw new Error(msg);
+    throw new Error(
+      err instanceof JellyfinError
+        ? `Could not reach Jellyfin (${err.status ?? '??'}): ${err.message}`
+        : `Could not reach Jellyfin: ${(err as Error).message}`,
+    );
   }
 
-  let users: { Id: string; Name: string }[] = [];
+  let users: JellyfinUser[] = [];
   try {
     users = await client.getUsers();
   } catch (err) {
     throw new Error(`Got system info but /Users failed: ${(err as Error).message}`);
   }
-
-  let chosen = users.find(
-    (u) => requestedUser && u.Name.toLowerCase() === requestedUser.toLowerCase(),
-  );
-  if (!chosen) chosen = users[0];
-  if (!chosen) throw new Error('No users found on server');
+  if (users.length === 0) throw new Error('Server returned no users');
 
   return {
-    name: `Jellyfin · ${info.ServerName}`,
-    data: { id: `server:${info.Id}` },
-    store: { baseUrl, apiKey, userId: chosen.Id, userName: chosen.Name },
+    baseUrl: cleanUrl,
+    apiKey: cleanKey,
+    serverId: info.Id,
+    serverName: info.ServerName,
+    users: users as PairState['users'],
   };
 }
 
@@ -76,48 +85,86 @@ export default class JellyfinServerDriver extends Homey.Driver {
 
   async onPair(session: Homey.Driver.PairSession): Promise<void> {
     const app = this.homey.app as HomeyfinApp;
-    session.setHandler('verify', async (payload: VerifyPayload): Promise<ServerListDevice> => {
-      this.log('pair verify', { baseUrl: payload.baseUrl, userName: payload.userName });
-      const device = await verifyConnection(this.homey, app.manifest?.version ?? '0.0.0', payload);
-      this.log('pair verify OK', device.name);
-      return device;
+    let state: PairState | null = null;
+
+    session.setHandler('verify_connection', async (payload: VerifyPayload) => {
+      this.log('pair verify', { baseUrl: payload.baseUrl });
+      state = await probeServer(this.homey, app.manifest?.version ?? '0.0.0', payload.baseUrl, payload.apiKey);
+      this.log('pair verify OK', state.serverName, `${state.users.length} users`);
+      return { server: state.serverName, users: state.users };
+    });
+
+    session.setHandler('list_users', async () => {
+      if (!state) throw new Error('Run "verify" first');
+      return state.users;
+    });
+
+    session.setHandler('finalize', async ({ userId }: FinalizePayload): Promise<ServerListDevice> => {
+      if (!state) throw new Error('Run "verify" first');
+      const user = state.users.find((u) => u.Id === userId);
+      if (!user) throw new Error('Selected user not found');
+      return {
+        name: `Jellyfin · ${state.serverName}`,
+        data: { id: `server:${state.serverId}` },
+        store: {
+          baseUrl: state.baseUrl,
+          apiKey: state.apiKey,
+          userId: user.Id,
+          userName: user.Name,
+        },
+      };
     });
   }
 
   async onRepair(session: Homey.Driver.PairSession, device: Homey.Device): Promise<void> {
     const app = this.homey.app as HomeyfinApp;
-    session.setHandler('verify', async (payload: VerifyPayload): Promise<ServerListDevice> => {
-      this.log('repair verify', { baseUrl: payload.baseUrl, userName: payload.userName });
-      const verified = await verifyConnection(this.homey, app.manifest?.version ?? '0.0.0', payload);
+    let state: PairState | null = null;
 
-      // Make sure the user is repairing the same server, not a different one.
-      if (verified.data.id !== device.getData().id) {
+    session.setHandler('verify_connection', async (payload: VerifyPayload) => {
+      state = await probeServer(this.homey, app.manifest?.version ?? '0.0.0', payload.baseUrl, payload.apiKey);
+      if (`server:${state.serverId}` !== device.getData().id) {
         throw new Error(
-          'Repair target mismatch: the credentials point to a different Jellyfin server. ' +
-            'Add a new device instead.',
+          'Repair target mismatch: those credentials point to a different Jellyfin server. ' +
+            'Add a new server device instead.',
         );
       }
+      return { server: state.serverName, users: state.users };
+    });
 
-      // Persist new credentials in both store and settings so they appear in the UI.
-      await device.setStoreValue('baseUrl', verified.store.baseUrl).catch(() => undefined);
-      await device.setStoreValue('apiKey', verified.store.apiKey).catch(() => undefined);
-      await device.setStoreValue('userId', verified.store.userId).catch(() => undefined);
-      await device.setStoreValue('userName', verified.store.userName).catch(() => undefined);
+    session.setHandler('list_users', async () => {
+      if (!state) throw new Error('Run "verify" first');
+      return state.users;
+    });
+
+    session.setHandler('finalize', async ({ userId }: FinalizePayload): Promise<ServerListDevice> => {
+      if (!state) throw new Error('Run "verify" first');
+      const user = state.users.find((u) => u.Id === userId);
+      if (!user) throw new Error('Selected user not found');
+
+      await device.setStoreValue('baseUrl', state.baseUrl).catch(() => undefined);
+      await device.setStoreValue('apiKey', state.apiKey).catch(() => undefined);
+      await device.setStoreValue('userId', user.Id).catch(() => undefined);
+      await device.setStoreValue('userName', user.Name).catch(() => undefined);
       await device
         .setSettings({
-          baseUrl: verified.store.baseUrl,
-          apiKey: verified.store.apiKey,
-          userName: verified.store.userName,
+          baseUrl: state.baseUrl,
+          apiKey: state.apiKey,
+          userName: user.Name,
         })
         .catch(() => undefined);
 
-      this.log('repair OK, restarting hub');
-      const serverId = device.getData().id.replace(/^server:/, '');
+      const serverId = state.serverId;
       await app.releaseHub(serverId);
-      // Device.onInit-like restart triggered by Homey when settings change is unreliable here;
-      // we just rely on the existing settings-listener path or the next app start.
-
-      return verified;
+      return {
+        name: `Jellyfin · ${state.serverName}`,
+        data: { id: `server:${serverId}` },
+        store: {
+          baseUrl: state.baseUrl,
+          apiKey: state.apiKey,
+          userId: user.Id,
+          userName: user.Name,
+        },
+      };
     });
   }
 }

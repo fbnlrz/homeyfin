@@ -19,6 +19,9 @@ export interface SystemInfo {
 export interface JellyfinUser {
   Id: string;
   Name: string;
+  IsAdministrator?: boolean;
+  HasPassword?: boolean;
+  LastLoginDate?: string;
 }
 
 export interface JellyfinSession {

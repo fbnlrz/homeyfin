@@ -3,5 +3,5 @@
     "en": "Is !{{playing|not playing}}",
     "de": "Spielt !{{|nicht}}"
   },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=client" }]
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }]
 }
