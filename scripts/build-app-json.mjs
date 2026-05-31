@@ -57,6 +57,12 @@ if (fs.existsSync(driversDir)) {
   if (drivers.length) base.drivers = drivers;
 }
 
+// API endpoints (top-level `api` section required when api.js is present)
+const apiFile = path.join(compose, 'api.json');
+if (fs.existsSync(apiFile)) {
+  base.api = readJson(apiFile);
+}
+
 // Widgets
 const widgetsCompose = path.join(compose, 'widgets');
 if (fs.existsSync(widgetsCompose)) {

@@ -1,5 +1,9 @@
 {
   "title": { "en": "Send message to client", "de": "Nachricht an Client senden" },
+  "titleFormatted": {
+    "en": "Send message [[header]]: [[text]]",
+    "de": "Nachricht senden [[header]]: [[text]]"
+  },
   "args": [
     { "name": "device", "type": "device", "filter": "driver_id=client" },
     {

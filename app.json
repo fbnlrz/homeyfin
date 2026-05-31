@@ -188,6 +188,10 @@
           "en": "New item added to library",
           "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
         },
+        "titleFormatted": {
+          "en": "New [[item_type]] added to library",
+          "de": "Neuer Inhalt ([[item_type]]) zur Bibliothek hinzugefügt"
+        },
         "hint": {
           "en": "Triggers when a new movie, episode or series is added.",
           "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
@@ -693,6 +697,10 @@
           "en": "Media type !{{is|is not}}",
           "de": "Medientyp !{{ist|ist nicht}}"
         },
+        "titleFormatted": {
+          "en": "Media type !{{is|is not}} [[media_type]]",
+          "de": "Medientyp !{{ist|ist nicht}} [[media_type]]"
+        },
         "args": [
           {
             "name": "device",
@@ -739,6 +747,10 @@
         "title": {
           "en": "Send message to client",
           "de": "Nachricht an Client senden"
+        },
+        "titleFormatted": {
+          "en": "Send message [[header]]: [[text]]",
+          "de": "Nachricht senden [[header]]: [[text]]"
         },
         "args": [
           {
@@ -788,6 +800,10 @@
         "title": {
           "en": "Scan library",
           "de": "Bibliothek scannen"
+        },
+        "titleFormatted": {
+          "en": "Scan library [[library]]",
+          "de": "Bibliothek [[library]] scannen"
         },
         "args": [
           {
@@ -891,6 +907,16 @@
       "id": "server"
     }
   ],
+  "api": {
+    "getServers": {
+      "method": "GET",
+      "path": "/widget/servers"
+    },
+    "getOverview": {
+      "method": "GET",
+      "path": "/widget/overview"
+    }
+  },
   "widgets": {
     "server_overview": {
       "name": {

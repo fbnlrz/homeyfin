@@ -3,6 +3,10 @@
     "en": "Media type !{{is|is not}}",
     "de": "Medientyp !{{ist|ist nicht}}"
   },
+  "titleFormatted": {
+    "en": "Media type !{{is|is not}} [[media_type]]",
+    "de": "Medientyp !{{ist|ist nicht}} [[media_type]]"
+  },
   "args": [
     { "name": "device", "type": "device", "filter": "driver_id=client" },
     {

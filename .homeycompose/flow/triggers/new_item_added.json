@@ -3,6 +3,10 @@
     "en": "New item added to library",
     "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
   },
+  "titleFormatted": {
+    "en": "New [[item_type]] added to library",
+    "de": "Neuer Inhalt ([[item_type]]) zur Bibliothek hinzugefügt"
+  },
   "hint": {
     "en": "Triggers when a new movie, episode or series is added.",
     "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
