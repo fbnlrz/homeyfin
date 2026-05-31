@@ -57,18 +57,19 @@ if (fs.existsSync(driversDir)) {
   if (drivers.length) base.drivers = drivers;
 }
 
-// API endpoints (top-level `api` section required when api.js is present)
+// API endpoints live directly in .homeycompose/app.json now, but keep
+// reading a separate api.json if it exists for backwards compatibility.
 const apiFile = path.join(compose, 'api.json');
 if (fs.existsSync(apiFile)) {
-  base.api = readJson(apiFile);
+  base.api = { ...(base.api ?? {}), ...readJson(apiFile) };
 }
 
-// Widgets
-const widgetsCompose = path.join(compose, 'widgets');
-if (fs.existsSync(widgetsCompose)) {
+// Widgets: live at widgets/<id>/widget.compose.json (NOT under .homeycompose)
+const widgetsDir = path.join(root, 'widgets');
+if (fs.existsSync(widgetsDir)) {
   base.widgets = base.widgets ?? {};
-  for (const id of fs.readdirSync(widgetsCompose)) {
-    const w = path.join(widgetsCompose, id, 'widget.compose.json');
+  for (const id of fs.readdirSync(widgetsDir)) {
+    const w = path.join(widgetsDir, id, 'widget.compose.json');
     if (fs.existsSync(w)) base.widgets[id] = readJson(w);
   }
 }

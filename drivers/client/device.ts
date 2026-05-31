@@ -73,7 +73,31 @@ export default class JellyfinClientDevice extends Homey.Device {
 
   private async setupAlbumArt(): Promise<void> {
     this.albumArtImage = await this.homey.images.createImage();
-    (this.albumArtImage as any).setUrl('');
+    // setStream is invoked lazily by Homey whenever the image is requested,
+    // so we can refer to this.lastArtworkUrl which gets updated on each
+    // snapshot. This works for HTTP URLs (Homey's setUrl only accepts HTTPS).
+    (this.albumArtImage as any).setStream(async (stream: NodeJS.WritableStream) => {
+      const url = this.lastArtworkUrl;
+      if (!url) {
+        stream.end();
+        return;
+      }
+      try {
+        const res = await fetch(url);
+        if (!res.ok || !res.body) {
+          stream.end();
+          return;
+        }
+        // Web ReadableStream → AsyncIterable → write to Node stream.
+        for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+          stream.write(chunk);
+        }
+        stream.end();
+      } catch (err) {
+        this.error('album art fetch failed', (err as Error).message);
+        stream.end();
+      }
+    });
     await this.setAlbumArtImage(this.albumArtImage).catch(() => undefined);
   }
 
@@ -270,7 +294,6 @@ export default class JellyfinClientDevice extends Homey.Device {
     this.lastArtworkUrl = url;
     if (!this.albumArtImage) return;
     try {
-      (this.albumArtImage as any).setUrl(url || '');
       await this.albumArtImage.update();
     } catch (err) {
       this.error('updateAlbumArt failed', (err as Error).message);
