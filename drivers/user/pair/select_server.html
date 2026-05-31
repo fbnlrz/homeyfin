@@ -3,39 +3,116 @@
 <head><meta charset="utf-8" /></head>
 <body>
   <header class="homey-header">
-    <h1 class="homey-title">Select Jellyfin server</h1>
-    <p class="homey-subtitle">Pick a previously paired Jellyfin server.</p>
+    <h1 class="homey-title">Add Jellyfin user</h1>
+    <p class="homey-subtitle">Pick a server, then a user. Playback control routes to whatever client the user is active on.</p>
   </header>
 
-  <ul id="servers" class="homey-list"></ul>
-  <p id="empty" style="display:none;color:#c00;">No paired Jellyfin server found. Add a server device first.</p>
+  <fieldset class="homey-form-fieldset">
+    <div class="homey-form-group">
+      <label class="homey-form-label" for="serverSelect">Server</label>
+      <select class="homey-form-select" id="serverSelect"></select>
+    </div>
+
+    <div id="user-group" class="homey-form-group" style="display:none;">
+      <label class="homey-form-label" for="userSelect">User</label>
+      <select class="homey-form-select" id="userSelect"></select>
+    </div>
+
+    <div id="error" style="color:#c00;margin-top:8px;white-space:pre-wrap;font-size:12px;"></div>
+    <div id="info"  style="color:#06c;margin-top:8px;font-size:12px;"></div>
+  </fieldset>
+
+  <button id="action" class="homey-button-primary-full" disabled>Load users</button>
 
   <script type="application/javascript">
+    const $err = document.getElementById('error');
+    const $info = document.getElementById('info');
+    const $btn = document.getElementById('action');
+    const $servers = document.getElementById('serverSelect');
+    const $users = document.getElementById('userSelect');
+    const $userGroup = document.getElementById('user-group');
+
+    let stage = 'pick-server';
+    let lastServerId = null;
+
     (async () => {
-      const ul = document.getElementById('servers');
-      const empty = document.getElementById('empty');
       try {
         const servers = await Homey.emit('list_servers');
         if (!servers || servers.length === 0) {
-          empty.style.display = 'block';
-          return;
+          throw new Error('No paired Jellyfin server. Pair a server device first.');
         }
         for (const s of servers) {
-          const li = document.createElement('li');
-          li.className = 'homey-list-item';
-          li.innerHTML = '<span class="homey-list-item-title">' + s.name + '</span>'
-                       + '<span class="homey-list-item-subtitle">' + s.baseUrl + '</span>';
-          li.addEventListener('click', async () => {
-            await Homey.emit('server_selected', s.id);
-            Homey.showView('list_users');
-          });
-          ul.appendChild(li);
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = s.name;
+          $servers.appendChild(opt);
         }
+        $btn.disabled = false;
       } catch (e) {
-        empty.textContent = e && e.message ? e.message : String(e);
-        empty.style.display = 'block';
+        $err.textContent = (e && (e.message || e.toString())) || String(e);
       }
     })();
+
+    async function loadUsers() {
+      $err.textContent = '';
+      $info.textContent = '';
+      $btn.disabled = true;
+      try {
+        const serverId = $servers.value;
+        lastServerId = serverId;
+        $info.textContent = 'Loading users…';
+        const users = await Homey.emit('fetch_users', { serverId });
+        if (!users || users.length === 0) throw new Error('Server returned no users.');
+        $users.innerHTML = '';
+        let firstEnabled = null;
+        for (const u of users) {
+          const opt = document.createElement('option');
+          opt.value = u.Id;
+          const tags = [];
+          if (u.IsAdministrator) tags.push('admin');
+          if (u.alreadyPaired) tags.push('already added');
+          opt.textContent = u.Name + (tags.length ? ' (' + tags.join(', ') + ')' : '');
+          if (u.alreadyPaired) opt.disabled = true;
+          else if (firstEnabled === null) firstEnabled = u.Id;
+          $users.appendChild(opt);
+        }
+        if (firstEnabled) $users.value = firstEnabled;
+        $userGroup.style.display = '';
+        $info.textContent = '';
+        $btn.textContent = 'Add user';
+        stage = 'pick-user';
+        $btn.disabled = false;
+      } catch (e) {
+        $info.textContent = '';
+        $err.textContent = (e && (e.message || e.toString())) || 'Unknown error';
+        $btn.disabled = false;
+      }
+    }
+
+    async function finish() {
+      $err.textContent = '';
+      $info.textContent = '';
+      $btn.disabled = true;
+      try {
+        const device = await Homey.emit('add_user', {
+          serverId: lastServerId,
+          userId: $users.value,
+        });
+        if (!device) throw new Error('Driver returned no device.');
+        $info.textContent = 'Creating device…';
+        await Homey.createDevice(device);
+        await Homey.done();
+      } catch (e) {
+        $info.textContent = '';
+        $err.textContent = (e && (e.message || e.toString())) || 'Unknown error';
+        $btn.disabled = false;
+      }
+    }
+
+    $btn.addEventListener('click', () => {
+      if (stage === 'pick-server') loadUsers();
+      else finish();
+    });
   </script>
 </body>
 </html>

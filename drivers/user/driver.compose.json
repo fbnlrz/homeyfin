@@ -24,8 +24,7 @@
     "xlarge": "/drivers/user/assets/images/xlarge.png"
   },
   "pair": [
-    { "id": "select_server" },
-    { "id": "list_users" }
+    { "id": "select_server" }
   ],
   "settings": [
     {

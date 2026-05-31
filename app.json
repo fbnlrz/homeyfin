@@ -850,24 +850,12 @@
       },
       "pair": [
         {
-          "id": "credentials",
-          "navigation": {
-            "next": "select_user"
-          }
-        },
-        {
-          "id": "select_user"
+          "id": "credentials"
         }
       ],
       "repair": [
         {
-          "id": "credentials",
-          "navigation": {
-            "next": "select_user"
-          }
-        },
-        {
-          "id": "select_user"
+          "id": "credentials"
         }
       ],
       "settings": [
@@ -988,9 +976,6 @@
       "pair": [
         {
           "id": "select_server"
-        },
-        {
-          "id": "list_users"
         }
       ],
       "settings": [

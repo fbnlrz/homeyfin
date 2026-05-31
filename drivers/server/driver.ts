@@ -9,6 +9,8 @@ interface VerifyPayload {
 
 interface FinalizePayload {
   userId: string;
+  baseUrl?: string;
+  apiKey?: string;
 }
 
 interface ServerListDevice {
@@ -99,16 +101,23 @@ export default class JellyfinServerDriver extends Homey.Driver {
       return state.users;
     });
 
-    session.setHandler('finalize', async ({ userId }: FinalizePayload): Promise<ServerListDevice> => {
-      if (!state) throw new Error('Run "verify" first');
-      const user = state.users.find((u) => u.Id === userId);
+    session.setHandler('finalize', async (payload: FinalizePayload): Promise<ServerListDevice> => {
+      // Re-probe with the credentials from the frontend so we don't rely on
+      // any in-memory cross-view state (which has proven unreliable).
+      const effective = (payload.baseUrl && payload.apiKey)
+        ? await probeServer(this.homey, app.manifest?.version ?? '0.0.0', payload.baseUrl, payload.apiKey)
+        : state;
+      if (!effective) throw new Error('Run "verify" first');
+      state = effective;
+
+      const user = effective.users.find((u) => u.Id === payload.userId);
       if (!user) throw new Error('Selected user not found');
       return {
-        name: `Jellyfin · ${state.serverName}`,
-        data: { id: `server:${state.serverId}` },
+        name: `Jellyfin · ${effective.serverName}`,
+        data: { id: `server:${effective.serverId}` },
         store: {
-          baseUrl: state.baseUrl,
-          apiKey: state.apiKey,
+          baseUrl: effective.baseUrl,
+          apiKey: effective.apiKey,
           userId: user.Id,
           userName: user.Name,
         },
@@ -136,31 +145,40 @@ export default class JellyfinServerDriver extends Homey.Driver {
       return state.users;
     });
 
-    session.setHandler('finalize', async ({ userId }: FinalizePayload): Promise<ServerListDevice> => {
-      if (!state) throw new Error('Run "verify" first');
-      const user = state.users.find((u) => u.Id === userId);
+    session.setHandler('finalize', async (payload: FinalizePayload): Promise<ServerListDevice> => {
+      const effective = (payload.baseUrl && payload.apiKey)
+        ? await probeServer(this.homey, app.manifest?.version ?? '0.0.0', payload.baseUrl, payload.apiKey)
+        : state;
+      if (!effective) throw new Error('Run "verify" first');
+      if (`server:${effective.serverId}` !== device.getData().id) {
+        throw new Error(
+          'Repair target mismatch: those credentials point to a different Jellyfin server.',
+        );
+      }
+      state = effective;
+
+      const user = effective.users.find((u) => u.Id === payload.userId);
       if (!user) throw new Error('Selected user not found');
 
-      await device.setStoreValue('baseUrl', state.baseUrl).catch(() => undefined);
-      await device.setStoreValue('apiKey', state.apiKey).catch(() => undefined);
+      await device.setStoreValue('baseUrl', effective.baseUrl).catch(() => undefined);
+      await device.setStoreValue('apiKey', effective.apiKey).catch(() => undefined);
       await device.setStoreValue('userId', user.Id).catch(() => undefined);
       await device.setStoreValue('userName', user.Name).catch(() => undefined);
       await device
         .setSettings({
-          baseUrl: state.baseUrl,
-          apiKey: state.apiKey,
+          baseUrl: effective.baseUrl,
+          apiKey: effective.apiKey,
           userName: user.Name,
         })
         .catch(() => undefined);
 
-      const serverId = state.serverId;
-      await app.releaseHub(serverId);
+      await app.releaseHub(effective.serverId);
       return {
-        name: `Jellyfin · ${state.serverName}`,
-        data: { id: `server:${serverId}` },
+        name: `Jellyfin · ${effective.serverName}`,
+        data: { id: `server:${effective.serverId}` },
         store: {
-          baseUrl: state.baseUrl,
-          apiKey: state.apiKey,
+          baseUrl: effective.baseUrl,
+          apiKey: effective.apiKey,
           userId: user.Id,
           userName: user.Name,
         },

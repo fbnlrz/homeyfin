@@ -31,7 +31,6 @@ export default class JellyfinUserDriver extends Homey.Driver {
 
   async onPair(session: Homey.Driver.PairSession): Promise<void> {
     const app = this.homey.app as HomeyfinApp;
-    let selectedServerId: string | null = null;
 
     session.setHandler('list_servers', async (): Promise<ServerOption[]> => {
       const serverDriver = this.homey.drivers.getDriver('server');
@@ -42,18 +41,8 @@ export default class JellyfinUserDriver extends Homey.Driver {
       });
     });
 
-    session.setHandler('server_selected', async (serverId: string) => {
-      selectedServerId = serverId;
-    });
-
-    session.setHandler('fetch_users', async (): Promise<UserListItem[]> => {
-      if (!selectedServerId) {
-        const serverDriver = this.homey.drivers.getDriver('server');
-        const first = serverDriver.getDevices()[0];
-        if (!first) throw new Error('No paired Jellyfin server. Pair a server device first.');
-        selectedServerId = first.getData().id.replace(/^server:/, '');
-      }
-      const serverId: string = selectedServerId as string;
+    session.setHandler('fetch_users', async ({ serverId }: { serverId: string }): Promise<UserListItem[]> => {
+      if (!serverId) throw new Error('No server selected');
       const hub = app.getHub(serverId);
       if (!hub) throw new Error('Server hub not initialised yet. Try again in a moment.');
 
@@ -67,26 +56,28 @@ export default class JellyfinUserDriver extends Homey.Driver {
       }));
     });
 
-    session.setHandler('add_user', async ({ userId }: { userId: string }): Promise<UserListDevice> => {
-      if (!selectedServerId) throw new Error('No server selected');
-      const serverId: string = selectedServerId;
-      const hub = app.getHub(serverId);
-      if (!hub) throw new Error('Server hub not initialised yet.');
+    session.setHandler(
+      'add_user',
+      async ({ serverId, userId }: { serverId: string; userId: string }): Promise<UserListDevice> => {
+        if (!serverId) throw new Error('No server selected');
+        const hub = app.getHub(serverId);
+        if (!hub) throw new Error('Server hub not initialised yet.');
 
-      const users = await hub.client.getUsers();
-      const user = users.find((u) => u.Id === userId);
-      if (!user) throw new Error('User no longer present on server');
+        const users = await hub.client.getUsers();
+        const user = users.find((u) => u.Id === userId);
+        if (!user) throw new Error('User no longer present on server');
 
-      return {
-        name: `Jellyfin · ${user.Name}`,
-        data: { id: `${serverId}:${user.Id}` },
-        store: {
-          serverId,
-          userId: user.Id,
-          userName: user.Name,
-        },
-      };
-    });
+        return {
+          name: `Jellyfin · ${user.Name}`,
+          data: { id: `${serverId}:${user.Id}` },
+          store: {
+            serverId,
+            userId: user.Id,
+            userName: user.Name,
+          },
+        };
+      },
+    );
   }
 }
 
