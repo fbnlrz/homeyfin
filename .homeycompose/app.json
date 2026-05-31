@@ -1,7 +1,7 @@
 {
   "id": "com.frlrnzn.homeyfin",
   "version": "0.1.0",
-  "compatibility": ">=5.0.0",
+  "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": ["local"],
   "name": {
