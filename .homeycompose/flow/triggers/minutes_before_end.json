@@ -1,0 +1,29 @@
+{
+  "title": { "en": "Minutes before end", "de": "Minuten vor Ende" },
+  "hint": {
+    "en": "Fires once per item when the remaining time crosses the threshold.",
+    "de": "Wird einmal pro Item ausgelöst, wenn die verbleibende Zeit den Schwellwert unterschreitet."
+  },
+  "titleFormatted": {
+    "en": "[[minutes]] minutes before end",
+    "de": "[[minutes]] Minuten vor Ende"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "minutes",
+      "type": "number",
+      "title": { "en": "Minutes", "de": "Minuten" },
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "placeholder": { "en": "5" }
+    }
+  ],
+  "tokens": [
+    { "name": "title",   "type": "string", "title": { "en": "Title",   "de": "Titel" } },
+    { "name": "type",    "type": "string", "title": { "en": "Type",    "de": "Typ" } },
+    { "name": "series",  "type": "string", "title": { "en": "Series",  "de": "Serie" } },
+    { "name": "remaining_seconds", "type": "number", "title": { "en": "Remaining (s)", "de": "Restzeit (s)" } }
+  ]
+}

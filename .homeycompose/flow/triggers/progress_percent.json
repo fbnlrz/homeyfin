@@ -1,0 +1,27 @@
+{
+  "title": { "en": "Progress reached %", "de": "Fortschritt erreicht %" },
+  "hint": {
+    "en": "Fires once per item when playback crosses the given percentage.",
+    "de": "Wird einmal pro Item ausgelöst, wenn der Fortschritt den Prozentsatz überschreitet."
+  },
+  "titleFormatted": {
+    "en": "Reached [[percent]]% of item",
+    "de": "Erreicht [[percent]] % des Items"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "percent",
+      "type": "number",
+      "title": { "en": "Percent", "de": "Prozent" },
+      "min": 1,
+      "max": 99,
+      "step": 1,
+      "placeholder": { "en": "50" }
+    }
+  ],
+  "tokens": [
+    { "name": "title", "type": "string", "title": { "en": "Title", "de": "Titel" } },
+    { "name": "type",  "type": "string", "title": { "en": "Type",  "de": "Typ" } }
+  ]
+}

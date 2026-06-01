@@ -1,0 +1,32 @@
+{
+  "id": "com.frlrnzn.homeyfin",
+  "version": "0.1.0",
+  "compatibility": ">=12.1.0",
+  "sdk": 3,
+  "platforms": ["local"],
+  "name": {
+    "en": "Homeyfin",
+    "de": "Homeyfin"
+  },
+  "description": {
+    "en": "Control your Jellyfin server and clients from Homey.",
+    "de": "Steuere deinen Jellyfin-Server und -Clients aus Homey."
+  },
+  "category": ["video"],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "frlrnzn",
+    "email": "frlrnzn@gmail.com"
+  },
+  "brandColor": "#00A4DC",
+  "source": "https://github.com/fbnlrz/homeyfin",
+  "tags": {
+    "en": ["jellyfin", "media", "video", "movies"],
+    "de": ["jellyfin", "medien", "video", "filme"]
+  }
+}

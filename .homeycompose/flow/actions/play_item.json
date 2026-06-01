@@ -1,0 +1,19 @@
+{
+  "title": { "en": "Play item", "de": "Item abspielen" },
+  "titleFormatted": {
+    "en": "Play [[item]]",
+    "de": "Spiele [[item]]"
+  },
+  "hint": {
+    "en": "Searches the user's library and starts the picked item on whatever client they're active on.",
+    "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers."
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "item",
+      "type": "autocomplete",
+      "title": { "en": "Item", "de": "Item" }
+    }
+  ]
+}

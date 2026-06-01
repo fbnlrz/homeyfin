@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Active streams changed", "de": "Aktive Streams geändert" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }],
+  "tokens": [
+    { "name": "count",       "type": "number", "title": { "en": "Count",       "de": "Anzahl" } },
+    { "name": "transcoding", "type": "number", "title": { "en": "Transcoding", "de": "Transcodierend" } }
+  ]
+}

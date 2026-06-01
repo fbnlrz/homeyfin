@@ -1,0 +1,9 @@
+{
+  "title": {
+    "en": "User !{{is|is not}} transcoding",
+    "de": "Benutzer !{{transcodiert|transcodiert nicht}}"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" }
+  ]
+}

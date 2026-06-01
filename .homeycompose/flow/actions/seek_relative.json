@@ -1,0 +1,22 @@
+{
+  "title": { "en": "Skip forward/back", "de": "Vor-/Zurückspulen" },
+  "titleFormatted": {
+    "en": "Skip [[seconds]] s",
+    "de": "Spule [[seconds]] s"
+  },
+  "hint": {
+    "en": "Negative values skip backward (e.g. -30).",
+    "de": "Negative Werte spulen zurück (z. B. -30)."
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "seconds",
+      "type": "number",
+      "title": { "en": "Delta (s)", "de": "Delta (s)" },
+      "min": -3600,
+      "max": 3600,
+      "step": 5
+    }
+  ]
+}

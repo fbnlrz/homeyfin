@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Restart Jellyfin server", "de": "Jellyfin-Server neu starten" },
+  "hint": {
+    "en": "Requires the API key to belong to an admin user.",
+    "de": "Erfordert einen Admin-API-Key."
+  },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }]
+}

@@ -1,0 +1,2126 @@
+{
+  "id": "com.frlrnzn.homeyfin",
+  "version": "0.1.0",
+  "compatibility": ">=12.1.0",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "Homeyfin",
+    "de": "Homeyfin"
+  },
+  "description": {
+    "en": "Control your Jellyfin server and clients from Homey.",
+    "de": "Steuere deinen Jellyfin-Server und -Clients aus Homey."
+  },
+  "category": [
+    "video"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "frlrnzn",
+    "email": "frlrnzn@gmail.com"
+  },
+  "brandColor": "#00A4DC",
+  "source": "https://github.com/fbnlrz/homeyfin",
+  "tags": {
+    "en": [
+      "jellyfin",
+      "media",
+      "video",
+      "movies"
+    ],
+    "de": [
+      "jellyfin",
+      "medien",
+      "video",
+      "filme"
+    ]
+  },
+  "capabilities": {
+    "client_online": {
+      "type": "boolean",
+      "title": {
+        "en": "Client online",
+        "de": "Client online"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "continue_watching_title": {
+      "type": "string",
+      "title": {
+        "en": "Up next",
+        "de": "Als Nächstes"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "is_transcoding": {
+      "type": "boolean",
+      "title": {
+        "en": "Transcoding",
+        "de": "Transcodiert"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "last_added_title": {
+      "type": "string",
+      "title": {
+        "en": "Last added",
+        "de": "Zuletzt hinzugefügt"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "library_episodes_count": {
+      "type": "number",
+      "title": {
+        "en": "Episodes",
+        "de": "Folgen"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "library_movies_count": {
+      "type": "number",
+      "title": {
+        "en": "Movies",
+        "de": "Filme"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "library_series_count": {
+      "type": "number",
+      "title": {
+        "en": "Series",
+        "de": "Serien"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "media_duration": {
+      "type": "number",
+      "title": {
+        "en": "Duration",
+        "de": "Dauer"
+      },
+      "units": {
+        "en": "s"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "media_position": {
+      "type": "number",
+      "title": {
+        "en": "Position",
+        "de": "Position"
+      },
+      "units": {
+        "en": "s"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "media_subtitle": {
+      "type": "string",
+      "title": {
+        "en": "Subtitle",
+        "de": "Untertitel"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "media_title": {
+      "type": "string",
+      "title": {
+        "en": "Now playing",
+        "de": "Läuft gerade"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "scan_in_progress": {
+      "type": "boolean",
+      "title": {
+        "en": "Library scan running",
+        "de": "Bibliotheks-Scan läuft"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "server_uptime": {
+      "type": "number",
+      "title": {
+        "en": "Uptime (min)",
+        "de": "Uptime (Min)"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "socket_online": {
+      "type": "boolean",
+      "title": {
+        "en": "Server connected",
+        "de": "Server verbunden"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "stream_count": {
+      "type": "number",
+      "title": {
+        "en": "Active streams",
+        "de": "Aktive Streams"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "transcoding_count": {
+      "type": "number",
+      "title": {
+        "en": "Transcoding streams",
+        "de": "Transcodierende Streams"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "unwatched_count": {
+      "type": "number",
+      "title": {
+        "en": "Unwatched episodes",
+        "de": "Ungesehene Folgen"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
+    "watch_minutes_week": {
+      "type": "number",
+      "title": {
+        "en": "Watch time this week (min)",
+        "de": "Watch-Time diese Woche (Min)"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    }
+  },
+  "flow": {
+    "triggers": [
+      {
+        "id": "daily_summary",
+        "title": {
+          "en": "Daily summary",
+          "de": "Tageszusammenfassung"
+        },
+        "hint": {
+          "en": "Fires once a day with watch-time totals for the user.",
+          "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "minutes_today",
+            "type": "number",
+            "title": {
+              "en": "Minutes today",
+              "de": "Minuten heute"
+            }
+          },
+          {
+            "name": "minutes_week",
+            "type": "number",
+            "title": {
+              "en": "Minutes this week",
+              "de": "Minuten diese Woche"
+            }
+          }
+        ]
+      },
+      {
+        "id": "library_scan_finished",
+        "title": {
+          "en": "Library scan finished",
+          "de": "Bibliotheks-Scan abgeschlossen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "duration_seconds",
+            "type": "number",
+            "title": {
+              "en": "Duration (s)",
+              "de": "Dauer (s)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "minutes_before_end",
+        "title": {
+          "en": "Minutes before end",
+          "de": "Minuten vor Ende"
+        },
+        "hint": {
+          "en": "Fires once per item when the remaining time crosses the threshold.",
+          "de": "Wird einmal pro Item ausgelöst, wenn die verbleibende Zeit den Schwellwert unterschreitet."
+        },
+        "titleFormatted": {
+          "en": "[[minutes]] minutes before end",
+          "de": "[[minutes]] Minuten vor Ende"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "minutes",
+            "type": "number",
+            "title": {
+              "en": "Minutes",
+              "de": "Minuten"
+            },
+            "min": 1,
+            "max": 60,
+            "step": 1,
+            "placeholder": {
+              "en": "5"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "remaining_seconds",
+            "type": "number",
+            "title": {
+              "en": "Remaining (s)",
+              "de": "Restzeit (s)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "new_item_added",
+        "title": {
+          "en": "New item added to library",
+          "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
+        },
+        "titleFormatted": {
+          "en": "New [[item_type]] in [[library]]",
+          "de": "Neuer Inhalt ([[item_type]]) in [[library]]"
+        },
+        "hint": {
+          "en": "Triggers when a new movie, episode or series is added.",
+          "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "item_type",
+            "type": "dropdown",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            },
+            "values": [
+              {
+                "id": "any",
+                "label": {
+                  "en": "Any",
+                  "de": "Alle"
+                }
+              },
+              {
+                "id": "Movie",
+                "label": {
+                  "en": "Movie",
+                  "de": "Film"
+                }
+              },
+              {
+                "id": "Episode",
+                "label": {
+                  "en": "Episode",
+                  "de": "Folge"
+                }
+              },
+              {
+                "id": "Series",
+                "label": {
+                  "en": "Series",
+                  "de": "Serie"
+                }
+              },
+              {
+                "id": "Audio",
+                "label": {
+                  "en": "Audio",
+                  "de": "Musik"
+                }
+              }
+            ]
+          },
+          {
+            "name": "library",
+            "type": "autocomplete",
+            "title": {
+              "en": "Library",
+              "de": "Bibliothek"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          },
+          {
+            "name": "year",
+            "type": "number",
+            "title": {
+              "en": "Year",
+              "de": "Jahr"
+            }
+          },
+          {
+            "name": "library_name",
+            "type": "string",
+            "title": {
+              "en": "Library",
+              "de": "Bibliothek"
+            }
+          },
+          {
+            "name": "poster_url",
+            "type": "string",
+            "title": {
+              "en": "Poster URL",
+              "de": "Poster-URL"
+            }
+          },
+          {
+            "name": "poster",
+            "type": "image",
+            "title": {
+              "en": "Poster",
+              "de": "Poster"
+            }
+          }
+        ]
+      },
+      {
+        "id": "now_playing_changed",
+        "title": {
+          "en": "Now playing changed",
+          "de": "Aktuelle Wiedergabe geändert"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          }
+        ]
+      },
+      {
+        "id": "playback_paused",
+        "title": {
+          "en": "Playback paused",
+          "de": "Wiedergabe pausiert"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          }
+        ]
+      },
+      {
+        "id": "playback_resumed",
+        "title": {
+          "en": "Playback resumed",
+          "de": "Wiedergabe fortgesetzt"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          }
+        ]
+      },
+      {
+        "id": "playback_started",
+        "title": {
+          "en": "Playback started",
+          "de": "Wiedergabe gestartet"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          },
+          {
+            "name": "runtime",
+            "type": "number",
+            "title": {
+              "en": "Runtime (s)",
+              "de": "Laufzeit (s)"
+            }
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          },
+          {
+            "name": "poster",
+            "type": "image",
+            "title": {
+              "en": "Poster",
+              "de": "Poster"
+            }
+          }
+        ]
+      },
+      {
+        "id": "playback_stopped",
+        "title": {
+          "en": "Playback stopped",
+          "de": "Wiedergabe gestoppt"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge"
+            }
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          }
+        ]
+      },
+      {
+        "id": "progress_percent",
+        "title": {
+          "en": "Progress reached %",
+          "de": "Fortschritt erreicht %"
+        },
+        "hint": {
+          "en": "Fires once per item when playback crosses the given percentage.",
+          "de": "Wird einmal pro Item ausgelöst, wenn der Fortschritt den Prozentsatz überschreitet."
+        },
+        "titleFormatted": {
+          "en": "Reached [[percent]]% of item",
+          "de": "Erreicht [[percent]] % des Items"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "percent",
+            "type": "number",
+            "title": {
+              "en": "Percent",
+              "de": "Prozent"
+            },
+            "min": 1,
+            "max": 99,
+            "step": 1,
+            "placeholder": {
+              "en": "50"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            }
+          }
+        ]
+      },
+      {
+        "id": "server_connected",
+        "title": {
+          "en": "Server connection restored",
+          "de": "Server-Verbindung wiederhergestellt"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "server_disconnected",
+        "title": {
+          "en": "Server connection lost",
+          "de": "Server-Verbindung verloren"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "stream_count_changed",
+        "title": {
+          "en": "Active streams changed",
+          "de": "Aktive Streams geändert"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "count",
+            "type": "number",
+            "title": {
+              "en": "Count",
+              "de": "Anzahl"
+            }
+          },
+          {
+            "name": "transcoding",
+            "type": "number",
+            "title": {
+              "en": "Transcoding",
+              "de": "Transcodierend"
+            }
+          }
+        ]
+      },
+      {
+        "id": "transcoding_started",
+        "title": {
+          "en": "Transcoding started",
+          "de": "Transcodierung gestartet"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          },
+          {
+            "name": "device_name",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          },
+          {
+            "name": "reasons",
+            "type": "string",
+            "title": {
+              "en": "Reasons",
+              "de": "Gründe"
+            }
+          }
+        ]
+      },
+      {
+        "id": "transcoding_stopped",
+        "title": {
+          "en": "Transcoding stopped",
+          "de": "Transcodierung beendet"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
+        "id": "user_logged_in",
+        "title": {
+          "en": "User logged in",
+          "de": "Benutzer angemeldet"
+        },
+        "titleFormatted": {
+          "en": "User [[user]] logged in",
+          "de": "Benutzer [[user]] angemeldet"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "user",
+            "type": "autocomplete",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer"
+            }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client"
+            }
+          },
+          {
+            "name": "device_name",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          }
+        ]
+      }
+    ],
+    "conditions": [
+      {
+        "id": "is_playing",
+        "title": {
+          "en": "Is !{{playing|not playing}}",
+          "de": "Spielt !{{|nicht}}"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
+        "id": "is_transcoding",
+        "title": {
+          "en": "User !{{is|is not}} transcoding",
+          "de": "Benutzer !{{transcodiert|transcodiert nicht}}"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
+        "id": "media_type_is",
+        "title": {
+          "en": "Media type !{{is|is not}}",
+          "de": "Medientyp !{{ist|ist nicht}}"
+        },
+        "titleFormatted": {
+          "en": "Media type !{{is|is not}} [[media_type]]",
+          "de": "Medientyp !{{ist|ist nicht}} [[media_type]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "media_type",
+            "type": "dropdown",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            },
+            "values": [
+              {
+                "id": "Movie",
+                "label": {
+                  "en": "Movie",
+                  "de": "Film"
+                }
+              },
+              {
+                "id": "Episode",
+                "label": {
+                  "en": "Episode",
+                  "de": "Folge"
+                }
+              },
+              {
+                "id": "Audio",
+                "label": {
+                  "en": "Audio",
+                  "de": "Musik"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "stream_count_above",
+        "title": {
+          "en": "Active streams !{{is|is not}} above",
+          "de": "Aktive Streams !{{liegen über|liegen nicht über}}"
+        },
+        "titleFormatted": {
+          "en": "Active streams !{{is|is not}} above [[threshold]]",
+          "de": "Aktive Streams !{{liegen über|liegen nicht über}} [[threshold]]"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "threshold",
+            "type": "number",
+            "title": {
+              "en": "Threshold",
+              "de": "Schwellwert"
+            },
+            "min": 0,
+            "max": 50,
+            "step": 1,
+            "placeholder": {
+              "en": "1"
+            }
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "id": "bookmark",
+        "title": {
+          "en": "Bookmark current item",
+          "de": "Aktuelles Item merken"
+        },
+        "hint": {
+          "en": "Adds the currently playing item to a Jellyfin playlist (auto-created on first use).",
+          "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "playlist_name",
+            "type": "text",
+            "title": {
+              "en": "Playlist",
+              "de": "Playlist"
+            },
+            "placeholder": {
+              "en": "Homey Watchlist",
+              "de": "Homey Watchlist"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
+        "id": "continue_watching",
+        "title": {
+          "en": "Resume Continue Watching",
+          "de": "Continue-Watching fortsetzen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
+        "id": "health_check",
+        "title": {
+          "en": "Health check",
+          "de": "Health-Check"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "ok",
+            "type": "boolean",
+            "title": {
+              "en": "OK",
+              "de": "OK"
+            }
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "title": {
+              "en": "Version",
+              "de": "Version"
+            }
+          },
+          {
+            "name": "server",
+            "type": "string",
+            "title": {
+              "en": "Server",
+              "de": "Server"
+            }
+          },
+          {
+            "name": "latency_ms",
+            "type": "number",
+            "title": {
+              "en": "Latency (ms)",
+              "de": "Latenz (ms)"
+            }
+          }
+        ]
+      },
+      {
+        "id": "mark_watched",
+        "title": {
+          "en": "Mark current item as watched",
+          "de": "Aktuelles Item als gesehen markieren"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
+        "id": "play_item",
+        "title": {
+          "en": "Play item",
+          "de": "Item abspielen"
+        },
+        "titleFormatted": {
+          "en": "Play [[item]]",
+          "de": "Spiele [[item]]"
+        },
+        "hint": {
+          "en": "Searches the user's library and starts the picked item on whatever client they're active on.",
+          "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "item",
+            "type": "autocomplete",
+            "title": {
+              "en": "Item",
+              "de": "Item"
+            }
+          }
+        ]
+      },
+      {
+        "id": "play_random",
+        "title": {
+          "en": "Play random",
+          "de": "Zufällig abspielen"
+        },
+        "titleFormatted": {
+          "en": "Play a random [[item_type]] in [[genre]]",
+          "de": "Zufälligen [[item_type]] in [[genre]] abspielen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "item_type",
+            "type": "dropdown",
+            "title": {
+              "en": "Type",
+              "de": "Typ"
+            },
+            "values": [
+              {
+                "id": "Movie",
+                "label": {
+                  "en": "Movie",
+                  "de": "Film"
+                }
+              },
+              {
+                "id": "Episode",
+                "label": {
+                  "en": "Episode",
+                  "de": "Folge"
+                }
+              }
+            ]
+          },
+          {
+            "name": "genre",
+            "type": "autocomplete",
+            "title": {
+              "en": "Genre",
+              "de": "Genre"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
+        "id": "queue_add",
+        "title": {
+          "en": "Add to queue",
+          "de": "Zur Warteschlange hinzufügen"
+        },
+        "titleFormatted": {
+          "en": "Queue [[item]] ([[where]])",
+          "de": "[[item]] in Warteschlange ([[where]])"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "item",
+            "type": "autocomplete",
+            "title": {
+              "en": "Item",
+              "de": "Item"
+            }
+          },
+          {
+            "name": "where",
+            "type": "dropdown",
+            "title": {
+              "en": "Position",
+              "de": "Position"
+            },
+            "values": [
+              {
+                "id": "PlayNext",
+                "label": {
+                  "en": "Up next",
+                  "de": "Als Nächstes"
+                }
+              },
+              {
+                "id": "PlayLast",
+                "label": {
+                  "en": "End of queue",
+                  "de": "Ans Ende"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "queue_clear",
+        "title": {
+          "en": "Clear queue / stop",
+          "de": "Warteschlange leeren / stoppen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
+        "id": "restart_server",
+        "title": {
+          "en": "Restart Jellyfin server",
+          "de": "Jellyfin-Server neu starten"
+        },
+        "hint": {
+          "en": "Requires the API key to belong to an admin user.",
+          "de": "Erfordert einen Admin-API-Key."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "seek_relative",
+        "title": {
+          "en": "Skip forward/back",
+          "de": "Vor-/Zurückspulen"
+        },
+        "titleFormatted": {
+          "en": "Skip [[seconds]] s",
+          "de": "Spule [[seconds]] s"
+        },
+        "hint": {
+          "en": "Negative values skip backward (e.g. -30).",
+          "de": "Negative Werte spulen zurück (z. B. -30)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "seconds",
+            "type": "number",
+            "title": {
+              "en": "Delta (s)",
+              "de": "Delta (s)"
+            },
+            "min": -3600,
+            "max": 3600,
+            "step": 5
+          }
+        ]
+      },
+      {
+        "id": "seek_to",
+        "title": {
+          "en": "Seek to position",
+          "de": "Spule zu Position"
+        },
+        "titleFormatted": {
+          "en": "Seek to [[seconds]] s",
+          "de": "Spule zu [[seconds]] s"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "seconds",
+            "type": "number",
+            "title": {
+              "en": "Position (s)",
+              "de": "Position (s)"
+            },
+            "min": 0,
+            "max": 99999,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "id": "send_message",
+        "title": {
+          "en": "Send message to client",
+          "de": "Nachricht an Client senden"
+        },
+        "titleFormatted": {
+          "en": "Send message [[header]]: [[text]] (timeout [[timeout_ms]] ms)",
+          "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "header",
+            "type": "text",
+            "title": {
+              "en": "Header",
+              "de": "Überschrift"
+            },
+            "placeholder": {
+              "en": "Homey",
+              "de": "Homey"
+            }
+          },
+          {
+            "name": "text",
+            "type": "text",
+            "title": {
+              "en": "Text",
+              "de": "Text"
+            }
+          },
+          {
+            "name": "timeout_ms",
+            "type": "number",
+            "title": {
+              "en": "Timeout (ms)",
+              "de": "Timeout (ms)"
+            },
+            "min": 0,
+            "max": 60000,
+            "step": 500,
+            "placeholder": {
+              "en": "5000",
+              "de": "5000"
+            }
+          }
+        ]
+      },
+      {
+        "id": "set_audio_track",
+        "title": {
+          "en": "Set audio track",
+          "de": "Audio-Spur wählen"
+        },
+        "titleFormatted": {
+          "en": "Set audio track to [[track]]",
+          "de": "Audio-Spur auf [[track]] setzen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "track",
+            "type": "autocomplete",
+            "title": {
+              "en": "Track",
+              "de": "Spur"
+            }
+          }
+        ]
+      },
+      {
+        "id": "set_subtitle_track",
+        "title": {
+          "en": "Set subtitle track",
+          "de": "Untertitel wählen"
+        },
+        "titleFormatted": {
+          "en": "Set subtitle to [[track]]",
+          "de": "Untertitel auf [[track]] setzen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "track",
+            "type": "autocomplete",
+            "title": {
+              "en": "Track",
+              "de": "Spur"
+            }
+          }
+        ]
+      },
+      {
+        "id": "shutdown_server",
+        "title": {
+          "en": "Shut down Jellyfin server",
+          "de": "Jellyfin-Server herunterfahren"
+        },
+        "hint": {
+          "en": "Requires the API key to belong to an admin user.",
+          "de": "Erfordert einen Admin-API-Key."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "skip_chapter",
+        "title": {
+          "en": "Skip chapter",
+          "de": "Kapitel überspringen"
+        },
+        "titleFormatted": {
+          "en": "Skip [[direction]] chapter",
+          "de": "[[direction]] Kapitel überspringen"
+        },
+        "hint": {
+          "en": "Jumps to the previous / next chapter boundary using the item's chapter data. Handy for Intros & Credits.",
+          "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "direction",
+            "type": "dropdown",
+            "title": {
+              "en": "Direction",
+              "de": "Richtung"
+            },
+            "values": [
+              {
+                "id": "next",
+                "label": {
+                  "en": "Next",
+                  "de": "Nächstes"
+                }
+              },
+              {
+                "id": "prev",
+                "label": {
+                  "en": "Previous",
+                  "de": "Vorheriges"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "start_library_scan",
+        "title": {
+          "en": "Scan library",
+          "de": "Bibliothek scannen"
+        },
+        "titleFormatted": {
+          "en": "Scan library [[library]]",
+          "de": "Bibliothek [[library]] scannen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "library",
+            "type": "autocomplete",
+            "title": {
+              "en": "Library",
+              "de": "Bibliothek"
+            }
+          }
+        ]
+      },
+      {
+        "id": "toggle_favorite",
+        "title": {
+          "en": "Toggle favorite on current item",
+          "de": "Favorit für aktuelles Item umschalten"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "Jellyfin Server",
+        "de": "Jellyfin-Server"
+      },
+      "class": "other",
+      "capabilities": [
+        "library_movies_count",
+        "library_series_count",
+        "library_episodes_count",
+        "last_added_title",
+        "scan_in_progress",
+        "stream_count",
+        "transcoding_count",
+        "socket_online",
+        "server_uptime"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/server/assets/images/small.png",
+        "large": "/drivers/server/assets/images/large.png",
+        "xlarge": "/drivers/server/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "credentials"
+        }
+      ],
+      "repair": [
+        {
+          "id": "credentials"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Connection",
+            "de": "Verbindung"
+          },
+          "children": [
+            {
+              "id": "baseUrl",
+              "type": "text",
+              "label": {
+                "en": "Server URL",
+                "de": "Server-URL"
+              },
+              "hint": {
+                "en": "e.g. http://192.168.1.10:8096",
+                "de": "z. B. http://192.168.1.10:8096"
+              },
+              "value": ""
+            },
+            {
+              "id": "apiKey",
+              "type": "password",
+              "label": {
+                "en": "API Key",
+                "de": "API-Schlüssel"
+              },
+              "value": ""
+            },
+            {
+              "id": "userName",
+              "type": "text",
+              "label": {
+                "en": "Default user",
+                "de": "Standard-Benutzer"
+              },
+              "hint": {
+                "en": "User whose latest items / counts are reported.",
+                "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden."
+              },
+              "value": ""
+            },
+            {
+              "id": "insecureTls",
+              "type": "checkbox",
+              "label": {
+                "en": "Allow self-signed HTTPS",
+                "de": "Selbst-signierte HTTPS-Zertifikate erlauben"
+              },
+              "hint": {
+                "en": "Tick this if your Jellyfin uses HTTPS with a self-signed certificate.",
+                "de": "Aktivieren, wenn dein Jellyfin HTTPS mit selbst-signiertem Zertifikat nutzt."
+              },
+              "value": false
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Polling",
+            "de": "Polling"
+          },
+          "children": [
+            {
+              "id": "libraryPollMinutes",
+              "type": "number",
+              "label": {
+                "en": "Library refresh (min)",
+                "de": "Bibliotheks-Refresh (min)"
+              },
+              "value": 5,
+              "min": 1,
+              "max": 120
+            },
+            {
+              "id": "fallbackPollSeconds",
+              "type": "number",
+              "label": {
+                "en": "Idle session poll (s)",
+                "de": "Idle-Session-Polling (s)"
+              },
+              "hint": {
+                "en": "How often to poll /Sessions while no clients are streaming (and the WebSocket is down).",
+                "de": "Wie oft /Sessions abgefragt werden, wenn nichts streamt (und der Socket weg ist)."
+              },
+              "value": 30,
+              "min": 5,
+              "max": 300
+            },
+            {
+              "id": "activePollSeconds",
+              "type": "number",
+              "label": {
+                "en": "Active session poll (s)",
+                "de": "Aktiv-Session-Polling (s)"
+              },
+              "hint": {
+                "en": "How often to poll /Sessions while something is playing (used as a low-latency fallback alongside the WebSocket).",
+                "de": "Wie oft /Sessions abgefragt werden, wenn etwas läuft (Polling parallel zum WebSocket für niedrige Latenz)."
+              },
+              "value": 5,
+              "min": 2,
+              "max": 60
+            }
+          ]
+        }
+      ],
+      "id": "server"
+    },
+    {
+      "name": {
+        "en": "Jellyfin User",
+        "de": "Jellyfin-Benutzer"
+      },
+      "class": "tv",
+      "capabilities": [
+        "speaker_playing",
+        "speaker_next",
+        "speaker_prev",
+        "speaker_track",
+        "speaker_artist",
+        "speaker_album",
+        "volume_set",
+        "volume_mute",
+        "media_title",
+        "media_subtitle",
+        "media_position",
+        "media_duration",
+        "client_online",
+        "is_transcoding",
+        "unwatched_count",
+        "continue_watching_title",
+        "watch_minutes_week"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/user/assets/images/small.png",
+        "large": "/drivers/user/assets/images/large.png",
+        "xlarge": "/drivers/user/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "select_server"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Behavior",
+            "de": "Verhalten"
+          },
+          "children": [
+            {
+              "id": "stoppedDebounceMs",
+              "type": "number",
+              "label": {
+                "en": "Stop debounce (ms)",
+                "de": "Stop-Entprellzeit (ms)"
+              },
+              "hint": {
+                "en": "Wait this long after the user's session disappears before firing the Stopped trigger.",
+                "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert."
+              },
+              "value": 4000,
+              "min": 0,
+              "max": 30000
+            },
+            {
+              "id": "unwatchedRefreshMinutes",
+              "type": "number",
+              "label": {
+                "en": "Unwatched refresh (min)",
+                "de": "Refresh ungesehen (min)"
+              },
+              "value": 10,
+              "min": 1,
+              "max": 120
+            },
+            {
+              "id": "volumeCapPercent",
+              "type": "number",
+              "label": {
+                "en": "Volume cap (%)",
+                "de": "Lautstärke-Limit (%)"
+              },
+              "hint": {
+                "en": "Maximum volume that Homey will send to the client (0 = disabled).",
+                "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus)."
+              },
+              "value": 0,
+              "min": 0,
+              "max": 100
+            },
+            {
+              "id": "dailySummaryHour",
+              "type": "number",
+              "label": {
+                "en": "Daily summary hour",
+                "de": "Tageszusammenfassung (Stunde)"
+              },
+              "hint": {
+                "en": "Hour of the day (0-23) when the daily summary trigger fires.",
+                "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert."
+              },
+              "value": 22,
+              "min": 0,
+              "max": 23
+            }
+          ]
+        }
+      ],
+      "id": "user"
+    }
+  ],
+  "widgets": {
+    "now_playing": {
+      "name": {
+        "en": "Now playing",
+        "de": "Läuft gerade"
+      },
+      "height": 320,
+      "settings": [
+        {
+          "id": "refreshSeconds",
+          "type": "number",
+          "title": {
+            "en": "Refresh interval (s)",
+            "de": "Aktualisierung (s)"
+          },
+          "value": 2,
+          "min": 1,
+          "max": 30
+        }
+      ],
+      "api": {
+        "getNowPlaying": {
+          "method": "GET",
+          "path": "/now_playing"
+        },
+        "togglePlayback": {
+          "method": "POST",
+          "path": "/playback/toggle"
+        },
+        "skipSeconds": {
+          "method": "POST",
+          "path": "/playback/skip"
+        },
+        "skipChapter": {
+          "method": "POST",
+          "path": "/playback/chapter"
+        },
+        "seekTo": {
+          "method": "POST",
+          "path": "/playback/seek"
+        },
+        "markWatched": {
+          "method": "POST",
+          "path": "/playback/watched"
+        },
+        "toggleFavorite": {
+          "method": "POST",
+          "path": "/playback/favorite"
+        }
+      }
+    },
+    "server_overview": {
+      "name": {
+        "en": "Server overview",
+        "de": "Server-Übersicht"
+      },
+      "height": 280,
+      "settings": [
+        {
+          "id": "refreshSeconds",
+          "type": "number",
+          "title": {
+            "en": "Refresh interval (s)",
+            "de": "Aktualisierung (s)"
+          },
+          "value": 5,
+          "min": 2,
+          "max": 60
+        }
+      ],
+      "api": {
+        "getServers": {
+          "method": "GET",
+          "path": "/servers"
+        },
+        "getOverview": {
+          "method": "GET",
+          "path": "/overview"
+        }
+      }
+    }
+  }
+}

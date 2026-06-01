@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="root" class="card empty">
+    <div class="backdrop" id="backdrop"></div>
+    <div class="empty-msg" id="empty-msg">Nothing playing</div>
+
+    <div id="stream" class="stream">
+      <div class="top">
+        <div class="poster" id="poster">
+          <div class="poster-fallback">▶</div>
+        </div>
+        <div class="info">
+          <div class="title-row">
+            <div class="title-block">
+              <div class="title" id="title">—</div>
+              <div class="sub"   id="sub">—</div>
+            </div>
+            <div class="badges">
+              <span id="badge-transcoding" class="chip transcoding" title="Transcoding">TR</span>
+              <span id="badge-paused" class="chip">paused</span>
+            </div>
+          </div>
+          <div class="meta" id="meta">—</div>
+          <div class="equalizer" id="equalizer">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress" id="progress-track">
+          <span id="progress-fill"></span>
+        </div>
+        <div class="times">
+          <span id="time-now">0:00</span>
+          <span id="time-rem">-0:00</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="ctrl small" id="btn-prev" title="Previous chapter">⏮</button>
+        <button class="ctrl small" id="btn-back" title="Back 10s">−10</button>
+        <button class="ctrl primary" id="btn-toggle" title="Play / Pause">▶</button>
+        <button class="ctrl small" id="btn-fwd" title="Forward 10s">+10</button>
+        <button class="ctrl small" id="btn-next" title="Next chapter">⏭</button>
+      </div>
+      <div class="extras">
+        <button class="ctrl ghost" id="btn-fav" title="Toggle favorite">★</button>
+        <button class="ctrl ghost" id="btn-watched" title="Mark watched">✓</button>
+      </div>
+    </div>
+  </div>
+  <script src="./script.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "title": { "en": "Set subtitle track", "de": "Untertitel wählen" },
+  "titleFormatted": {
+    "en": "Set subtitle to [[track]]",
+    "de": "Untertitel auf [[track]] setzen"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "track",
+      "type": "autocomplete",
+      "title": { "en": "Track", "de": "Spur" }
+    }
+  ]
+}

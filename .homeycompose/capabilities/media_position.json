@@ -1,0 +1,9 @@
+{
+  "type": "number",
+  "title": { "en": "Position", "de": "Position" },
+  "units": { "en": "s" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "decimals": 0
+}

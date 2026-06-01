@@ -1,0 +1,15 @@
+{
+  "title": { "en": "Scan library", "de": "Bibliothek scannen" },
+  "titleFormatted": {
+    "en": "Scan library [[library]]",
+    "de": "Bibliothek [[library]] scannen"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=server" },
+    {
+      "name": "library",
+      "type": "autocomplete",
+      "title": { "en": "Library", "de": "Bibliothek" }
+    }
+  ]
+}

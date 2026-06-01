@@ -1,0 +1,7 @@
+{
+  "type": "string",
+  "title": { "en": "Now playing", "de": "Läuft gerade" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

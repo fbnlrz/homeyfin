@@ -1,0 +1,107 @@
+{
+  "name": { "en": "Jellyfin Server", "de": "Jellyfin-Server" },
+  "class": "other",
+  "capabilities": [
+    "library_movies_count",
+    "library_series_count",
+    "library_episodes_count",
+    "last_added_title",
+    "scan_in_progress",
+    "stream_count",
+    "transcoding_count",
+    "socket_online",
+    "server_uptime"
+  ],
+  "platforms": ["local"],
+  "connectivity": ["lan"],
+  "images": {
+    "small": "/drivers/server/assets/images/small.png",
+    "large": "/drivers/server/assets/images/large.png",
+    "xlarge": "/drivers/server/assets/images/xlarge.png"
+  },
+  "pair": [
+    { "id": "credentials" }
+  ],
+  "repair": [
+    { "id": "credentials" }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": { "en": "Connection", "de": "Verbindung" },
+      "children": [
+        {
+          "id": "baseUrl",
+          "type": "text",
+          "label": { "en": "Server URL", "de": "Server-URL" },
+          "hint": { "en": "e.g. http://192.168.1.10:8096", "de": "z. B. http://192.168.1.10:8096" },
+          "value": ""
+        },
+        {
+          "id": "apiKey",
+          "type": "password",
+          "label": { "en": "API Key", "de": "API-Schlüssel" },
+          "value": ""
+        },
+        {
+          "id": "userName",
+          "type": "text",
+          "label": { "en": "Default user", "de": "Standard-Benutzer" },
+          "hint": {
+            "en": "User whose latest items / counts are reported.",
+            "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden."
+          },
+          "value": ""
+        },
+        {
+          "id": "insecureTls",
+          "type": "checkbox",
+          "label": { "en": "Allow self-signed HTTPS", "de": "Selbst-signierte HTTPS-Zertifikate erlauben" },
+          "hint": {
+            "en": "Tick this if your Jellyfin uses HTTPS with a self-signed certificate.",
+            "de": "Aktivieren, wenn dein Jellyfin HTTPS mit selbst-signiertem Zertifikat nutzt."
+          },
+          "value": false
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": { "en": "Polling", "de": "Polling" },
+      "children": [
+        {
+          "id": "libraryPollMinutes",
+          "type": "number",
+          "label": { "en": "Library refresh (min)", "de": "Bibliotheks-Refresh (min)" },
+          "value": 5,
+          "min": 1,
+          "max": 120
+        },
+        {
+          "id": "fallbackPollSeconds",
+          "type": "number",
+          "label": { "en": "Idle session poll (s)", "de": "Idle-Session-Polling (s)" },
+          "hint": {
+            "en": "How often to poll /Sessions while no clients are streaming (and the WebSocket is down).",
+            "de": "Wie oft /Sessions abgefragt werden, wenn nichts streamt (und der Socket weg ist)."
+          },
+          "value": 30,
+          "min": 5,
+          "max": 300
+        },
+        {
+          "id": "activePollSeconds",
+          "type": "number",
+          "label": { "en": "Active session poll (s)", "de": "Aktiv-Session-Polling (s)" },
+          "hint": {
+            "en": "How often to poll /Sessions while something is playing (used as a low-latency fallback alongside the WebSocket).",
+            "de": "Wie oft /Sessions abgefragt werden, wenn etwas läuft (Polling parallel zum WebSocket für niedrige Latenz)."
+          },
+          "value": 5,
+          "min": 2,
+          "max": 60
+        }
+      ]
+    }
+  ]
+}

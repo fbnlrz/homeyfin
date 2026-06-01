@@ -1,0 +1,14 @@
+{
+  "title": { "en": "Playback started", "de": "Wiedergabe gestartet" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }],
+  "tokens": [
+    { "name": "title",   "type": "string", "title": { "en": "Title",   "de": "Titel" } },
+    { "name": "type",    "type": "string", "title": { "en": "Type",    "de": "Typ" } },
+    { "name": "series",  "type": "string", "title": { "en": "Series",  "de": "Serie" } },
+    { "name": "season",  "type": "number", "title": { "en": "Season",  "de": "Staffel" } },
+    { "name": "episode", "type": "number", "title": { "en": "Episode", "de": "Folge" } },
+    { "name": "runtime", "type": "number", "title": { "en": "Runtime (s)", "de": "Laufzeit (s)" } },
+    { "name": "user",    "type": "string", "title": { "en": "User",    "de": "Benutzer" } },
+    { "name": "poster",  "type": "image",  "title": { "en": "Poster",  "de": "Poster" } }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Library scan running", "de": "Bibliotheks-Scan läuft" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

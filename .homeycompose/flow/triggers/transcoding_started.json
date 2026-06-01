@@ -1,0 +1,10 @@
+{
+  "title": { "en": "Transcoding started", "de": "Transcodierung gestartet" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }],
+  "tokens": [
+    { "name": "user",   "type": "string", "title": { "en": "User",   "de": "Benutzer" } },
+    { "name": "device_name", "type": "string", "title": { "en": "Device", "de": "Gerät" } },
+    { "name": "title",  "type": "string", "title": { "en": "Title",  "de": "Titel" } },
+    { "name": "reasons", "type": "string", "title": { "en": "Reasons", "de": "Gründe" } }
+  ]
+}

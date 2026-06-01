@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npx tsc -p tsconfig.test.json && node --import tsx --test test/*.test.ts
+      - name: Build manifest
+        run: node scripts/build-app-json.mjs
+      - name: Install Homey CLI
+        run: npm install -g homey
+      - name: Validate app at publish level
+        run: homey app validate --level publish

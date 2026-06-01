@@ -1,0 +1,7 @@
+{
+  "type": "string",
+  "title": { "en": "Last added", "de": "Zuletzt hinzugefügt" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

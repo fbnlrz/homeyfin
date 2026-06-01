@@ -1,0 +1,11 @@
+{
+  "title": { "en": "Now playing changed", "de": "Aktuelle Wiedergabe geändert" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }],
+  "tokens": [
+    { "name": "title",   "type": "string", "title": { "en": "Title",   "de": "Titel" } },
+    { "name": "type",    "type": "string", "title": { "en": "Type",    "de": "Typ" } },
+    { "name": "series",  "type": "string", "title": { "en": "Series",  "de": "Serie" } },
+    { "name": "season",  "type": "number", "title": { "en": "Season",  "de": "Staffel" } },
+    { "name": "episode", "type": "number", "title": { "en": "Episode", "de": "Folge" } }
+  ]
+}

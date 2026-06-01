@@ -1,0 +1,30 @@
+{
+  "title": { "en": "Send message to client", "de": "Nachricht an Client senden" },
+  "titleFormatted": {
+    "en": "Send message [[header]]: [[text]] (timeout [[timeout_ms]] ms)",
+    "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "header",
+      "type": "text",
+      "title": { "en": "Header", "de": "Überschrift" },
+      "placeholder": { "en": "Homey", "de": "Homey" }
+    },
+    {
+      "name": "text",
+      "type": "text",
+      "title": { "en": "Text", "de": "Text" }
+    },
+    {
+      "name": "timeout_ms",
+      "type": "number",
+      "title": { "en": "Timeout (ms)", "de": "Timeout (ms)" },
+      "min": 0,
+      "max": 60000,
+      "step": 500,
+      "placeholder": { "en": "5000", "de": "5000" }
+    }
+  ]
+}

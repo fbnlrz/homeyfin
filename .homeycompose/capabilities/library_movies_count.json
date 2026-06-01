@@ -1,0 +1,8 @@
+{
+  "type": "number",
+  "title": { "en": "Movies", "de": "Filme" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "decimals": 0
+}

@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Server connected", "de": "Server verbunden" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}
