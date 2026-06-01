@@ -1,18 +1,23 @@
 {
   "name": { "en": "Now playing", "de": "Läuft gerade" },
-  "height": 200,
+  "height": 320,
   "settings": [
     {
       "id": "refreshSeconds",
       "type": "number",
       "title": { "en": "Refresh interval (s)", "de": "Aktualisierung (s)" },
-      "value": 3,
+      "value": 2,
       "min": 1,
       "max": 30
     }
   ],
   "api": {
-    "getNowPlaying": { "method": "GET", "path": "/now_playing" },
-    "togglePlayback": { "method": "POST", "path": "/playback/toggle" }
+    "getNowPlaying":   { "method": "GET",  "path": "/now_playing" },
+    "togglePlayback":  { "method": "POST", "path": "/playback/toggle" },
+    "skipSeconds":     { "method": "POST", "path": "/playback/skip" },
+    "skipChapter":     { "method": "POST", "path": "/playback/chapter" },
+    "seekTo":          { "method": "POST", "path": "/playback/seek" },
+    "markWatched":     { "method": "POST", "path": "/playback/watched" },
+    "toggleFavorite":  { "method": "POST", "path": "/playback/favorite" }
   }
 }

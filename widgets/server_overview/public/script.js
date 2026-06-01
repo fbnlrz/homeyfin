@@ -5,6 +5,7 @@ function onHomeyReady(Homey) {
   const refreshSeconds = Math.max(2, Math.min(60, Number(settings.refreshSeconds) || 5));
 
   const $ = (id) => document.getElementById(id);
+  const lastValues = {};
 
   function fmtTime(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -18,6 +19,36 @@ function onHomeyReady(Homey) {
   function fmtCount(n) {
     if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
     return String(n ?? 0);
+  }
+
+  function setStat(id, value) {
+    const el = $(id);
+    const next = fmtCount(value);
+    if (el.textContent !== next) {
+      el.textContent = next;
+      if (lastValues[id] !== undefined) {
+        el.classList.remove('bumped');
+        // re-trigger animation
+        void el.offsetWidth;
+        el.classList.add('bumped');
+      }
+    }
+    lastValues[id] = value;
+  }
+
+  function initials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2);
+    return (parts[0][0] + parts[parts.length - 1][0]);
+  }
+
+  function userColor(seed) {
+    // Stable HSL hue from name
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+    const h = Math.abs(hash) % 360;
+    return `linear-gradient(135deg, hsl(${h}, 65%, 55%), hsl(${(h + 60) % 360}, 65%, 45%))`;
   }
 
   function render(data) {
@@ -43,10 +74,20 @@ function onHomeyReady(Homey) {
       statusText.textContent = 'offline';
     }
 
-    $('stat-active').textContent = fmtCount(data.activeCount + data.pausedCount);
-    $('stat-movies').textContent = fmtCount(data.counts.movies);
-    $('stat-series').textContent = fmtCount(data.counts.series);
-    $('stat-episodes').textContent = fmtCount(data.counts.episodes);
+    setStat('stat-active',   (data.activeCount || 0) + (data.pausedCount || 0));
+    setStat('stat-movies',   data.counts.movies);
+    setStat('stat-series',   data.counts.series);
+    setStat('stat-episodes', data.counts.episodes);
+
+    // Split sub-line: "X playing · Y paused · Z transcoding"
+    const split = $('split');
+    const parts = [];
+    if (data.activeCount) parts.push(`<span class="pulse"><b>${data.activeCount}</b>playing</span>`);
+    if (data.pausedCount) parts.push(`<span><b>${data.pausedCount}</b>paused</span>`);
+    const transCount = (data.streams || []).filter((s) => s.isTranscoding).length;
+    if (transCount) parts.push(`<span><b>${transCount}</b>transcoding</span>`);
+    split.innerHTML = parts.join(' · ');
+    split.style.display = parts.length ? 'flex' : 'none';
 
     const list = $('streams');
     list.innerHTML = '';
@@ -59,24 +100,50 @@ function onHomeyReady(Homey) {
     } else {
       for (const s of data.streams) {
         const row = document.createElement('div');
-        row.className = 'stream';
+        row.className = 'stream' + (s.isPaused ? ' paused' : ' playing');
 
         const poster = document.createElement('div');
         poster.className = 'poster';
-        if (s.posterUrl) poster.style.backgroundImage = `url("${s.posterUrl}")`;
+        if (s.posterUrl) {
+          poster.style.backgroundImage = `url("${s.posterUrl}")`;
+          poster.classList.add('has-image');
+        } else {
+          // Use the title's first letters as the poster glyph when we have no art
+          poster.textContent = initials(s.title || s.deviceName || '?');
+        }
+        // Equalizer overlay (visible when playing per CSS)
+        const eq = document.createElement('div');
+        eq.className = 'eq';
+        eq.innerHTML = '<span></span><span></span><span></span>';
+        poster.appendChild(eq);
 
         const meta = document.createElement('div');
         meta.className = 'stream-meta';
 
+        const titleRow = document.createElement('div');
+        titleRow.style.display = 'flex';
+        titleRow.style.alignItems = 'center';
+        titleRow.style.gap = '6px';
+
+        // Avatar with user initials, stable colour
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.textContent = initials(s.userName);
+        avatar.style.background = userColor(s.userName || s.deviceName || '');
+
         const title = document.createElement('div');
         title.className = 'stream-title';
+        title.style.flex = '1';
+        title.style.minWidth = '0';
         title.textContent = s.title || s.deviceName || 'Unknown';
+
+        titleRow.appendChild(avatar);
+        titleRow.appendChild(title);
 
         const sub = document.createElement('div');
         sub.className = 'stream-sub';
         const subParts = [];
         if (s.subtitle) subParts.push(s.subtitle);
-        if (s.userName) subParts.push('@' + s.userName);
         if (s.deviceName) subParts.push(s.deviceName);
         sub.textContent = subParts.join(' · ');
 
@@ -85,9 +152,14 @@ function onHomeyReady(Homey) {
 
         const badge = document.createElement('span');
         badge.className = 'badge' + (s.isPaused ? ' paused' : '');
-        badge.textContent = s.isPaused
-          ? (s.isTranscoding ? 'paused · TR' : 'paused')
-          : (s.isTranscoding ? 'playing · TR' : 'playing');
+        badge.textContent = s.isPaused ? 'paused' : 'playing';
+
+        const transBadge = document.createElement('span');
+        if (s.isTranscoding) {
+          transBadge.className = 'badge transcoding';
+          transBadge.textContent = 'TR';
+          transBadge.title = 'Transcoding';
+        }
 
         const progress = document.createElement('div');
         progress.className = 'progress';
@@ -104,10 +176,11 @@ function onHomeyReady(Homey) {
           : fmtTime(s.positionSeconds);
 
         foot.appendChild(badge);
+        if (s.isTranscoding) foot.appendChild(transBadge);
         foot.appendChild(progress);
         foot.appendChild(time);
 
-        meta.appendChild(title);
+        meta.appendChild(titleRow);
         meta.appendChild(sub);
         meta.appendChild(foot);
 

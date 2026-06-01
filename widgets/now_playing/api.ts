@@ -89,23 +89,99 @@ module.exports = {
   },
 
   async togglePlayback({ homey, body }: ApiArgs) {
-    const app = homey.app as HomeyfinApp;
-    const deviceId = (body?.deviceId as string | undefined) ?? '';
-    const serverId = (body?.serverId as string | undefined) ?? '';
-    const server = selectServer(homey, serverId);
-    if (!server) throw new Error('No server');
-    const hub = app.getHub(server.id);
-    if (!hub) throw new Error('Hub not connected');
-
-    let snap: ClientSnapshot | undefined;
-    if (deviceId) {
-      snap = hub.getClientSnapshot(deviceId);
-    } else {
-      const streams = await hub.getActiveStreams();
-      snap = streams[0];
-    }
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
     if (!snap?.sessionId) throw new Error('No active session');
     await hub.client.sendPlaystate(snap.sessionId, snap.isPaused ? 'Unpause' : 'Pause');
     return { ok: true };
   },
+
+  async skipSeconds({ homey, body }: ApiArgs) {
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
+    if (!snap?.sessionId) throw new Error('No active session');
+    const delta = Number(body?.seconds ?? 0);
+    const current = snap.positionSeconds ?? 0;
+    const duration = snap.durationSeconds ?? 0;
+    const target = Math.max(
+      0,
+      duration > 0 ? Math.min(duration, current + delta) : current + delta,
+    );
+    await hub.client.seekToSeconds(snap.sessionId, target);
+    return { ok: true, position: target };
+  },
+
+  async skipChapter({ homey, body }: ApiArgs) {
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
+    if (!snap?.sessionId || !snap.nowPlaying?.Id) throw new Error('No active session');
+    if (!snap.userId) throw new Error('Session has no user id');
+
+    const direction = (body?.direction as string) ?? 'next';
+    const full = await hub.client.getItem(snap.userId, snap.nowPlaying.Id, 'Chapters');
+    const chapters = (full.Chapters ?? []).map((c) => c.StartPositionTicks);
+    if (chapters.length === 0) throw new Error('No chapter data');
+    const ticks = (snap.positionSeconds ?? 0) * 10_000_000;
+    let target: number | undefined;
+    if (direction === 'next') {
+      target = chapters.find((t) => t > ticks + 1_000_000);
+    } else {
+      const grace = 5 * 10_000_000;
+      for (let i = chapters.length - 1; i >= 0; i--) {
+        if (chapters[i] < ticks - grace) {
+          target = chapters[i];
+          break;
+        }
+      }
+      if (target === undefined && chapters.length > 0) target = chapters[0];
+    }
+    if (target === undefined) throw new Error('No chapter in that direction');
+    await hub.client.seekToSeconds(snap.sessionId, target / 10_000_000);
+    return { ok: true };
+  },
+
+  async seekTo({ homey, body }: ApiArgs) {
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
+    if (!snap?.sessionId) throw new Error('No active session');
+    const seconds = Math.max(0, Number(body?.seconds ?? 0));
+    await hub.client.seekToSeconds(snap.sessionId, seconds);
+    return { ok: true };
+  },
+
+  async markWatched({ homey, body }: ApiArgs) {
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
+    if (!snap?.userId || !snap.nowPlaying?.Id) throw new Error('No active item');
+    await hub.client.setPlayed(snap.userId, snap.nowPlaying.Id, true);
+    return { ok: true };
+  },
+
+  async toggleFavorite({ homey, body }: ApiArgs) {
+    const hub = await resolveHub(homey, body?.serverId as string | undefined);
+    const snap = await resolveSnap(hub, body?.deviceId as string | undefined);
+    if (!snap?.userId || !snap.nowPlaying?.Id) throw new Error('No active item');
+    const full = await hub.client.getItem(snap.userId, snap.nowPlaying.Id, 'UserData');
+    const fav = full.UserData?.IsFavorite === true;
+    await hub.client.setFavorite(snap.userId, snap.nowPlaying.Id, !fav);
+    return { ok: true, favorite: !fav };
+  },
 };
+
+async function resolveHub(homey: HomeyRef, serverId?: string) {
+  const app = homey.app as HomeyfinApp;
+  const server = selectServer(homey, serverId);
+  if (!server) throw new Error('No server');
+  const hub = app.getHub(server.id);
+  if (!hub) throw new Error('Hub not connected');
+  return hub;
+}
+
+async function resolveSnap(
+  hub: Awaited<ReturnType<typeof resolveHub>>,
+  deviceId?: string,
+): Promise<ClientSnapshot | undefined> {
+  if (deviceId) return hub.getClientSnapshot(deviceId);
+  const streams = await hub.getActiveStreams();
+  return streams[0];
+}
