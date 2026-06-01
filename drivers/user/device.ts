@@ -54,7 +54,6 @@ export default class JellyfinUserDevice extends Homey.Device {
     );
     this.registerCapabilityHandlers();
     this.registerHubHandlers();
-    this.registerFlowHandlers();
     this.startPositionTicker();
     this.startUnwatchedRefresh();
     this.scheduleSummary();
@@ -112,6 +111,25 @@ export default class JellyfinUserDevice extends Homey.Device {
     this.albumArtImage = await makeImage(() => this.lastArtworkUrl);
     this.posterTokenImage = await makeImage(() => this.lastArtworkUrl);
     await this.setAlbumArtImage(this.albumArtImage).catch(() => undefined);
+  }
+
+  // --- Public accessors used by driver-level flow listeners (multi-device safe) ---
+
+  getHub(): ServerHub | undefined {
+    return this.hub;
+  }
+
+  getUserId(): string {
+    return this.store.userId;
+  }
+
+  getSnapshot(): ClientSnapshot | undefined {
+    return this.hub?.getUserSnapshot(this.store.userId);
+  }
+
+  getVolumeCap(): number {
+    const settings = this.getSettings() as UserSettings;
+    return Math.min(100, Math.max(0, settings.volumeCapPercent ?? 0));
   }
 
   // --- Background refresh: unwatched + continue watching ----------------
@@ -399,7 +417,7 @@ export default class JellyfinUserDevice extends Homey.Device {
     });
   }
 
-  private async requireSessionId(): Promise<string> {
+  async requireSessionId(): Promise<string> {
     const snap = this.hub?.getUserSnapshot(this.store.userId);
     if (!snap || !snap.online || !snap.sessionId) {
       throw new Error('User has no active Jellyfin session right now');
@@ -407,279 +425,14 @@ export default class JellyfinUserDevice extends Homey.Device {
     return snap.sessionId;
   }
 
-  private currentSession(): { sessionId: string; snap: ClientSnapshot } | undefined {
+  currentSession(): { sessionId: string; snap: ClientSnapshot } | undefined {
     const snap = this.hub?.getUserSnapshot(this.store.userId);
     if (!snap || !snap.online || !snap.sessionId) return undefined;
     return { sessionId: snap.sessionId, snap };
   }
 
-  // --- Flow registration -------------------------------------------------
 
-  private registerFlowHandlers(): void {
-    const userId = this.store.userId;
-
-    this.homey.flow
-      .getConditionCard('is_playing')
-      .registerRunListener(async () => {
-        const snap = this.hub?.getUserSnapshot(userId);
-        return Boolean(snap?.nowPlaying && !snap.isPaused);
-      });
-
-    this.homey.flow
-      .getConditionCard('media_type_is')
-      .registerRunListener(async (args: { media_type: string }) => {
-        const snap = this.hub?.getUserSnapshot(userId);
-        return snap?.nowPlaying?.Type === args.media_type;
-      });
-
-    this.homey.flow
-      .getConditionCard('is_transcoding')
-      .registerRunListener(async () => {
-        const snap = this.hub?.getUserSnapshot(userId);
-        return Boolean(snap?.isTranscoding);
-      });
-
-    this.homey.flow
-      .getActionCard('send_message')
-      .registerRunListener(async (args: { header?: string; text: string; timeout_ms?: number }) => {
-        const sessionId = await this.requireSessionId();
-        await this.hub!.client.sendMessage(
-          sessionId,
-          args.header && args.header.length > 0 ? args.header : 'Homey',
-          args.text ?? '',
-          typeof args.timeout_ms === 'number' && args.timeout_ms > 0 ? args.timeout_ms : 5000,
-        );
-      });
-
-    this.homey.flow.getActionCard('seek_to').registerRunListener(async (args: { seconds: number }) => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.seekToSeconds(sessionId, args.seconds);
-    });
-
-    this.homey.flow
-      .getActionCard('seek_relative')
-      .registerRunListener(async (args: { seconds: number }) => {
-        const session = this.currentSession();
-        if (!session) throw new Error('User has no active Jellyfin session right now');
-        const current = session.snap.positionSeconds ?? 0;
-        const duration = session.snap.durationSeconds ?? 0;
-        const target = Math.max(
-          0,
-          duration > 0 ? Math.min(duration, current + (args.seconds || 0)) : current + args.seconds,
-        );
-        await this.hub!.client.seekToSeconds(session.sessionId, target);
-      });
-
-    const playItem = this.homey.flow.getActionCard('play_item');
-    playItem.registerRunListener(async (args: { item: { id?: string; name?: string } }) => {
-      const session = this.currentSession();
-      if (!session) throw new Error('User has no active Jellyfin session right now');
-      if (!args.item?.id) throw new Error('No item picked');
-      await this.hub!.client.playItemsOnSession(session.sessionId, [args.item.id]);
-    });
-    playItem.registerArgumentAutocompleteListener('item', async (query) => {
-      if (!this.hub || !query || query.length < 2) return [];
-      const res = await this.hub.client
-        .searchItems({
-          userId,
-          searchTerm: query,
-          limit: 20,
-          includeItemTypes: 'Movie,Episode,Series',
-        })
-        .catch(() => ({ Items: [] }));
-      return res.Items.map((i) => ({
-        name: i.SeriesName
-          ? `${i.SeriesName} · S${String(i.ParentIndexNumber ?? 0).padStart(2, '0')}E${String(
-              i.IndexNumber ?? 0,
-            ).padStart(2, '0')} – ${i.Name}`
-          : i.ProductionYear
-            ? `${i.Name} (${i.ProductionYear})`
-            : i.Name,
-        id: i.Id,
-      }));
-    });
-
-    const randomAction = this.homey.flow.getActionCard('play_random');
-    randomAction.registerRunListener(
-      async (args: {
-        item_type: 'Movie' | 'Episode';
-        genre?: { id?: string; name?: string };
-      }) => {
-        const session = this.currentSession();
-        if (!session) throw new Error('User has no active Jellyfin session right now');
-        const res = await this.hub!.client.getRandomItems({
-          userId,
-          limit: 1,
-          includeItemTypes: args.item_type,
-          genres: args.genre?.name && args.genre.id !== 'any' ? args.genre.name : undefined,
-        });
-        const item = res.Items?.[0];
-        if (!item) throw new Error('No item found for these filters');
-        await this.hub!.client.playItemsOnSession(session.sessionId, [item.Id]);
-        return { title: item.Name };
-      },
-    );
-    randomAction.registerArgumentAutocompleteListener('genre', async (query, args: { item_type?: string }) => {
-      if (!this.hub) return [{ name: 'Any', id: 'any' }];
-      const res = await this.hub.client
-        .getGenres({ userId, includeItemTypes: args.item_type })
-        .catch(() => ({ Items: [] as { Id: string; Name: string }[] }));
-      const all = [
-        { name: 'Any', id: 'any' },
-        ...res.Items.map((g) => ({ name: g.Name, id: g.Id })),
-      ];
-      if (!query) return all;
-      const q = query.toLowerCase();
-      return all.filter((g) => g.name.toLowerCase().includes(q));
-    });
-
-    const queueAdd = this.homey.flow.getActionCard('queue_add');
-    queueAdd.registerRunListener(
-      async (args: { item: { id?: string }; where: 'PlayNext' | 'PlayLast' }) => {
-        const session = this.currentSession();
-        if (!session) throw new Error('User has no active Jellyfin session right now');
-        if (!args.item?.id) throw new Error('No item picked');
-        await this.hub!.client.playItemsOnSession(session.sessionId, [args.item.id], {
-          playCommand: args.where ?? 'PlayNext',
-        });
-      },
-    );
-    queueAdd.registerArgumentAutocompleteListener('item', async (query) => {
-      if (!this.hub || !query || query.length < 2) return [];
-      const res = await this.hub.client
-        .searchItems({
-          userId,
-          searchTerm: query,
-          limit: 20,
-          includeItemTypes: 'Movie,Episode,Series,Audio',
-        })
-        .catch(() => ({ Items: [] }));
-      return res.Items.map((i) => ({
-        name: i.SeriesName
-          ? `${i.SeriesName} · S${String(i.ParentIndexNumber ?? 0).padStart(2, '0')}E${String(
-              i.IndexNumber ?? 0,
-            ).padStart(2, '0')} – ${i.Name}`
-          : i.ProductionYear
-            ? `${i.Name} (${i.ProductionYear})`
-            : i.Name,
-        id: i.Id,
-      }));
-    });
-
-    this.homey.flow.getActionCard('queue_clear').registerRunListener(async () => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.clearSessionQueue(sessionId);
-    });
-
-    this.homey.flow
-      .getActionCard('skip_chapter')
-      .registerRunListener(async (args: { direction: 'next' | 'prev' }) => {
-        const session = this.currentSession();
-        if (!session) throw new Error('User has no active Jellyfin session right now');
-        const item = session.snap.nowPlaying;
-        if (!item?.Id) throw new Error('Nothing is currently playing');
-        const full = await this.hub!.client.getItem(userId, item.Id, 'Chapters');
-        const chapters = (full.Chapters ?? []).map((c) => c.StartPositionTicks);
-        if (chapters.length === 0) throw new Error('This item has no chapter data');
-        const positionTicks = (session.snap.positionSeconds ?? 0) * 10_000_000;
-        let target: number | undefined;
-        if (args.direction === 'next') {
-          target = chapters.find((t) => t > positionTicks + 1_000_000);
-        } else {
-          // 5s grace: prev means "this chapter's start if we're > 5s in, else previous one"
-          const grace = 5 * 10_000_000;
-          for (let i = chapters.length - 1; i >= 0; i--) {
-            if (chapters[i] < positionTicks - grace) {
-              target = chapters[i];
-              break;
-            }
-          }
-          if (target === undefined && chapters.length > 0) target = chapters[0];
-        }
-        if (target === undefined) throw new Error('No chapter in that direction');
-        await this.hub!.client.seekToSeconds(session.sessionId, target / 10_000_000);
-      });
-
-    this.homey.flow
-      .getActionCard('bookmark')
-      .registerRunListener(async (args: { playlist_name?: string }): Promise<{ title: string }> => {
-        const snap = this.hub?.getUserSnapshot(userId);
-        const item = snap?.nowPlaying;
-        if (!item?.Id) throw new Error('Nothing is currently playing');
-        const playlistName = (args.playlist_name?.trim() || 'Homey Watchlist');
-        const all = await this.hub!.client.getPlaylists(userId);
-        let playlist = all.Items.find(
-          (p) => p.Name?.toLowerCase() === playlistName.toLowerCase(),
-        );
-        let playlistId = playlist?.Id;
-        if (!playlistId) {
-          playlistId = await this.hub!.client.createPlaylist({
-            userId,
-            name: playlistName,
-            itemIds: [item.Id],
-          });
-        } else {
-          await this.hub!.client.addToPlaylist(playlistId, userId, [item.Id]);
-        }
-        return { title: item.Name ?? '' };
-      });
-
-    this.homey.flow.getActionCard('continue_watching').registerRunListener(async () => {
-      const session = this.currentSession();
-      if (!session) throw new Error('User has no active Jellyfin session right now');
-      const res = await this.hub!.client.getResumeItems({ userId, limit: 1 });
-      const item = res.Items?.[0];
-      if (!item) throw new Error('Nothing to continue');
-      const startTicks = item.UserData ? undefined : undefined;
-      await this.hub!.client.playItemsOnSession(session.sessionId, [item.Id], {
-        startPositionTicks: startTicks,
-      });
-      return { title: item.Name };
-    });
-
-    const audioAction = this.homey.flow.getActionCard('set_audio_track');
-    audioAction.registerRunListener(async (args: { track: { id?: string } }) => {
-      const sessionId = await this.requireSessionId();
-      const idx = Number(args.track?.id);
-      if (!Number.isFinite(idx)) throw new Error('Pick a track');
-      await this.hub!.client.sendCommand(sessionId, 'SetAudioStreamIndex', { Index: idx });
-    });
-    audioAction.registerArgumentAutocompleteListener('track', async () => this.listStreams('Audio'));
-
-    const subAction = this.homey.flow.getActionCard('set_subtitle_track');
-    subAction.registerRunListener(async (args: { track: { id?: string } }) => {
-      const sessionId = await this.requireSessionId();
-      const idx = Number(args.track?.id);
-      await this.hub!.client.sendCommand(sessionId, 'SetSubtitleStreamIndex', { Index: idx });
-    });
-    subAction.registerArgumentAutocompleteListener('track', async () => {
-      const items = await this.listStreams('Subtitle');
-      return [{ name: 'Off', id: '-1' }, ...items];
-    });
-
-    this.homey.flow.getActionCard('mark_watched').registerRunListener(async () => {
-      const snap = this.hub?.getUserSnapshot(userId);
-      const id = snap?.nowPlaying?.Id;
-      if (!id) throw new Error('Nothing is currently playing');
-      await this.hub!.client.setPlayed(userId, id, true);
-    });
-
-    this.homey.flow.getActionCard('toggle_favorite').registerRunListener(async () => {
-      const snap = this.hub?.getUserSnapshot(userId);
-      const id = snap?.nowPlaying?.Id;
-      if (!id) throw new Error('Nothing is currently playing');
-      // Optimistic toggle — we don't track previous state, so use a probe + flip.
-      const items = await this.hub!.client.searchItems({
-        userId,
-        searchTerm: snap!.nowPlaying!.Name,
-        limit: 1,
-      });
-      const fav = items.Items?.[0]?.UserData?.IsFavorite === true;
-      await this.hub!.client.setFavorite(userId, id, !fav);
-    });
-  }
-
-  private listStreams(kind: 'Audio' | 'Subtitle'): Array<{ name: string; id: string }> {
+  listStreams(kind: 'Audio' | 'Subtitle'): Array<{ name: string; id: string }> {
     const snap = this.hub?.getUserSnapshot(this.store.userId);
     const streams = snap?.nowPlaying?.MediaStreams?.filter((s) => s.Type === kind) ?? [];
     return streams.map((s) => ({
@@ -768,8 +521,11 @@ export default class JellyfinUserDevice extends Homey.Device {
       runtime: snap.durationSeconds ?? 0,
       user: snap.userName ?? this.store.userName,
     };
-    if (cardId === 'playback_started' && this.posterTokenImage) {
-      tokens.poster = this.posterTokenImage;
+    if (cardId === 'playback_started') {
+      // The token is declared `image` in the manifest, which Homey requires.
+      // Always provide a value; setupAlbumArt creates a permanent stub even
+      // before any URL is set, so this is safe.
+      if (this.posterTokenImage) tokens.poster = this.posterTokenImage;
     }
     try {
       await this.homey.flow.getDeviceTriggerCard(cardId).trigger(this, tokens as never, undefined);

@@ -125,7 +125,6 @@ export default class JellyfinServerDevice extends Homey.Device {
     await this.safeSet('stream_count', this.hub.getStreamCount());
     await this.safeSet('transcoding_count', this.hub.getTranscodingCount());
 
-    this.registerFlowHandlers();
     await this.refreshUptime();
     this.startUptimePoll();
     this.setAvailable().catch(() => undefined);
@@ -257,97 +256,18 @@ export default class JellyfinServerDevice extends Homey.Device {
     );
   }
 
-  // --- Flow registration ---
+  // --- Public accessors used by driver-level flow listeners (multi-device safe) ---
 
-  private registerFlowHandlers(): void {
-    const newItemTrigger = this.homey.flow.getDeviceTriggerCard('new_item_added');
-    newItemTrigger.registerRunListener(async (args, state: { type: string; libraryId?: string }) => {
-      const wantedType = (args.item_type as string) ?? 'any';
-      if (wantedType !== 'any' && state.type !== wantedType) return false;
-      const wantedLib = args.library as { id?: string } | undefined;
-      if (wantedLib?.id && wantedLib.id !== state.libraryId) return false;
-      return true;
-    });
-    newItemTrigger.registerArgumentAutocompleteListener('library', async (query) => {
-      if (!this.hub) return [{ name: 'Any', id: '' }];
-      const folders = await this.hub.client.getMediaFolders();
-      const items = folders.Items.map((f) => ({ name: f.Name, id: f.Id }));
-      const all: Array<{ name: string; id: string }> = [{ name: 'Any library', id: '' }, ...items];
-      if (!query) return all;
-      const q = query.toLowerCase();
-      return all.filter((i) => i.name.toLowerCase().includes(q));
-    });
+  getHub(): ServerHub | undefined {
+    return this.hub;
+  }
 
-    const userTrigger = this.homey.flow.getDeviceTriggerCard('user_logged_in');
-    userTrigger.registerRunListener(async (args, state: { userId?: string; userName: string }) => {
-      const wanted = args.user as { id?: string; name?: string } | undefined;
-      if (!wanted?.id) return true;
-      if (wanted.id === 'any') return true;
-      return state.userId === wanted.id || state.userName === wanted.name;
-    });
-    userTrigger.registerArgumentAutocompleteListener('user', async (query) => {
-      if (!this.hub) return [{ name: 'Any user', id: 'any' }];
-      const users = await this.hub.client.getUsers().catch(() => []);
-      const all: Array<{ name: string; id: string }> = [
-        { name: 'Any user', id: 'any' },
-        ...users.map((u) => ({ name: u.Name, id: u.Id })),
-      ];
-      if (!query) return all;
-      const q = query.toLowerCase();
-      return all.filter((i) => i.name.toLowerCase().includes(q));
-    });
+  markScanStarted(): void {
+    this.hub?.markScanStarted();
+  }
 
-    this.homey.flow
-      .getConditionCard('stream_count_above')
-      .registerRunListener(async (args: { threshold: number }) => {
-        return (this.hub?.getStreamCount() ?? 0) > (args.threshold ?? 0);
-      });
-
-    this.homey.flow.getActionCard('restart_server').registerRunListener(async () => {
-      if (!this.hub) throw new Error('Server not connected');
-      await this.hub.client.restartServer();
-    });
-    this.homey.flow.getActionCard('shutdown_server').registerRunListener(async () => {
-      if (!this.hub) throw new Error('Server not connected');
-      await this.hub.client.shutdownServer();
-    });
-    this.homey.flow.getActionCard('health_check').registerRunListener(async () => {
-      if (!this.hub) throw new Error('Server not connected');
-      const start = Date.now();
-      try {
-        const info = await this.hub.client.getSystemInfoFull();
-        return {
-          ok: true,
-          version: info.Version,
-          server: info.ServerName,
-          latency_ms: Date.now() - start,
-        };
-      } catch (err) {
-        return {
-          ok: false,
-          version: '',
-          server: (err as Error).message,
-          latency_ms: Date.now() - start,
-        };
-      }
-    });
-
-    const scanAction = this.homey.flow.getActionCard('start_library_scan');
-    scanAction.registerRunListener(async (args) => {
-      const library = args.library as { id: string } | undefined;
-      if (!this.hub) throw new Error('Server not connected');
-      this.hub.markScanStarted();
-      await this.safeSet('scan_in_progress', true);
-      await this.hub.client.refreshLibrary(library?.id);
-    });
-    scanAction.registerArgumentAutocompleteListener('library', async (query) => {
-      if (!this.hub) return [];
-      const folders = await this.hub.client.getMediaFolders();
-      const items = folders.Items.map((f) => ({ name: f.Name, id: f.Id }));
-      if (!query) return items;
-      const q = query.toLowerCase();
-      return items.filter((i) => i.name.toLowerCase().includes(q));
-    });
+  async setScanInProgress(value: boolean): Promise<void> {
+    await this.safeSet('scan_in_progress', value);
   }
 
   // --- Event handlers ---
@@ -363,7 +283,7 @@ export default class JellyfinServerDevice extends Homey.Device {
     this.lastPosterUrl = ev.posterUrl ?? '';
     if (this.posterImage) await this.posterImage.update().catch(() => undefined);
 
-    const tokens = {
+    const tokens: Record<string, unknown> = {
       title: item.Name ?? '',
       type: item.Type ?? '',
       series: item.SeriesName ?? '',
@@ -372,8 +292,8 @@ export default class JellyfinServerDevice extends Homey.Device {
       year: typeof item.ProductionYear === 'number' ? item.ProductionYear : 0,
       library_name: ev.libraryName,
       poster_url: ev.posterUrl ?? '',
-      poster: this.posterImage as unknown,
     };
+    if (this.posterImage) tokens.poster = this.posterImage;
     await this.safeSet('last_added_title', this.describeItem(item));
     await this.homey.flow
       .getDeviceTriggerCard('new_item_added')

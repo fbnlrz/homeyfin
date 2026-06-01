@@ -8,6 +8,8 @@ export interface JellyfinSocketOptions {
   deviceId: string;
   /** When true, log verbose debug info via console.log */
   debug?: boolean;
+  /** Accept self-signed TLS certs on the WebSocket (LAN servers). */
+  insecureTls?: boolean;
 }
 
 const BACKOFF_MS = [1_000, 2_000, 5_000, 15_000, 30_000];
@@ -77,7 +79,9 @@ export class JellyfinSocket extends EventEmitter {
 
     if (this.opts.debug) console.log('[JellyfinSocket] connecting', wsUrl.replace(this.opts.apiKey, '***'));
 
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(wsUrl, {
+      rejectUnauthorized: !this.opts.insecureTls,
+    });
     this.ws = ws;
 
     ws.on('open', () => {

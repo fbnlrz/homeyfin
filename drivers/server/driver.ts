@@ -80,9 +80,133 @@ async function probeServer(
   };
 }
 
+type JellyfinServerDevice = Homey.Device & {
+  getHub(): import('../../lib/ServerHub').ServerHub | undefined;
+  markScanStarted(): void;
+  setScanInProgress(value: boolean): Promise<void>;
+};
+
 export default class JellyfinServerDriver extends Homey.Driver {
   async onInit(): Promise<void> {
     this.log('Server driver init');
+    this.registerFlowHandlers();
+  }
+
+  /**
+   * Flow cards are app-wide singletons. registerRunListener replaces the
+   * previous handler, so registering per-device would silently break
+   * multi-server setups. Listeners are bound at the driver level and
+   * resolve the right device via args.device.
+   */
+  private registerFlowHandlers(): void {
+    const newItemTrigger = this.homey.flow.getDeviceTriggerCard('new_item_added');
+    newItemTrigger.registerRunListener(async (args, state: { type: string; libraryId?: string }) => {
+      const wantedType = (args.item_type as string) ?? 'any';
+      if (wantedType !== 'any' && state.type !== wantedType) return false;
+      const wantedLib = args.library as { id?: string } | undefined;
+      if (wantedLib?.id && wantedLib.id !== state.libraryId) return false;
+      return true;
+    });
+    newItemTrigger.registerArgumentAutocompleteListener('library', async (query, args) => {
+      const dev = (args as { device?: JellyfinServerDevice }).device;
+      const hub = dev?.getHub();
+      if (!hub) return [{ name: 'Any library', id: '' }];
+      const folders = await hub.client.getMediaFolders().catch(() => ({ Items: [] as { Id: string; Name: string }[] }));
+      const all: Array<{ name: string; id: string }> = [
+        { name: 'Any library', id: '' },
+        ...folders.Items.map((f) => ({ name: f.Name, id: f.Id })),
+      ];
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((i) => i.name.toLowerCase().includes(q));
+    });
+
+    const userTrigger = this.homey.flow.getDeviceTriggerCard('user_logged_in');
+    userTrigger.registerRunListener(async (args, state: { userId?: string; userName: string }) => {
+      const wanted = args.user as { id?: string; name?: string } | undefined;
+      if (!wanted?.id) return true;
+      if (wanted.id === 'any') return true;
+      return state.userId === wanted.id || state.userName === wanted.name;
+    });
+    userTrigger.registerArgumentAutocompleteListener('user', async (query, args) => {
+      const dev = (args as { device?: JellyfinServerDevice }).device;
+      const hub = dev?.getHub();
+      const users = hub ? await hub.client.getUsers().catch(() => []) : [];
+      const all: Array<{ name: string; id: string }> = [
+        { name: 'Any user', id: 'any' },
+        ...users.map((u) => ({ name: u.Name, id: u.Id })),
+      ];
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((i) => i.name.toLowerCase().includes(q));
+    });
+
+    this.homey.flow
+      .getConditionCard('stream_count_above')
+      .registerRunListener(async (args: { device: JellyfinServerDevice; threshold: number }) => {
+        return (args.device.getHub()?.getStreamCount() ?? 0) > (args.threshold ?? 0);
+      });
+
+    this.homey.flow
+      .getActionCard('restart_server')
+      .registerRunListener(async (args: { device: JellyfinServerDevice }) => {
+        const hub = args.device.getHub();
+        if (!hub) throw new Error('Server not connected');
+        await hub.client.restartServer();
+      });
+
+    this.homey.flow
+      .getActionCard('shutdown_server')
+      .registerRunListener(async (args: { device: JellyfinServerDevice }) => {
+        const hub = args.device.getHub();
+        if (!hub) throw new Error('Server not connected');
+        await hub.client.shutdownServer();
+      });
+
+    this.homey.flow
+      .getActionCard('health_check')
+      .registerRunListener(async (args: { device: JellyfinServerDevice }) => {
+        const hub = args.device.getHub();
+        if (!hub) throw new Error('Server not connected');
+        const start = Date.now();
+        try {
+          const info = await hub.client.getSystemInfoFull();
+          return {
+            ok: true,
+            version: info.Version,
+            server: info.ServerName,
+            latency_ms: Date.now() - start,
+          };
+        } catch (err) {
+          return {
+            ok: false,
+            version: '',
+            server: (err as Error).message,
+            latency_ms: Date.now() - start,
+          };
+        }
+      });
+
+    const scanAction = this.homey.flow.getActionCard('start_library_scan');
+    scanAction.registerRunListener(
+      async (args: { device: JellyfinServerDevice; library?: { id: string } }) => {
+        const hub = args.device.getHub();
+        if (!hub) throw new Error('Server not connected');
+        args.device.markScanStarted();
+        await args.device.setScanInProgress(true);
+        await hub.client.refreshLibrary(args.library?.id);
+      },
+    );
+    scanAction.registerArgumentAutocompleteListener('library', async (query, args) => {
+      const dev = (args as { device?: JellyfinServerDevice }).device;
+      const hub = dev?.getHub();
+      if (!hub) return [];
+      const folders = await hub.client.getMediaFolders().catch(() => ({ Items: [] as { Id: string; Name: string }[] }));
+      const items = folders.Items.map((f) => ({ name: f.Name, id: f.Id }));
+      if (!query) return items;
+      const q = query.toLowerCase();
+      return items.filter((i) => i.name.toLowerCase().includes(q));
+    });
   }
 
   async onPair(session: Homey.Driver.PairSession): Promise<void> {

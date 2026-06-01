@@ -114,6 +114,7 @@ export class ServerHub extends EventEmitter {
       apiKey: opts.apiKey,
       deviceId: opts.homeyDeviceId,
       debug: opts.debug,
+      insecureTls: opts.insecureTls,
     });
 
     this.socket.on('open', () => {

@@ -129,7 +129,13 @@ export interface LatestItem {
   DateCreated?: string;
   ImageTags?: Record<string, string>;
   ParentId?: string;
-  UserData?: { Played?: boolean; IsFavorite?: boolean; UnplayedItemCount?: number };
+  UserData?: {
+    Played?: boolean;
+    IsFavorite?: boolean;
+    UnplayedItemCount?: number;
+    PlaybackPositionTicks?: number;
+    PlayCount?: number;
+  };
 }
 
 export type PlaystateCommand =
