@@ -1,0 +1,19 @@
+{
+  "title": { "en": "Bookmark current item", "de": "Aktuelles Item merken" },
+  "hint": {
+    "en": "Adds the currently playing item to a Jellyfin playlist (auto-created on first use).",
+    "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt)."
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "playlist_name",
+      "type": "text",
+      "title": { "en": "Playlist", "de": "Playlist" },
+      "placeholder": { "en": "Homey Watchlist", "de": "Homey Watchlist" }
+    }
+  ],
+  "tokens": [
+    { "name": "title", "type": "string", "title": { "en": "Title", "de": "Titel" } }
+  ]
+}

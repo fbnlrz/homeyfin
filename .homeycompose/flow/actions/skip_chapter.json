@@ -1,0 +1,23 @@
+{
+  "title": { "en": "Skip chapter", "de": "Kapitel überspringen" },
+  "titleFormatted": {
+    "en": "Skip [[direction]] chapter",
+    "de": "[[direction]] Kapitel überspringen"
+  },
+  "hint": {
+    "en": "Jumps to the previous / next chapter boundary using the item's chapter data. Handy for Intros & Credits.",
+    "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann."
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "direction",
+      "type": "dropdown",
+      "title": { "en": "Direction", "de": "Richtung" },
+      "values": [
+        { "id": "next", "label": { "en": "Next",     "de": "Nächstes" } },
+        { "id": "prev", "label": { "en": "Previous", "de": "Vorheriges" } }
+      ]
+    }
+  ]
+}

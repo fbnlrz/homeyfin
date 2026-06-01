@@ -1,0 +1,8 @@
+{
+  "type": "number",
+  "title": { "en": "Uptime (min)", "de": "Uptime (Min)" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "decimals": 0
+}

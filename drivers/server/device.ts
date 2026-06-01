@@ -44,23 +44,39 @@ export default class JellyfinServerDevice extends Homey.Device {
           stream.end();
           return;
         }
-        try {
-          const res = await fetch(url);
-          if (!res.ok || !res.body) {
-            stream.end();
-            return;
-          }
-          for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-            stream.write(chunk);
-          }
-          stream.end();
-        } catch {
-          stream.end();
-        }
+        const cached = await this.hub?.client.getCachedImage(url);
+        if (cached) stream.write(cached.buffer);
+        stream.end();
       });
     } catch (err) {
       this.error('poster image setup failed', (err as Error).message);
     }
+  }
+
+  private uptimePollTimer?: NodeJS.Timeout;
+  private async refreshUptime(): Promise<void> {
+    if (!this.hub) return;
+    try {
+      // Jellyfin doesn't expose uptime directly. Use the persisted "first seen"
+      // timestamp in Homey settings to compute minutes since the hub started.
+      const key = 'serverStartTs:' + this.serverId;
+      let started = this.homey.settings.get(key) as number | undefined;
+      if (!started || !this.hub.isSocketOpen()) {
+        started = Date.now();
+        this.homey.settings.set(key, started);
+      }
+      await this.safeSet(
+        'server_uptime',
+        Math.max(0, Math.round((Date.now() - started) / 60_000)),
+      );
+    } catch (err) {
+      this.error('refreshUptime failed', (err as Error).message);
+    }
+  }
+
+  private startUptimePoll(): void {
+    if (this.uptimePollTimer) clearInterval(this.uptimePollTimer);
+    this.uptimePollTimer = setInterval(() => this.refreshUptime().catch(() => undefined), 60_000);
   }
 
   private async bootstrapHub(): Promise<void> {
@@ -110,6 +126,8 @@ export default class JellyfinServerDevice extends Homey.Device {
     await this.safeSet('transcoding_count', this.hub.getTranscodingCount());
 
     this.registerFlowHandlers();
+    await this.refreshUptime();
+    this.startUptimePoll();
     this.setAvailable().catch(() => undefined);
   }
 
@@ -152,6 +170,10 @@ export default class JellyfinServerDevice extends Homey.Device {
   private unregister(): void {
     for (const off of this.offCallbacks) off();
     this.offCallbacks = [];
+    if (this.uptimePollTimer) {
+      clearInterval(this.uptimePollTimer);
+      this.uptimePollTimer = undefined;
+    }
   }
 
   // --- Hub event wiring ---
@@ -280,6 +302,35 @@ export default class JellyfinServerDevice extends Homey.Device {
       .registerRunListener(async (args: { threshold: number }) => {
         return (this.hub?.getStreamCount() ?? 0) > (args.threshold ?? 0);
       });
+
+    this.homey.flow.getActionCard('restart_server').registerRunListener(async () => {
+      if (!this.hub) throw new Error('Server not connected');
+      await this.hub.client.restartServer();
+    });
+    this.homey.flow.getActionCard('shutdown_server').registerRunListener(async () => {
+      if (!this.hub) throw new Error('Server not connected');
+      await this.hub.client.shutdownServer();
+    });
+    this.homey.flow.getActionCard('health_check').registerRunListener(async () => {
+      if (!this.hub) throw new Error('Server not connected');
+      const start = Date.now();
+      try {
+        const info = await this.hub.client.getSystemInfoFull();
+        return {
+          ok: true,
+          version: info.Version,
+          server: info.ServerName,
+          latency_ms: Date.now() - start,
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          version: '',
+          server: (err as Error).message,
+          latency_ms: Date.now() - start,
+        };
+      }
+    });
 
     const scanAction = this.homey.flow.getActionCard('start_library_scan');
     scanAction.registerRunListener(async (args) => {

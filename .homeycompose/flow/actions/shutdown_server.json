@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Shut down Jellyfin server", "de": "Jellyfin-Server herunterfahren" },
+  "hint": {
+    "en": "Requires the API key to belong to an admin user.",
+    "de": "Erfordert einen Admin-API-Key."
+  },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }]
+}

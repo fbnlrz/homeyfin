@@ -1,0 +1,24 @@
+{
+  "title": { "en": "Add to queue", "de": "Zur Warteschlange hinzufügen" },
+  "titleFormatted": {
+    "en": "Queue [[item]] ([[where]])",
+    "de": "[[item]] in Warteschlange ([[where]])"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "item",
+      "type": "autocomplete",
+      "title": { "en": "Item", "de": "Item" }
+    },
+    {
+      "name": "where",
+      "type": "dropdown",
+      "title": { "en": "Position", "de": "Position" },
+      "values": [
+        { "id": "PlayNext", "label": { "en": "Up next", "de": "Als Nächstes" } },
+        { "id": "PlayLast", "label": { "en": "End of queue", "de": "Ans Ende" } }
+      ]
+    }
+  ]
+}

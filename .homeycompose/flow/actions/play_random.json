@@ -1,8 +1,8 @@
 {
   "title": { "en": "Play random", "de": "Zufällig abspielen" },
   "titleFormatted": {
-    "en": "Play a random [[item_type]]",
-    "de": "Zufälligen [[item_type]] abspielen"
+    "en": "Play a random [[item_type]] in [[genre]]",
+    "de": "Zufälligen [[item_type]] in [[genre]] abspielen"
   },
   "args": [
     { "name": "device", "type": "device", "filter": "driver_id=user" },
@@ -14,6 +14,11 @@
         { "id": "Movie",   "label": { "en": "Movie",   "de": "Film" } },
         { "id": "Episode", "label": { "en": "Episode", "de": "Folge" } }
       ]
+    },
+    {
+      "name": "genre",
+      "type": "autocomplete",
+      "title": { "en": "Genre", "de": "Genre" }
     }
   ],
   "tokens": [

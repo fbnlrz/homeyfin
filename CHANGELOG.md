@@ -5,6 +5,35 @@ follows Keep a Changelog; dates are not pinned while pre-1.0.
 
 ## [Unreleased]
 
+### Added (second feature batch)
+- **Chapter navigation**: action *Skip chapter* (next / previous) using
+  the item's chapter data — handy for intros and credits.
+- **Queue management**: actions *Add to queue* (PlayNext / PlayLast),
+  *Clear queue / stop*.
+- **Server admin actions**: *Restart Jellyfin server* and *Shut down
+  Jellyfin server* (require an admin API key).
+- **Health-check action** with ok / version / server / latency tokens.
+- **Bookmark action**: adds the current item to a Jellyfin playlist
+  (auto-created on first use, default "Homey Watchlist").
+- **Random with genre filter**: `play_random` now takes an optional
+  genre autocomplete in addition to the type dropdown.
+- **Daily summary trigger** at a configurable hour with
+  minutes-today / minutes-week tokens.
+- **Capabilities**: server `server_uptime` (minutes), user
+  `watch_minutes_week` (auto-resets weekly, persisted across restarts).
+- **Volume cap setting** (per user device) — caps the volume Homey will
+  send to Jellyfin, useful as a parental control.
+
+### Changed
+- `JellyfinClient` gains an LRU image cache (`getCachedImage`) used by
+  album-art / poster streams so the Jellyfin server isn't hit on every
+  widget refresh.
+- `JellyfinClient` API extended with `getItem`, `getGenres`,
+  `getPlaylists`, `createPlaylist`, `addToPlaylist`,
+  `restartServer`, `shutdownServer`, `getSystemInfoFull`, `ping`.
+
+
+
 ### Added
 - **Playback control**
   - Action: *Play item* with autocomplete search against the Jellyfin library.

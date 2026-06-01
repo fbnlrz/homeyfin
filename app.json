@@ -175,6 +175,17 @@
       "setable": false,
       "uiComponent": "sensor"
     },
+    "server_uptime": {
+      "type": "number",
+      "title": {
+        "en": "Uptime (min)",
+        "de": "Uptime (Min)"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
+    },
     "socket_online": {
       "type": "boolean",
       "title": {
@@ -217,10 +228,57 @@
       "setable": false,
       "uiComponent": "sensor",
       "decimals": 0
+    },
+    "watch_minutes_week": {
+      "type": "number",
+      "title": {
+        "en": "Watch time this week (min)",
+        "de": "Watch-Time diese Woche (Min)"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "decimals": 0
     }
   },
   "flow": {
     "triggers": [
+      {
+        "id": "daily_summary",
+        "title": {
+          "en": "Daily summary",
+          "de": "Tageszusammenfassung"
+        },
+        "hint": {
+          "en": "Fires once a day with watch-time totals for the user.",
+          "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "minutes_today",
+            "type": "number",
+            "title": {
+              "en": "Minutes today",
+              "de": "Minuten heute"
+            }
+          },
+          {
+            "name": "minutes_week",
+            "type": "number",
+            "title": {
+              "en": "Minutes this week",
+              "de": "Minuten diese Woche"
+            }
+          }
+        ]
+      },
       {
         "id": "library_scan_finished",
         "title": {
@@ -1152,6 +1210,46 @@
     ],
     "actions": [
       {
+        "id": "bookmark",
+        "title": {
+          "en": "Bookmark current item",
+          "de": "Aktuelles Item merken"
+        },
+        "hint": {
+          "en": "Adds the currently playing item to a Jellyfin playlist (auto-created on first use).",
+          "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "playlist_name",
+            "type": "text",
+            "title": {
+              "en": "Playlist",
+              "de": "Playlist"
+            },
+            "placeholder": {
+              "en": "Homey Watchlist",
+              "de": "Homey Watchlist"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
         "id": "continue_watching",
         "title": {
           "en": "Resume Continue Watching",
@@ -1171,6 +1269,54 @@
             "title": {
               "en": "Title",
               "de": "Titel"
+            }
+          }
+        ]
+      },
+      {
+        "id": "health_check",
+        "title": {
+          "en": "Health check",
+          "de": "Health-Check"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "ok",
+            "type": "boolean",
+            "title": {
+              "en": "OK",
+              "de": "OK"
+            }
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "title": {
+              "en": "Version",
+              "de": "Version"
+            }
+          },
+          {
+            "name": "server",
+            "type": "string",
+            "title": {
+              "en": "Server",
+              "de": "Server"
+            }
+          },
+          {
+            "name": "latency_ms",
+            "type": "number",
+            "title": {
+              "en": "Latency (ms)",
+              "de": "Latenz (ms)"
             }
           }
         ]
@@ -1226,8 +1372,8 @@
           "de": "Zufällig abspielen"
         },
         "titleFormatted": {
-          "en": "Play a random [[item_type]]",
-          "de": "Zufälligen [[item_type]] abspielen"
+          "en": "Play a random [[item_type]] in [[genre]]",
+          "de": "Zufälligen [[item_type]] in [[genre]] abspielen"
         },
         "args": [
           {
@@ -1258,6 +1404,14 @@
                 }
               }
             ]
+          },
+          {
+            "name": "genre",
+            "type": "autocomplete",
+            "title": {
+              "en": "Genre",
+              "de": "Genre"
+            }
           }
         ],
         "tokens": [
@@ -1268,6 +1422,88 @@
               "en": "Title",
               "de": "Titel"
             }
+          }
+        ]
+      },
+      {
+        "id": "queue_add",
+        "title": {
+          "en": "Add to queue",
+          "de": "Zur Warteschlange hinzufügen"
+        },
+        "titleFormatted": {
+          "en": "Queue [[item]] ([[where]])",
+          "de": "[[item]] in Warteschlange ([[where]])"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "item",
+            "type": "autocomplete",
+            "title": {
+              "en": "Item",
+              "de": "Item"
+            }
+          },
+          {
+            "name": "where",
+            "type": "dropdown",
+            "title": {
+              "en": "Position",
+              "de": "Position"
+            },
+            "values": [
+              {
+                "id": "PlayNext",
+                "label": {
+                  "en": "Up next",
+                  "de": "Als Nächstes"
+                }
+              },
+              {
+                "id": "PlayLast",
+                "label": {
+                  "en": "End of queue",
+                  "de": "Ans Ende"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "queue_clear",
+        "title": {
+          "en": "Clear queue / stop",
+          "de": "Warteschlange leeren / stoppen"
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
+        "id": "restart_server",
+        "title": {
+          "en": "Restart Jellyfin server",
+          "de": "Jellyfin-Server neu starten"
+        },
+        "hint": {
+          "en": "Requires the API key to belong to an admin user.",
+          "de": "Erfordert einen Admin-API-Key."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
           }
         ]
       },
@@ -1439,6 +1675,70 @@
         ]
       },
       {
+        "id": "shutdown_server",
+        "title": {
+          "en": "Shut down Jellyfin server",
+          "de": "Jellyfin-Server herunterfahren"
+        },
+        "hint": {
+          "en": "Requires the API key to belong to an admin user.",
+          "de": "Erfordert einen Admin-API-Key."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "skip_chapter",
+        "title": {
+          "en": "Skip chapter",
+          "de": "Kapitel überspringen"
+        },
+        "titleFormatted": {
+          "en": "Skip [[direction]] chapter",
+          "de": "[[direction]] Kapitel überspringen"
+        },
+        "hint": {
+          "en": "Jumps to the previous / next chapter boundary using the item's chapter data. Handy for Intros & Credits.",
+          "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "direction",
+            "type": "dropdown",
+            "title": {
+              "en": "Direction",
+              "de": "Richtung"
+            },
+            "values": [
+              {
+                "id": "next",
+                "label": {
+                  "en": "Next",
+                  "de": "Nächstes"
+                }
+              },
+              {
+                "id": "prev",
+                "label": {
+                  "en": "Previous",
+                  "de": "Vorheriges"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "id": "start_library_scan",
         "title": {
           "en": "Scan library",
@@ -1495,7 +1795,8 @@
         "scan_in_progress",
         "stream_count",
         "transcoding_count",
-        "socket_online"
+        "socket_online",
+        "server_uptime"
       ],
       "platforms": [
         "local"
@@ -1651,7 +1952,8 @@
         "client_online",
         "is_transcoding",
         "unwatched_count",
-        "continue_watching_title"
+        "continue_watching_title",
+        "watch_minutes_week"
       ],
       "platforms": [
         "local"
@@ -1702,6 +2004,36 @@
               "value": 10,
               "min": 1,
               "max": 120
+            },
+            {
+              "id": "volumeCapPercent",
+              "type": "number",
+              "label": {
+                "en": "Volume cap (%)",
+                "de": "Lautstärke-Limit (%)"
+              },
+              "hint": {
+                "en": "Maximum volume that Homey will send to the client (0 = disabled).",
+                "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus)."
+              },
+              "value": 0,
+              "min": 0,
+              "max": 100
+            },
+            {
+              "id": "dailySummaryHour",
+              "type": "number",
+              "label": {
+                "en": "Daily summary hour",
+                "de": "Tageszusammenfassung (Stunde)"
+              },
+              "hint": {
+                "en": "Hour of the day (0-23) when the daily summary trigger fires.",
+                "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert."
+              },
+              "value": 22,
+              "min": 0,
+              "max": 23
             }
           ]
         }

@@ -17,7 +17,8 @@
     "client_online",
     "is_transcoding",
     "unwatched_count",
-    "continue_watching_title"
+    "continue_watching_title",
+    "watch_minutes_week"
   ],
   "platforms": ["local"],
   "connectivity": ["lan"],
@@ -53,6 +54,30 @@
           "value": 10,
           "min": 1,
           "max": 120
+        },
+        {
+          "id": "volumeCapPercent",
+          "type": "number",
+          "label": { "en": "Volume cap (%)", "de": "Lautstärke-Limit (%)" },
+          "hint": {
+            "en": "Maximum volume that Homey will send to the client (0 = disabled).",
+            "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus)."
+          },
+          "value": 0,
+          "min": 0,
+          "max": 100
+        },
+        {
+          "id": "dailySummaryHour",
+          "type": "number",
+          "label": { "en": "Daily summary hour", "de": "Tageszusammenfassung (Stunde)" },
+          "hint": {
+            "en": "Hour of the day (0-23) when the daily summary trigger fires.",
+            "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert."
+          },
+          "value": 22,
+          "min": 0,
+          "max": 23
         }
       ]
     }

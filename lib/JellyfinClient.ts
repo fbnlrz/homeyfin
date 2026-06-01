@@ -85,6 +85,22 @@ export interface NowPlayingItem {
     Codec?: string;
     IsDefault?: boolean;
   }>;
+  Chapters?: Array<{ StartPositionTicks: number; Name?: string }>;
+}
+
+export interface SystemInfoFull extends SystemInfo {
+  OperatingSystem?: string;
+  StartupWizardCompleted?: boolean;
+  WebSocketPortNumber?: number;
+  CompletedInstallations?: unknown[];
+  HasPendingRestart?: boolean;
+  IsShuttingDown?: boolean;
+  ProgramDataPath?: string;
+  ItemsByNamePath?: string;
+  CachePath?: string;
+  LogPath?: string;
+  InternalMetadataPath?: string;
+  TranscodingTempPath?: string;
 }
 
 export interface ItemCounts {
@@ -145,6 +161,12 @@ export class JellyfinError extends Error {
   }
 }
 
+interface CachedImage {
+  buffer: Buffer;
+  contentType: string;
+  fetchedAt: number;
+}
+
 export class JellyfinClient {
   private baseUrl: string;
   private apiKey: string;
@@ -153,6 +175,9 @@ export class JellyfinClient {
   private clientName: string;
   private appVersion: string;
   private insecureAgent?: https.Agent;
+  private imageCache = new Map<string, CachedImage>();
+  private static readonly IMAGE_CACHE_MAX = 64;
+  private static readonly IMAGE_CACHE_TTL_MS = 30 * 60 * 1000;
 
   constructor(opts: JellyfinClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
@@ -313,6 +338,19 @@ export class JellyfinClient {
     });
   }
 
+  /** Clear the current play queue of a session. */
+  clearSessionQueue(sessionId: string): Promise<void> {
+    // No first-class endpoint; play an empty-on-stop sequence by sending Stop.
+    // The Jellyfin web client clears the queue by issuing Stop followed by a
+    // new PlayNow with the desired items. This helper just stops playback.
+    return this.sendPlaystate(sessionId, 'Stop');
+  }
+
+  /** Item details (incl. Chapters / MediaStreams). */
+  getItem(userId: string, itemId: string, fields = 'Chapters,MediaStreams,Overview,ParentId,ProductionYear,UserData'): Promise<NowPlayingItem & LatestItem> {
+    return this.request('GET', `/Users/${userId}/Items/${itemId}`, undefined, { Fields: fields });
+  }
+
   // --- Library ---
 
   getItemCounts(userId?: string): Promise<ItemCounts> {
@@ -358,12 +396,14 @@ export class JellyfinClient {
     });
   }
 
-  /** Pick N random items of a given type. */
+  /** Pick N random items of a given type, optionally filtered by genre/library. */
   getRandomItems(opts: {
     userId: string;
     limit?: number;
     includeItemTypes?: string;
     parentId?: string;
+    genres?: string;
+    years?: string;
   }): Promise<{ Items: LatestItem[]; TotalRecordCount: number }> {
     return this.request('GET', `/Users/${opts.userId}/Items`, undefined, {
       Recursive: 'true',
@@ -371,7 +411,44 @@ export class JellyfinClient {
       SortBy: 'Random',
       IncludeItemTypes: opts.includeItemTypes,
       ParentId: opts.parentId,
+      Genres: opts.genres,
+      Years: opts.years,
       Fields: 'ProductionYear,ParentId',
+    });
+  }
+
+  /** All genres the user can pick from (for autocomplete). */
+  getGenres(opts: { userId: string; includeItemTypes?: string }): Promise<{ Items: Array<{ Id: string; Name: string }> }> {
+    return this.request('GET', '/Genres', undefined, {
+      userId: opts.userId,
+      IncludeItemTypes: opts.includeItemTypes,
+    });
+  }
+
+  /** All playlists owned by a user. */
+  getPlaylists(userId: string): Promise<{ Items: LatestItem[]; TotalRecordCount: number }> {
+    return this.request('GET', `/Users/${userId}/Items`, undefined, {
+      Recursive: 'true',
+      IncludeItemTypes: 'Playlist',
+      Fields: 'ChildCount',
+    });
+  }
+
+  /** Create a new playlist. Returns the new playlist Id. */
+  async createPlaylist(opts: { userId: string; name: string; itemIds?: string[] }): Promise<string> {
+    const res = await this.request<{ Id: string }>('POST', '/Playlists', undefined, {
+      Name: opts.name,
+      UserId: opts.userId,
+      Ids: opts.itemIds?.join(',') ?? '',
+    });
+    return res?.Id ?? '';
+  }
+
+  /** Append items to an existing playlist. */
+  addToPlaylist(playlistId: string, userId: string, itemIds: string[]): Promise<void> {
+    return this.request<void>('POST', `/Playlists/${playlistId}/Items`, undefined, {
+      ids: itemIds.join(','),
+      userId,
     });
   }
 
@@ -422,12 +499,63 @@ export class JellyfinClient {
     return res?.TotalRecordCount ?? 0;
   }
 
-  // --- Image URLs (no auth header needed) ---
+  // --- Server admin (admin token required) ---
+
+  restartServer(): Promise<void> {
+    return this.request<void>('POST', '/System/Restart');
+  }
+
+  shutdownServer(): Promise<void> {
+    return this.request<void>('POST', '/System/Shutdown');
+  }
+
+  getSystemInfoFull(): Promise<SystemInfoFull> {
+    return this.request<SystemInfoFull>('GET', '/System/Info');
+  }
+
+  /** Lightweight ping (returns string "Healthy" or similar). */
+  ping(): Promise<string> {
+    return this.request<string>('GET', '/System/Ping');
+  }
+
+  // --- Image URLs + cache ---
 
   imageUrl(itemId: string, type = 'Primary', tag?: string, maxHeight = 600): string {
     const url = new URL(`${this.baseUrl}/Items/${itemId}/Images/${type}`);
     url.searchParams.set('maxHeight', String(maxHeight));
     if (tag) url.searchParams.set('tag', tag);
     return url.toString();
+  }
+
+  /**
+   * Fetches an image once, then serves from an LRU cache. Used by Homey
+   * Image setStream() handlers so we don't hit the Jellyfin server every
+   * time a widget repaints.
+   */
+  async getCachedImage(url: string): Promise<CachedImage | undefined> {
+    if (!url) return undefined;
+    const now = Date.now();
+    const hit = this.imageCache.get(url);
+    if (hit && now - hit.fetchedAt < JellyfinClient.IMAGE_CACHE_TTL_MS) {
+      this.imageCache.delete(url);
+      this.imageCache.set(url, hit);
+      return hit;
+    }
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return undefined;
+      const ct = res.headers.get('content-type') ?? 'image/jpeg';
+      const buf = Buffer.from(await res.arrayBuffer());
+      const entry: CachedImage = { buffer: buf, contentType: ct, fetchedAt: now };
+      this.imageCache.set(url, entry);
+      while (this.imageCache.size > JellyfinClient.IMAGE_CACHE_MAX) {
+        const firstKey = this.imageCache.keys().next().value;
+        if (firstKey === undefined) break;
+        this.imageCache.delete(firstKey);
+      }
+      return entry;
+    } catch {
+      return undefined;
+    }
   }
 }

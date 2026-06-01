@@ -1,0 +1,10 @@
+{
+  "title": { "en": "Health check", "de": "Health-Check" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }],
+  "tokens": [
+    { "name": "ok",       "type": "boolean", "title": { "en": "OK",       "de": "OK" } },
+    { "name": "version",  "type": "string",  "title": { "en": "Version",  "de": "Version" } },
+    { "name": "server",   "type": "string",  "title": { "en": "Server",   "de": "Server" } },
+    { "name": "latency_ms", "type": "number", "title": { "en": "Latency (ms)", "de": "Latenz (ms)" } }
+  ]
+}

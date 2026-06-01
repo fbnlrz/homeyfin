@@ -12,6 +12,8 @@ interface UserStore {
 interface UserSettings {
   stoppedDebounceMs?: number;
   unwatchedRefreshMinutes?: number;
+  volumeCapPercent?: number;
+  dailySummaryHour?: number;
 }
 
 const POSITION_TICK_MS = 1000;
@@ -30,6 +32,11 @@ export default class JellyfinUserDevice extends Homey.Device {
   private firedProgressMilestones = new Set<number>();
   private firedRemainingMilestones = new Set<number>();
   private trackedItemId?: string;
+  private watchSecondsThisWeek = 0;
+  private watchSecondsToday = 0;
+  private lastWatchTickDay = -1;
+  private lastWatchTickWeek = -1;
+  private summaryTimer?: NodeJS.Timeout;
 
   async onInit(): Promise<void> {
     this.store = this.getStore() as UserStore;
@@ -50,6 +57,7 @@ export default class JellyfinUserDevice extends Homey.Device {
     this.registerFlowHandlers();
     this.startPositionTicker();
     this.startUnwatchedRefresh();
+    this.scheduleSummary();
 
     const snap = this.hub.getUserSnapshot(this.store.userId);
     if (snap) await this.applySnapshot(snap);
@@ -67,19 +75,22 @@ export default class JellyfinUserDevice extends Homey.Device {
     if (changedKeys.includes('unwatchedRefreshMinutes')) {
       this.startUnwatchedRefresh();
     }
+    if (changedKeys.includes('dailySummaryHour')) {
+      this.scheduleSummary();
+    }
   }
 
   private teardown(): void {
     for (const off of this.offCallbacks) off();
     this.offCallbacks = [];
-    [this.positionTimer, this.stoppedDebounceTimer, this.unwatchedTimer].forEach((t) => {
-      if (t) clearTimeout(t);
-    });
     if (this.positionTimer) clearInterval(this.positionTimer);
     if (this.unwatchedTimer) clearInterval(this.unwatchedTimer);
+    if (this.stoppedDebounceTimer) clearTimeout(this.stoppedDebounceTimer);
+    if (this.summaryTimer) clearTimeout(this.summaryTimer);
     this.positionTimer = undefined;
     this.unwatchedTimer = undefined;
     this.stoppedDebounceTimer = undefined;
+    this.summaryTimer = undefined;
   }
 
   private async setupAlbumArt(): Promise<void> {
@@ -91,19 +102,9 @@ export default class JellyfinUserDevice extends Homey.Device {
           stream.end();
           return;
         }
-        try {
-          const res = await fetch(url);
-          if (!res.ok || !res.body) {
-            stream.end();
-            return;
-          }
-          for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-            stream.write(chunk);
-          }
-          stream.end();
-        } catch {
-          stream.end();
-        }
+        const cached = await this.hub?.client.getCachedImage(url);
+        if (cached) stream.write(cached.buffer);
+        stream.end();
       });
       return img;
     };
@@ -158,6 +159,18 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   private startPositionTicker(): void {
     if (this.positionTimer) return;
+    // Hydrate accumulated watch-time from settings so a restart doesn't reset.
+    const stored = this.homey.settings.get(
+      'watch:' + this.store.userId,
+    ) as { week?: number; day?: number; weekIdx?: number; dayIdx?: number } | undefined;
+    if (stored) {
+      this.watchSecondsThisWeek = stored.week ?? 0;
+      this.watchSecondsToday = stored.day ?? 0;
+      this.lastWatchTickWeek = stored.weekIdx ?? -1;
+      this.lastWatchTickDay = stored.dayIdx ?? -1;
+    }
+    this.safeSet('watch_minutes_week', Math.floor(this.watchSecondsThisWeek / 60)).catch(() => undefined);
+
     this.positionTimer = setInterval(() => {
       const snap = this.hub?.getUserSnapshot(this.store.userId);
       if (!snap || !snap.online || snap.isPaused || !snap.nowPlaying) return;
@@ -166,7 +179,72 @@ export default class JellyfinUserDevice extends Homey.Device {
       const next = duration > 0 ? Math.min(current + 1, duration) : current + 1;
       this.safeSet('media_position', next).catch(() => undefined);
       this.checkProgressTriggers(snap, next, duration);
+      this.tickWatchTime();
     }, POSITION_TICK_MS);
+  }
+
+  private tickWatchTime(): void {
+    const now = new Date();
+    const dayIdx = Math.floor(now.getTime() / 86_400_000);
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // ISO: Monday=0
+    const weekIdx = Math.floor(weekStart.getTime() / 604_800_000);
+
+    if (this.lastWatchTickDay !== -1 && this.lastWatchTickDay !== dayIdx) {
+      this.watchSecondsToday = 0;
+    }
+    if (this.lastWatchTickWeek !== -1 && this.lastWatchTickWeek !== weekIdx) {
+      this.watchSecondsThisWeek = 0;
+    }
+    this.lastWatchTickDay = dayIdx;
+    this.lastWatchTickWeek = weekIdx;
+
+    this.watchSecondsToday++;
+    this.watchSecondsThisWeek++;
+
+    // Persist + capability update every 30 s to keep settings writes cheap.
+    if (this.watchSecondsThisWeek % 30 === 0) {
+      this.safeSet('watch_minutes_week', Math.floor(this.watchSecondsThisWeek / 60)).catch(() => undefined);
+      this.homey.settings.set('watch:' + this.store.userId, {
+        week: this.watchSecondsThisWeek,
+        day: this.watchSecondsToday,
+        weekIdx,
+        dayIdx,
+      });
+    }
+  }
+
+  private scheduleSummary(): void {
+    if (this.summaryTimer) clearTimeout(this.summaryTimer);
+    const settings = this.getSettings() as UserSettings;
+    const hour = ((settings.dailySummaryHour ?? 22) + 24) % 24;
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(hour, 0, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    const delay = next.getTime() - now.getTime();
+    this.summaryTimer = this.homey.setTimeout(() => {
+      this.fireDailySummary().catch(() => undefined);
+      this.scheduleSummary();
+    }, delay);
+  }
+
+  private async fireDailySummary(): Promise<void> {
+    try {
+      await this.homey.flow
+        .getDeviceTriggerCard('daily_summary')
+        .trigger(
+          this,
+          {
+            minutes_today: Math.floor(this.watchSecondsToday / 60),
+            minutes_week: Math.floor(this.watchSecondsThisWeek / 60),
+          },
+          undefined,
+        );
+    } catch (err) {
+      this.error('daily_summary trigger failed', (err as Error).message);
+    }
   }
 
   private checkProgressTriggers(snap: ClientSnapshot, position: number, duration: number): void {
@@ -309,7 +387,10 @@ export default class JellyfinUserDevice extends Homey.Device {
     });
     this.registerCapabilityListener('volume_set', async (value: number) => {
       const sessionId = await this.requireSessionId();
-      const volume = Math.round(Math.max(0, Math.min(1, value)) * 100);
+      const settings = this.getSettings() as UserSettings;
+      const cap = Math.min(100, Math.max(0, settings.volumeCapPercent ?? 0));
+      let volume = Math.round(Math.max(0, Math.min(1, value)) * 100);
+      if (cap > 0 && volume > cap) volume = cap;
       await this.hub!.client.sendCommand(sessionId, 'SetVolume', { Volume: volume });
     });
     this.registerCapabilityListener('volume_mute', async (value: boolean) => {
@@ -418,20 +499,129 @@ export default class JellyfinUserDevice extends Homey.Device {
       }));
     });
 
-    this.homey.flow
-      .getActionCard('play_random')
-      .registerRunListener(async (args: { item_type: 'Movie' | 'Episode' }) => {
+    const randomAction = this.homey.flow.getActionCard('play_random');
+    randomAction.registerRunListener(
+      async (args: {
+        item_type: 'Movie' | 'Episode';
+        genre?: { id?: string; name?: string };
+      }) => {
         const session = this.currentSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const res = await this.hub!.client.getRandomItems({
           userId,
           limit: 1,
           includeItemTypes: args.item_type,
+          genres: args.genre?.name && args.genre.id !== 'any' ? args.genre.name : undefined,
         });
         const item = res.Items?.[0];
-        if (!item) throw new Error('No item found for this type');
+        if (!item) throw new Error('No item found for these filters');
         await this.hub!.client.playItemsOnSession(session.sessionId, [item.Id]);
         return { title: item.Name };
+      },
+    );
+    randomAction.registerArgumentAutocompleteListener('genre', async (query, args: { item_type?: string }) => {
+      if (!this.hub) return [{ name: 'Any', id: 'any' }];
+      const res = await this.hub.client
+        .getGenres({ userId, includeItemTypes: args.item_type })
+        .catch(() => ({ Items: [] as { Id: string; Name: string }[] }));
+      const all = [
+        { name: 'Any', id: 'any' },
+        ...res.Items.map((g) => ({ name: g.Name, id: g.Id })),
+      ];
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((g) => g.name.toLowerCase().includes(q));
+    });
+
+    const queueAdd = this.homey.flow.getActionCard('queue_add');
+    queueAdd.registerRunListener(
+      async (args: { item: { id?: string }; where: 'PlayNext' | 'PlayLast' }) => {
+        const session = this.currentSession();
+        if (!session) throw new Error('User has no active Jellyfin session right now');
+        if (!args.item?.id) throw new Error('No item picked');
+        await this.hub!.client.playItemsOnSession(session.sessionId, [args.item.id], {
+          playCommand: args.where ?? 'PlayNext',
+        });
+      },
+    );
+    queueAdd.registerArgumentAutocompleteListener('item', async (query) => {
+      if (!this.hub || !query || query.length < 2) return [];
+      const res = await this.hub.client
+        .searchItems({
+          userId,
+          searchTerm: query,
+          limit: 20,
+          includeItemTypes: 'Movie,Episode,Series,Audio',
+        })
+        .catch(() => ({ Items: [] }));
+      return res.Items.map((i) => ({
+        name: i.SeriesName
+          ? `${i.SeriesName} · S${String(i.ParentIndexNumber ?? 0).padStart(2, '0')}E${String(
+              i.IndexNumber ?? 0,
+            ).padStart(2, '0')} – ${i.Name}`
+          : i.ProductionYear
+            ? `${i.Name} (${i.ProductionYear})`
+            : i.Name,
+        id: i.Id,
+      }));
+    });
+
+    this.homey.flow.getActionCard('queue_clear').registerRunListener(async () => {
+      const sessionId = await this.requireSessionId();
+      await this.hub!.client.clearSessionQueue(sessionId);
+    });
+
+    this.homey.flow
+      .getActionCard('skip_chapter')
+      .registerRunListener(async (args: { direction: 'next' | 'prev' }) => {
+        const session = this.currentSession();
+        if (!session) throw new Error('User has no active Jellyfin session right now');
+        const item = session.snap.nowPlaying;
+        if (!item?.Id) throw new Error('Nothing is currently playing');
+        const full = await this.hub!.client.getItem(userId, item.Id, 'Chapters');
+        const chapters = (full.Chapters ?? []).map((c) => c.StartPositionTicks);
+        if (chapters.length === 0) throw new Error('This item has no chapter data');
+        const positionTicks = (session.snap.positionSeconds ?? 0) * 10_000_000;
+        let target: number | undefined;
+        if (args.direction === 'next') {
+          target = chapters.find((t) => t > positionTicks + 1_000_000);
+        } else {
+          // 5s grace: prev means "this chapter's start if we're > 5s in, else previous one"
+          const grace = 5 * 10_000_000;
+          for (let i = chapters.length - 1; i >= 0; i--) {
+            if (chapters[i] < positionTicks - grace) {
+              target = chapters[i];
+              break;
+            }
+          }
+          if (target === undefined && chapters.length > 0) target = chapters[0];
+        }
+        if (target === undefined) throw new Error('No chapter in that direction');
+        await this.hub!.client.seekToSeconds(session.sessionId, target / 10_000_000);
+      });
+
+    this.homey.flow
+      .getActionCard('bookmark')
+      .registerRunListener(async (args: { playlist_name?: string }): Promise<{ title: string }> => {
+        const snap = this.hub?.getUserSnapshot(userId);
+        const item = snap?.nowPlaying;
+        if (!item?.Id) throw new Error('Nothing is currently playing');
+        const playlistName = (args.playlist_name?.trim() || 'Homey Watchlist');
+        const all = await this.hub!.client.getPlaylists(userId);
+        let playlist = all.Items.find(
+          (p) => p.Name?.toLowerCase() === playlistName.toLowerCase(),
+        );
+        let playlistId = playlist?.Id;
+        if (!playlistId) {
+          playlistId = await this.hub!.client.createPlaylist({
+            userId,
+            name: playlistName,
+            itemIds: [item.Id],
+          });
+        } else {
+          await this.hub!.client.addToPlaylist(playlistId, userId, [item.Id]);
+        }
+        return { title: item.Name ?? '' };
       });
 
     this.homey.flow.getActionCard('continue_watching').registerRunListener(async () => {

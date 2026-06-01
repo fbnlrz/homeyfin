@@ -1,0 +1,12 @@
+{
+  "title": { "en": "Daily summary", "de": "Tageszusammenfassung" },
+  "hint": {
+    "en": "Fires once a day with watch-time totals for the user.",
+    "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst."
+  },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }],
+  "tokens": [
+    { "name": "minutes_today", "type": "number", "title": { "en": "Minutes today", "de": "Minuten heute" } },
+    { "name": "minutes_week",  "type": "number", "title": { "en": "Minutes this week", "de": "Minuten diese Woche" } }
+  ]
+}
