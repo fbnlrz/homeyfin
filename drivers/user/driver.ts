@@ -41,6 +41,13 @@ export default class JellyfinUserDriver extends Homey.Driver {
     this.registerFlowHandlers();
   }
 
+  /** Throws a friendly message if the device's hub isn't ready yet. */
+  private static requireHub(device: JellyfinUserDevice): ServerHub {
+    const hub = device.getHub();
+    if (!hub) throw new Error('Jellyfin server not connected yet');
+    return hub;
+  }
+
   /**
    * Flow cards are app-wide singletons. registerRunListener replaces the
    * previous handler, so registering per-device would silently break
@@ -80,7 +87,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
           timeout_ms?: number;
         }) => {
           const sessionId = await args.device.requireSessionId();
-          await args.device.getHub()!.client.sendMessage(
+          await JellyfinUserDriver.requireHub(args.device).client.sendMessage(
             sessionId,
             args.header && args.header.length > 0 ? args.header : 'Homey',
             args.text ?? '',
@@ -93,7 +100,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       .getActionCard('seek_to')
       .registerRunListener(async (args: { device: JellyfinUserDevice; seconds: number }) => {
         const sessionId = await args.device.requireSessionId();
-        await args.device.getHub()!.client.seekToSeconds(sessionId, args.seconds);
+        await JellyfinUserDriver.requireHub(args.device).client.seekToSeconds(sessionId, args.seconds);
       });
 
     this.homey.flow
@@ -109,7 +116,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
             ? Math.min(duration, current + (args.seconds || 0))
             : current + args.seconds,
         );
-        await args.device.getHub()!.client.seekToSeconds(session.sessionId, target);
+        await JellyfinUserDriver.requireHub(args.device).client.seekToSeconds(session.sessionId, target);
       });
 
     const playItem = this.homey.flow.getActionCard('play_item');
@@ -118,7 +125,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         const session = args.device.currentSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         if (!args.item?.id) throw new Error('No item picked');
-        await args.device.getHub()!.client.playItemsOnSession(session.sessionId, [args.item.id]);
+        await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(session.sessionId, [args.item.id]);
       },
     );
     playItem.registerArgumentAutocompleteListener('item', async (query, args) => {
@@ -154,7 +161,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       }) => {
         const session = args.device.currentSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
-        const res = await args.device.getHub()!.client.getRandomItems({
+        const res = await JellyfinUserDriver.requireHub(args.device).client.getRandomItems({
           userId: args.device.getUserId(),
           limit: 1,
           includeItemTypes: args.item_type,
@@ -162,7 +169,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         });
         const item = res.Items?.[0];
         if (!item) throw new Error('No item found for these filters');
-        await args.device.getHub()!.client.playItemsOnSession(session.sessionId, [item.Id]);
+        await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(session.sessionId, [item.Id]);
         return { title: item.Name };
       },
     );
@@ -190,7 +197,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
         const session = args.device.currentSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
-        const res = await args.device.getHub()!.client.getResumeItems({
+        const res = await JellyfinUserDriver.requireHub(args.device).client.getResumeItems({
           userId: args.device.getUserId(),
           limit: 1,
         });
@@ -200,7 +207,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
           typeof item.UserData?.PlaybackPositionTicks === 'number'
             ? item.UserData.PlaybackPositionTicks
             : undefined;
-        await args.device.getHub()!.client.playItemsOnSession(session.sessionId, [item.Id], {
+        await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(session.sessionId, [item.Id], {
           startPositionTicks: startTicks,
         });
         return { title: item.Name };
@@ -216,7 +223,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         const session = args.device.currentSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         if (!args.item?.id) throw new Error('No item picked');
-        await args.device.getHub()!.client.playItemsOnSession(
+        await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(
           session.sessionId,
           [args.item.id],
           { playCommand: args.where ?? 'PlayNext' },
@@ -251,7 +258,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       .getActionCard('queue_clear')
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
         const sessionId = await args.device.requireSessionId();
-        await args.device.getHub()!.client.clearSessionQueue(sessionId);
+        await JellyfinUserDriver.requireHub(args.device).client.clearSessionQueue(sessionId);
       });
 
     this.homey.flow.getActionCard('skip_chapter').registerRunListener(
@@ -260,9 +267,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const item = session.snap.nowPlaying;
         if (!item?.Id) throw new Error('Nothing is currently playing');
-        const full = await args.device
-          .getHub()!
-          .client.getItem(args.device.getUserId(), item.Id, 'Chapters');
+        const full = await JellyfinUserDriver.requireHub(args.device).client.getItem(args.device.getUserId(), item.Id, 'Chapters');
         const chapters = (full.Chapters ?? []).map((c) => c.StartPositionTicks);
         if (chapters.length === 0) throw new Error('This item has no chapter data');
         const positionTicks = (session.snap.positionSeconds ?? 0) * 10_000_000;
@@ -280,7 +285,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
           if (target === undefined && chapters.length > 0) target = chapters[0];
         }
         if (target === undefined) throw new Error('No chapter in that direction');
-        await args.device.getHub()!.client.seekToSeconds(session.sessionId, target / 10_000_000);
+        await JellyfinUserDriver.requireHub(args.device).client.seekToSeconds(session.sessionId, target / 10_000_000);
       },
     );
 
@@ -290,9 +295,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         const sessionId = await args.device.requireSessionId();
         const idx = Number(args.track?.id);
         if (!Number.isFinite(idx)) throw new Error('Pick a track');
-        await args.device
-          .getHub()!
-          .client.sendCommand(sessionId, 'SetAudioStreamIndex', { Index: idx });
+        await JellyfinUserDriver.requireHub(args.device).client.sendCommand(sessionId, 'SetAudioStreamIndex', { Index: idx });
       },
     );
     audioAction.registerArgumentAutocompleteListener('track', async (_query, args) => {
@@ -305,9 +308,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       async (args: { device: JellyfinUserDevice; track: { id?: string } }) => {
         const sessionId = await args.device.requireSessionId();
         const idx = Number(args.track?.id);
-        await args.device
-          .getHub()!
-          .client.sendCommand(sessionId, 'SetSubtitleStreamIndex', { Index: idx });
+        await JellyfinUserDriver.requireHub(args.device).client.sendCommand(sessionId, 'SetSubtitleStreamIndex', { Index: idx });
       },
     );
     subAction.registerArgumentAutocompleteListener('track', async (_query, args) => {
@@ -321,7 +322,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
         const id = args.device.getSnapshot()?.nowPlaying?.Id;
         if (!id) throw new Error('Nothing is currently playing');
-        await args.device.getHub()!.client.setPlayed(args.device.getUserId(), id, true);
+        await JellyfinUserDriver.requireHub(args.device).client.setPlayed(args.device.getUserId(), id, true);
       });
 
     this.homey.flow
@@ -330,9 +331,9 @@ export default class JellyfinUserDriver extends Homey.Driver {
         const id = args.device.getSnapshot()?.nowPlaying?.Id;
         if (!id) throw new Error('Nothing is currently playing');
         const userId = args.device.getUserId();
-        const full = await args.device.getHub()!.client.getItem(userId, id, 'UserData');
+        const full = await JellyfinUserDriver.requireHub(args.device).client.getItem(userId, id, 'UserData');
         const fav = full.UserData?.IsFavorite === true;
-        await args.device.getHub()!.client.setFavorite(userId, id, !fav);
+        await JellyfinUserDriver.requireHub(args.device).client.setFavorite(userId, id, !fav);
       });
 
     this.homey.flow
@@ -344,17 +345,15 @@ export default class JellyfinUserDriver extends Homey.Driver {
           if (!id) throw new Error('Nothing is currently playing');
           const userId = args.device.getUserId();
           const playlistName = args.playlist_name?.trim() || 'Homey Watchlist';
-          const all = await args.device.getHub()!.client.getPlaylists(userId);
+          const all = await JellyfinUserDriver.requireHub(args.device).client.getPlaylists(userId);
           const existing = all.Items.find(
             (p) => p.Name?.toLowerCase() === playlistName.toLowerCase(),
           );
           let playlistId = existing?.Id;
           if (!playlistId) {
-            playlistId = await args.device
-              .getHub()!
-              .client.createPlaylist({ userId, name: playlistName, itemIds: [id] });
+            playlistId = await JellyfinUserDriver.requireHub(args.device).client.createPlaylist({ userId, name: playlistName, itemIds: [id] });
           } else {
-            await args.device.getHub()!.client.addToPlaylist(playlistId, userId, [id]);
+            await JellyfinUserDriver.requireHub(args.device).client.addToPlaylist(playlistId, userId, [id]);
           }
           return { title: name };
         },

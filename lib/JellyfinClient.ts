@@ -530,6 +530,10 @@ export class JellyfinClient {
     const url = new URL(`${this.baseUrl}/Items/${itemId}/Images/${type}`);
     url.searchParams.set('maxHeight', String(maxHeight));
     if (tag) url.searchParams.set('tag', tag);
+    // Image endpoints are normally anonymous, but some Jellyfin forks /
+    // configurations gate them behind auth. The query-param form is the
+    // officially documented way to authenticate image requests.
+    url.searchParams.set('api_key', this.apiKey);
     return url.toString();
   }
 

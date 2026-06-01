@@ -13,6 +13,18 @@ export default class HomeyfinApp extends Homey.App {
     this.log('Homeyfin app starting');
   }
 
+  async onUninit(): Promise<void> {
+    this.log('Homeyfin app stopping; releasing hubs');
+    for (const [serverId, hub] of this.hubs) {
+      try {
+        await hub.stop();
+      } catch (err) {
+        this.error(`Stopping hub ${serverId} failed:`, (err as Error).message);
+      }
+    }
+    this.hubs.clear();
+  }
+
   /**
    * Returns an existing hub or creates one. Subsequent calls with the same
    * serverId return the same instance. Callers may pass tuning options

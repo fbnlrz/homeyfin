@@ -68,6 +68,7 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   async onDeleted(): Promise<void> {
     this.teardown();
+    this.homey.settings.unset('watch:' + this.store.userId);
   }
 
   async onSettings({ changedKeys }: { changedKeys: string[] }): Promise<void> {

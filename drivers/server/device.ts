@@ -57,11 +57,12 @@ export default class JellyfinServerDevice extends Homey.Device {
   private async refreshUptime(): Promise<void> {
     if (!this.hub) return;
     try {
-      // Jellyfin doesn't expose uptime directly. Use the persisted "first seen"
-      // timestamp in Homey settings to compute minutes since the hub started.
+      // Jellyfin doesn't expose uptime directly. Persist the first time we
+      // successfully see the server and report minutes since then. The
+      // timestamp is cleared in onDeleted so re-pairing starts fresh.
       const key = 'serverStartTs:' + this.serverId;
       let started = this.homey.settings.get(key) as number | undefined;
-      if (!started || !this.hub.isSocketOpen()) {
+      if (!started) {
         started = Date.now();
         this.homey.settings.set(key, started);
       }
@@ -79,7 +80,17 @@ export default class JellyfinServerDevice extends Homey.Device {
     this.uptimePollTimer = setInterval(() => this.refreshUptime().catch(() => undefined), 60_000);
   }
 
+  private bootstrapInFlight?: Promise<void>;
   private async bootstrapHub(): Promise<void> {
+    // Serialize concurrent invocations (onInit + onSettings races).
+    if (this.bootstrapInFlight) return this.bootstrapInFlight;
+    this.bootstrapInFlight = this.bootstrapHubInner().finally(() => {
+      this.bootstrapInFlight = undefined;
+    });
+    return this.bootstrapInFlight;
+  }
+
+  private async bootstrapHubInner(): Promise<void> {
     const store = this.getStore() as ServerStore;
     const settings = this.getSettings() as ServerSettings;
     const app = this.homey.app as HomeyfinApp;
@@ -164,6 +175,7 @@ export default class JellyfinServerDevice extends Homey.Device {
     const app = this.homey.app as HomeyfinApp;
     await app.releaseHub(this.serverId);
     this.homey.settings.unset(ITEM_CACHE_KEY_PREFIX + this.serverId);
+    this.homey.settings.unset('serverStartTs:' + this.serverId);
   }
 
   private unregister(): void {
