@@ -10,6 +10,20 @@
   --warn: #f1c40f;
   --radius: 14px;
   --gap: 10px;
+  --tile-bg: rgba(255, 255, 255, 0.04);
+  --tile-border: rgba(255, 255, 255, 0.04);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-1: #f6f8fb;
+    --bg-2: #ffffff;
+    --bg-3: #eef1f7;
+    --fg: #1c2230;
+    --fg-muted: #6b7488;
+    --tile-bg: rgba(0, 0, 0, 0.04);
+    --tile-border: rgba(0, 0, 0, 0.06);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -89,7 +103,7 @@ html, body {
   gap: 6px;
   font-size: 11px;
   color: var(--fg-muted);
-  background: rgba(255,255,255,0.04);
+  background: var(--tile-bg);
   padding: 4px 8px;
   border-radius: 999px;
 }
@@ -107,11 +121,11 @@ html, body {
 }
 
 .stat {
-  background: rgba(255,255,255,0.04);
+  background: var(--tile-bg);
   padding: 8px 6px;
   border-radius: 10px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid var(--tile-border);
 }
 .stat-value {
   font-size: 18px;

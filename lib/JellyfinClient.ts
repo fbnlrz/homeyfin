@@ -1,4 +1,6 @@
 import { URL } from 'url';
+import https from 'https';
+import http from 'http';
 
 export interface JellyfinClientOptions {
   baseUrl: string;
@@ -7,6 +9,8 @@ export interface JellyfinClientOptions {
   deviceName?: string;
   clientName?: string;
   appVersion?: string;
+  /** When true, accept self-signed TLS certificates (Homey LAN setups). */
+  insecureTls?: boolean;
 }
 
 export interface SystemInfo {
@@ -39,8 +43,25 @@ export interface JellyfinSession {
     IsMuted?: boolean;
     VolumeLevel?: number;
     PlayMethod?: string;
+    AudioStreamIndex?: number;
+    SubtitleStreamIndex?: number;
   };
   NowPlayingItem?: NowPlayingItem;
+  TranscodingInfo?: {
+    AudioCodec?: string;
+    VideoCodec?: string;
+    Container?: string;
+    IsVideoDirect?: boolean;
+    IsAudioDirect?: boolean;
+    Bitrate?: number;
+    CompletionPercentage?: number;
+    Width?: number;
+    Height?: number;
+    AudioChannels?: number;
+    Framerate?: number;
+    HardwareAccelerationType?: string;
+    TranscodeReasons?: string[];
+  };
   SupportsRemoteControl?: boolean;
 }
 
@@ -56,6 +77,14 @@ export interface NowPlayingItem {
   RunTimeTicks?: number;
   ImageTags?: Record<string, string>;
   ParentBackdropImageTags?: string[];
+  MediaStreams?: Array<{
+    Index: number;
+    Type: 'Audio' | 'Subtitle' | 'Video';
+    DisplayTitle?: string;
+    Language?: string;
+    Codec?: string;
+    IsDefault?: boolean;
+  }>;
 }
 
 export interface ItemCounts {
@@ -84,6 +113,7 @@ export interface LatestItem {
   DateCreated?: string;
   ImageTags?: Record<string, string>;
   ParentId?: string;
+  UserData?: { Played?: boolean; IsFavorite?: boolean; UnplayedItemCount?: number };
 }
 
 export type PlaystateCommand =
@@ -102,7 +132,11 @@ export type GeneralCommand =
   | 'Mute'
   | 'Unmute'
   | 'ToggleMute'
+  | 'SetAudioStreamIndex'
+  | 'SetSubtitleStreamIndex'
   | 'DisplayMessage';
+
+const TICKS_PER_SECOND = 10_000_000;
 
 export class JellyfinError extends Error {
   constructor(message: string, public status?: number) {
@@ -118,6 +152,7 @@ export class JellyfinClient {
   private deviceName: string;
   private clientName: string;
   private appVersion: string;
+  private insecureAgent?: https.Agent;
 
   constructor(opts: JellyfinClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
@@ -126,6 +161,9 @@ export class JellyfinClient {
     this.deviceName = opts.deviceName ?? 'Homey';
     this.clientName = opts.clientName ?? 'Homeyfin';
     this.appVersion = opts.appVersion ?? '0.1.0';
+    if (opts.insecureTls) {
+      this.insecureAgent = new https.Agent({ rejectUnauthorized: false });
+    }
   }
 
   getBaseUrl(): string {
@@ -169,11 +207,17 @@ export class JellyfinClient {
     };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-    const res = await fetch(url.toString(), {
+    const init: RequestInit & { dispatcher?: unknown } = {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    };
+    // Node's global fetch (undici) uses dispatcher, not agent — best-effort fallback.
+    if (this.insecureAgent && url.protocol === 'https:') {
+      (init as any).agent = this.insecureAgent;
+    }
+
+    const res = await fetch(url.toString(), init);
 
     if (!res.ok) {
       let text = '';
@@ -210,9 +254,7 @@ export class JellyfinClient {
     return this.request<JellyfinSession[]>('GET', '/Sessions');
   }
 
-  /**
-   * Returns devices (clients) known to the server. Requires admin token.
-   */
+  /** Devices known to the server. Requires admin token. */
   getDevices(): Promise<{ Items: Array<{ Id: string; Name: string; AppName?: string; LastUserName?: string }> }> {
     return this.request('GET', '/Devices');
   }
@@ -225,6 +267,13 @@ export class JellyfinClient {
     params?: Record<string, string | number>,
   ): Promise<void> {
     return this.request<void>('POST', `/Sessions/${sessionId}/Playing/${command}`, undefined, params);
+  }
+
+  /** Seek to absolute position (seconds). */
+  seekToSeconds(sessionId: string, seconds: number): Promise<void> {
+    return this.sendPlaystate(sessionId, 'Seek', {
+      SeekPositionTicks: Math.max(0, Math.round(seconds * TICKS_PER_SECOND)),
+    });
   }
 
   sendCommand(
@@ -251,6 +300,19 @@ export class JellyfinClient {
     });
   }
 
+  /** Tell a session to play an arbitrary list of item IDs. */
+  playItemsOnSession(
+    sessionId: string,
+    itemIds: string[],
+    opts: { playCommand?: 'PlayNow' | 'PlayNext' | 'PlayLast'; startPositionTicks?: number } = {},
+  ): Promise<void> {
+    return this.request<void>('POST', `/Sessions/${sessionId}/Playing`, undefined, {
+      itemIds: itemIds.join(','),
+      playCommand: opts.playCommand ?? 'PlayNow',
+      startPositionTicks: opts.startPositionTicks,
+    });
+  }
+
   // --- Library ---
 
   getItemCounts(userId?: string): Promise<ItemCounts> {
@@ -267,7 +329,49 @@ export class JellyfinClient {
       Limit: opts.limit ?? 20,
       ParentId: opts.parentId,
       IncludeItemTypes: opts.includeItemTypes,
-      Fields: 'DateCreated,ParentId,ProductionYear',
+      Fields: 'DateCreated,ParentId,ProductionYear,UserData',
+    });
+  }
+
+  /** Continue-watching list for the user. */
+  getResumeItems(opts: { userId: string; limit?: number }): Promise<{ Items: LatestItem[]; TotalRecordCount: number }> {
+    return this.request('GET', `/Users/${opts.userId}/Items/Resume`, undefined, {
+      Limit: opts.limit ?? 20,
+      Fields: 'DateCreated,ParentId,ProductionYear,UserData',
+      MediaTypes: 'Video',
+    });
+  }
+
+  /** Free-text search returning items matching the query. */
+  searchItems(opts: {
+    userId: string;
+    searchTerm: string;
+    limit?: number;
+    includeItemTypes?: string;
+  }): Promise<{ Items: LatestItem[]; TotalRecordCount: number }> {
+    return this.request('GET', `/Users/${opts.userId}/Items`, undefined, {
+      searchTerm: opts.searchTerm,
+      Recursive: 'true',
+      Limit: opts.limit ?? 20,
+      IncludeItemTypes: opts.includeItemTypes,
+      Fields: 'ProductionYear,ParentId',
+    });
+  }
+
+  /** Pick N random items of a given type. */
+  getRandomItems(opts: {
+    userId: string;
+    limit?: number;
+    includeItemTypes?: string;
+    parentId?: string;
+  }): Promise<{ Items: LatestItem[]; TotalRecordCount: number }> {
+    return this.request('GET', `/Users/${opts.userId}/Items`, undefined, {
+      Recursive: 'true',
+      Limit: opts.limit ?? 1,
+      SortBy: 'Random',
+      IncludeItemTypes: opts.includeItemTypes,
+      ParentId: opts.parentId,
+      Fields: 'ProductionYear,ParentId',
     });
   }
 
@@ -286,7 +390,39 @@ export class JellyfinClient {
     return this.request<void>('POST', '/Library/Refresh');
   }
 
-  // --- Image URLs (no auth needed for image endpoint, but token doesn't hurt) ---
+  /** Mark item as played / unplayed for a user. */
+  setPlayed(userId: string, itemId: string, played: boolean): Promise<void> {
+    return this.request<void>(
+      played ? 'POST' : 'DELETE',
+      `/Users/${userId}/PlayedItems/${itemId}`,
+    );
+  }
+
+  /** Mark / unmark a favorite for a user. */
+  setFavorite(userId: string, itemId: string, favorite: boolean): Promise<void> {
+    return this.request<void>(
+      favorite ? 'POST' : 'DELETE',
+      `/Users/${userId}/FavoriteItems/${itemId}`,
+    );
+  }
+
+  /** Number of unplayed items for a user filtered by type, e.g. Episode. */
+  async getUnplayedCount(userId: string, includeItemTypes = 'Episode'): Promise<number> {
+    const res = await this.request<{ TotalRecordCount: number }>(
+      'GET',
+      `/Users/${userId}/Items`,
+      undefined,
+      {
+        Recursive: 'true',
+        Limit: 0,
+        IncludeItemTypes: includeItemTypes,
+        Filters: 'IsUnplayed',
+      },
+    );
+    return res?.TotalRecordCount ?? 0;
+  }
+
+  // --- Image URLs (no auth header needed) ---
 
   imageUrl(itemId: string, type = 'Primary', tag?: string, maxHeight = 600): string {
     const url = new URL(`${this.baseUrl}/Items/${itemId}/Images/${type}`);

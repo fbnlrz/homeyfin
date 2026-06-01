@@ -1,0 +1,8 @@
+{
+  "type": "number",
+  "title": { "en": "Unwatched episodes", "de": "Ungesehene Folgen" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "decimals": 0
+}

@@ -21,6 +21,7 @@ interface OverviewStream {
   title: string;
   subtitle: string;
   isPaused: boolean;
+  isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
   posterUrl: string;
@@ -57,6 +58,7 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     title,
     subtitle,
     isPaused: snap.isPaused,
+    isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
     posterUrl: snap.posterUrl ?? '',

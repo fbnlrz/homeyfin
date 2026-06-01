@@ -1,0 +1,6 @@
+{
+  "title": { "en": "Mark current item as watched", "de": "Aktuelles Item als gesehen markieren" },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "title": { "en": "Transcoding stopped", "de": "Transcodierung beendet" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }],
+  "tokens": [
+    { "name": "user",   "type": "string", "title": { "en": "User",   "de": "Benutzer" } },
+    { "name": "title",  "type": "string", "title": { "en": "Title",  "de": "Titel" } }
+  ]
+}

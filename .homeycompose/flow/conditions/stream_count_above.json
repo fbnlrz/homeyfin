@@ -1,0 +1,22 @@
+{
+  "title": {
+    "en": "Active streams !{{is|is not}} above",
+    "de": "Aktive Streams !{{liegen über|liegen nicht über}}"
+  },
+  "titleFormatted": {
+    "en": "Active streams !{{is|is not}} above [[threshold]]",
+    "de": "Aktive Streams !{{liegen über|liegen nicht über}} [[threshold]]"
+  },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=server" },
+    {
+      "name": "threshold",
+      "type": "number",
+      "title": { "en": "Threshold", "de": "Schwellwert" },
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "placeholder": { "en": "1" }
+    }
+  ]
+}

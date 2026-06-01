@@ -6,7 +6,10 @@
     "library_series_count",
     "library_episodes_count",
     "last_added_title",
-    "scan_in_progress"
+    "scan_in_progress",
+    "stream_count",
+    "transcoding_count",
+    "socket_online"
   ],
   "platforms": ["local"],
   "connectivity": ["lan"],
@@ -48,6 +51,16 @@
             "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden."
           },
           "value": ""
+        },
+        {
+          "id": "insecureTls",
+          "type": "checkbox",
+          "label": { "en": "Allow self-signed HTTPS", "de": "Selbst-signierte HTTPS-Zertifikate erlauben" },
+          "hint": {
+            "en": "Tick this if your Jellyfin uses HTTPS with a self-signed certificate.",
+            "de": "Aktivieren, wenn dein Jellyfin HTTPS mit selbst-signiertem Zertifikat nutzt."
+          },
+          "value": false
         }
       ]
     },
@@ -66,14 +79,26 @@
         {
           "id": "fallbackPollSeconds",
           "type": "number",
-          "label": { "en": "Session fallback poll (s)", "de": "Session-Fallback-Polling (s)" },
+          "label": { "en": "Idle session poll (s)", "de": "Idle-Session-Polling (s)" },
           "hint": {
-            "en": "How often to poll /Sessions when the WebSocket is disconnected.",
-            "de": "Wie oft /Sessions abgefragt werden, wenn die WebSocket-Verbindung weg ist."
+            "en": "How often to poll /Sessions while no clients are streaming (and the WebSocket is down).",
+            "de": "Wie oft /Sessions abgefragt werden, wenn nichts streamt (und der Socket weg ist)."
           },
           "value": 30,
           "min": 5,
           "max": 300
+        },
+        {
+          "id": "activePollSeconds",
+          "type": "number",
+          "label": { "en": "Active session poll (s)", "de": "Aktiv-Session-Polling (s)" },
+          "hint": {
+            "en": "How often to poll /Sessions while something is playing (used as a low-latency fallback alongside the WebSocket).",
+            "de": "Wie oft /Sessions abgefragt werden, wenn etwas läuft (Polling parallel zum WebSocket für niedrige Latenz)."
+          },
+          "value": 5,
+          "min": 2,
+          "max": 60
         }
       ]
     }

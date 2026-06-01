@@ -4,19 +4,15 @@
     "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
   },
   "titleFormatted": {
-    "en": "New [[item_type]] added to library",
-    "de": "Neuer Inhalt ([[item_type]]) zur Bibliothek hinzugefügt"
+    "en": "New [[item_type]] in [[library]]",
+    "de": "Neuer Inhalt ([[item_type]]) in [[library]]"
   },
   "hint": {
     "en": "Triggers when a new movie, episode or series is added.",
     "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
   },
   "args": [
-    {
-      "name": "device",
-      "type": "device",
-      "filter": "driver_id=server"
-    },
+    { "name": "device", "type": "device", "filter": "driver_id=server" },
     {
       "name": "item_type",
       "type": "dropdown",
@@ -28,6 +24,11 @@
         { "id": "Series",  "label": { "en": "Series",  "de": "Serie" } },
         { "id": "Audio",   "label": { "en": "Audio",   "de": "Musik" } }
       ]
+    },
+    {
+      "name": "library",
+      "type": "autocomplete",
+      "title": { "en": "Library", "de": "Bibliothek" }
     }
   ],
   "tokens": [
@@ -38,6 +39,11 @@
     { "name": "episode",      "type": "number", "title": { "en": "Episode",     "de": "Folge" } },
     { "name": "year",         "type": "number", "title": { "en": "Year",        "de": "Jahr" } },
     { "name": "library_name", "type": "string", "title": { "en": "Library",     "de": "Bibliothek" } },
-    { "name": "poster_url",   "type": "string", "title": { "en": "Poster URL",  "de": "Poster-URL" } }
+    { "name": "poster_url",   "type": "string", "title": { "en": "Poster URL",  "de": "Poster-URL" } },
+    {
+      "name": "poster",
+      "type": "image",
+      "title": { "en": "Poster", "de": "Poster" }
+    }
   ]
 }

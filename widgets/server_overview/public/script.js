@@ -85,7 +85,9 @@ function onHomeyReady(Homey) {
 
         const badge = document.createElement('span');
         badge.className = 'badge' + (s.isPaused ? ' paused' : '');
-        badge.textContent = s.isPaused ? 'paused' : 'playing';
+        badge.textContent = s.isPaused
+          ? (s.isTranscoding ? 'paused · TR' : 'paused')
+          : (s.isTranscoding ? 'playing · TR' : 'playing');
 
         const progress = document.createElement('div');
         progress.className = 'progress';

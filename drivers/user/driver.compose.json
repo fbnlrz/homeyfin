@@ -14,7 +14,10 @@
     "media_subtitle",
     "media_position",
     "media_duration",
-    "client_online"
+    "client_online",
+    "is_transcoding",
+    "unwatched_count",
+    "continue_watching_title"
   ],
   "platforms": ["local"],
   "connectivity": ["lan"],
@@ -36,12 +39,20 @@
           "type": "number",
           "label": { "en": "Stop debounce (ms)", "de": "Stop-Entprellzeit (ms)" },
           "hint": {
-            "en": "Wait this long after the user's session disappears before firing the Stopped trigger. Helps with brief network blips or app switches.",
-            "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert. Hilft gegen kurze Netzaussetzer."
+            "en": "Wait this long after the user's session disappears before firing the Stopped trigger.",
+            "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert."
           },
           "value": 4000,
           "min": 0,
           "max": 30000
+        },
+        {
+          "id": "unwatchedRefreshMinutes",
+          "type": "number",
+          "label": { "en": "Unwatched refresh (min)", "de": "Refresh ungesehen (min)" },
+          "value": 10,
+          "min": 1,
+          "max": 120
         }
       ]
     }

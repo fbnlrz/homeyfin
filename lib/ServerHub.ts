@@ -16,13 +16,12 @@ export interface ServerHubOptions {
   homeyDeviceId: string;
   appVersion: string;
   debug?: boolean;
-  /** Persistent state across restarts (callbacks). */
+  insecureTls?: boolean;
   persistedItemIds?: string[];
   saveItemIds?: (ids: string[]) => void | Promise<void>;
-  /** Library refresh interval in milliseconds. */
   libraryPollMs?: number;
-  /** Fallback session-poll interval when WebSocket is disconnected. */
   fallbackPollMs?: number;
+  activePollMs?: number;
 }
 
 export interface ClientSnapshot {
@@ -41,6 +40,10 @@ export interface ClientSnapshot {
   nowPlaying?: NowPlayingItem;
   posterUrl?: string;
   lastActivityMs?: number;
+  isTranscoding: boolean;
+  transcodeReasons?: string[];
+  audioStreamIndex?: number;
+  subtitleStreamIndex?: number;
 }
 
 export interface NewItemEvent {
@@ -52,6 +55,7 @@ export interface NewItemEvent {
 const TICKS_PER_SECOND = 10_000_000;
 const DEFAULT_LIBRARY_POLL_MS = 5 * 60 * 1000;
 const DEFAULT_FALLBACK_POLL_MS = 30 * 1000;
+const DEFAULT_ACTIVE_POLL_MS = 5 * 1000;
 const MAX_PERSISTED_IDS = 500;
 
 /**
@@ -68,13 +72,17 @@ export class ServerHub extends EventEmitter {
   private bootstrapped = false;
   private lastCounts?: ItemCounts;
   private libraryPollTimer?: NodeJS.Timeout;
-  private fallbackPollTimer?: NodeJS.Timeout;
+  private sessionPollTimer?: NodeJS.Timeout;
+  private currentPollMs?: number;
   private scanStartedAt?: number;
   private knownSessionKeys = new Set<string>();
   private socketOpen = false;
+  private lastStreamCount = 0;
+  private lastTranscodingCount = 0;
 
   private readonly libraryPollMs: number;
   private readonly fallbackPollMs: number;
+  private readonly activePollMs: number;
   private readonly saveItemIds?: (ids: string[]) => void | Promise<void>;
 
   constructor(private readonly opts: ServerHubOptions) {
@@ -83,6 +91,7 @@ export class ServerHub extends EventEmitter {
 
     this.libraryPollMs = opts.libraryPollMs ?? DEFAULT_LIBRARY_POLL_MS;
     this.fallbackPollMs = opts.fallbackPollMs ?? DEFAULT_FALLBACK_POLL_MS;
+    this.activePollMs = opts.activePollMs ?? DEFAULT_ACTIVE_POLL_MS;
     this.saveItemIds = opts.saveItemIds;
 
     if (opts.persistedItemIds && opts.persistedItemIds.length > 0) {
@@ -97,6 +106,7 @@ export class ServerHub extends EventEmitter {
       deviceName: 'Homey',
       clientName: 'Homeyfin',
       appVersion: opts.appVersion,
+      insecureTls: opts.insecureTls,
     });
 
     this.socket = new JellyfinSocket({
@@ -107,12 +117,16 @@ export class ServerHub extends EventEmitter {
     });
 
     this.socket.on('open', () => {
+      const wasOpen = this.socketOpen;
       this.socketOpen = true;
-      this.stopFallbackPoll();
+      if (!wasOpen) this.emit('connection:up');
+      this.adjustPolling();
     });
     this.socket.on('close', () => {
+      const wasOpen = this.socketOpen;
       this.socketOpen = false;
-      this.startFallbackPoll();
+      if (wasOpen) this.emit('connection:down');
+      this.adjustPolling();
     });
     this.socket.on('sessions', (data) => this.handleSessions(data as JellyfinSession[]));
     this.socket.on('libraryChanged', () => {
@@ -137,6 +151,14 @@ export class ServerHub extends EventEmitter {
     return this.socketOpen;
   }
 
+  getStreamCount(): number {
+    return this.lastStreamCount;
+  }
+
+  getTranscodingCount(): number {
+    return this.lastTranscodingCount;
+  }
+
   async start(): Promise<void> {
     this.socket.start();
     await this.refreshLibrary().catch((err) => {
@@ -145,6 +167,7 @@ export class ServerHub extends EventEmitter {
     this.libraryPollTimer = setInterval(() => {
       this.refreshLibrary().catch(() => undefined);
     }, this.libraryPollMs);
+    this.adjustPolling();
   }
 
   async stop(): Promise<void> {
@@ -152,7 +175,7 @@ export class ServerHub extends EventEmitter {
       clearInterval(this.libraryPollTimer);
       this.libraryPollTimer = undefined;
     }
-    this.stopFallbackPoll();
+    this.stopSessionPoll();
     this.socket.stop();
     this.removeAllListeners();
   }
@@ -185,20 +208,37 @@ export class ServerHub extends EventEmitter {
     })[0];
   }
 
-  // --- Fallback polling --------------------------------------------------
+  // --- Smart session polling --------------------------------------------
+  //
+  // - Socket up + idle  : no extra polling (socket pushes Sessions frames).
+  // - Socket up + active: poll every activePollMs (latency-bridge alongside
+  //                       socket, smoother position ticker on the device).
+  // - Socket down       : poll every fallbackPollMs.
 
-  private startFallbackPoll(): void {
-    if (this.fallbackPollTimer) return;
-    this.fallbackPollTimer = setInterval(() => {
-      this.pollSessions().catch(() => undefined);
-    }, this.fallbackPollMs);
+  private adjustPolling(): void {
+    const hasActive = this.lastStreamCount > 0;
+    let desiredMs: number | undefined;
+    if (!this.socketOpen) desiredMs = this.fallbackPollMs;
+    else if (hasActive) desiredMs = this.activePollMs;
+    else desiredMs = undefined;
+
+    if (desiredMs === this.currentPollMs) return;
+    this.stopSessionPoll();
+    if (desiredMs) {
+      this.currentPollMs = desiredMs;
+      this.sessionPollTimer = setInterval(
+        () => this.pollSessions().catch(() => undefined),
+        desiredMs,
+      );
+    }
   }
 
-  private stopFallbackPoll(): void {
-    if (this.fallbackPollTimer) {
-      clearInterval(this.fallbackPollTimer);
-      this.fallbackPollTimer = undefined;
+  private stopSessionPoll(): void {
+    if (this.sessionPollTimer) {
+      clearInterval(this.sessionPollTimer);
+      this.sessionPollTimer = undefined;
     }
+    this.currentPollMs = undefined;
   }
 
   // --- Sessions handling -------------------------------------------------
@@ -271,6 +311,7 @@ export class ServerHub extends EventEmitter {
       if (!this.knownSessionKeys.has(sessionKey) && s.UserName) {
         this.emit('user:logged_in', {
           user: s.UserName,
+          userId: s.UserId,
           client: s.Client,
           deviceName: s.DeviceName,
         });
@@ -377,6 +418,42 @@ export class ServerHub extends EventEmitter {
     }
 
     this.knownSessionKeys = seenSessionKeys;
+
+    // Server-level aggregates: stream count + transcoding count, plus
+    // transcoding start/stop events per session.
+    let streamCount = 0;
+    let transcodingCount = 0;
+    for (const snap of nextMap.values()) {
+      if (snap.nowPlaying) streamCount++;
+      if (snap.isTranscoding) transcodingCount++;
+    }
+
+    // Transcoding diffs (per device id).
+    for (const [deviceId, nx] of nextMap) {
+      const pv = this.lastSnapshots.get(deviceId);
+      const wasTrans = pv?.isTranscoding === true;
+      const isTrans = nx.isTranscoding === true;
+      if (!wasTrans && isTrans && nx.nowPlaying) {
+        this.emit('transcoding:started', {
+          user: nx.userName ?? '',
+          deviceName: nx.deviceName,
+          title: nx.nowPlaying.Name,
+          reasons: nx.transcodeReasons ?? [],
+        });
+      } else if (wasTrans && !isTrans && pv?.nowPlaying) {
+        this.emit('transcoding:stopped', {
+          user: pv.userName ?? '',
+          title: pv.nowPlaying.Name,
+        });
+      }
+    }
+
+    if (streamCount !== this.lastStreamCount || transcodingCount !== this.lastTranscodingCount) {
+      this.lastStreamCount = streamCount;
+      this.lastTranscodingCount = transcodingCount;
+      this.emit('streams:count', { count: streamCount, transcoding: transcodingCount });
+      this.adjustPolling();
+    }
   }
 
   private toSnapshot(s: JellyfinSession): ClientSnapshot {
@@ -405,6 +482,10 @@ export class ServerHub extends EventEmitter {
           ? this.client.imageUrl(item.Id, 'Primary', item.ImageTags.Primary, 600)
           : undefined,
       lastActivityMs: s.LastActivityDate ? Date.parse(s.LastActivityDate) : undefined,
+      isTranscoding: !!s.TranscodingInfo,
+      transcodeReasons: s.TranscodingInfo?.TranscodeReasons,
+      audioStreamIndex: ps.AudioStreamIndex,
+      subtitleStreamIndex: ps.SubtitleStreamIndex,
     };
   }
 

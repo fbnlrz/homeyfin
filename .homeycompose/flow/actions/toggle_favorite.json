@@ -1,0 +1,6 @@
+{
+  "title": { "en": "Toggle favorite on current item", "de": "Favorit für aktuelles Item umschalten" },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" }
+  ]
+}

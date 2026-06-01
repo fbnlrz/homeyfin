@@ -8,6 +8,7 @@
     { "name": "season",  "type": "number", "title": { "en": "Season",  "de": "Staffel" } },
     { "name": "episode", "type": "number", "title": { "en": "Episode", "de": "Folge" } },
     { "name": "runtime", "type": "number", "title": { "en": "Runtime (s)", "de": "Laufzeit (s)" } },
-    { "name": "user",    "type": "string", "title": { "en": "User",    "de": "Benutzer" } }
+    { "name": "user",    "type": "string", "title": { "en": "User",    "de": "Benutzer" } },
+    { "name": "poster",  "type": "image",  "title": { "en": "Poster",  "de": "Poster" } }
   ]
 }

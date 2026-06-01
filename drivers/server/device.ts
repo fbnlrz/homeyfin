@@ -14,8 +14,10 @@ interface ServerSettings {
   baseUrl?: string;
   apiKey?: string;
   userName?: string;
+  insecureTls?: boolean;
   libraryPollMinutes?: number;
   fallbackPollSeconds?: number;
+  activePollSeconds?: number;
 }
 
 const ITEM_CACHE_KEY_PREFIX = 'itemCache:';
@@ -24,10 +26,41 @@ export default class JellyfinServerDevice extends Homey.Device {
   private hub?: ServerHub;
   private offCallbacks: Array<() => void> = [];
   private serverId!: string;
+  private posterImage?: Homey.Image;
+  private lastPosterUrl = '';
 
   async onInit(): Promise<void> {
     this.serverId = this.getData().id.replace(/^server:/, '');
+    await this.setupPosterImage();
     await this.bootstrapHub();
+  }
+
+  private async setupPosterImage(): Promise<void> {
+    try {
+      this.posterImage = await this.homey.images.createImage();
+      (this.posterImage as any).setStream(async (stream: NodeJS.WritableStream) => {
+        const url = this.lastPosterUrl;
+        if (!url) {
+          stream.end();
+          return;
+        }
+        try {
+          const res = await fetch(url);
+          if (!res.ok || !res.body) {
+            stream.end();
+            return;
+          }
+          for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+            stream.write(chunk);
+          }
+          stream.end();
+        } catch {
+          stream.end();
+        }
+      });
+    } catch (err) {
+      this.error('poster image setup failed', (err as Error).message);
+    }
   }
 
   private async bootstrapHub(): Promise<void> {
@@ -35,7 +68,6 @@ export default class JellyfinServerDevice extends Homey.Device {
     const settings = this.getSettings() as ServerSettings;
     const app = this.homey.app as HomeyfinApp;
 
-    // First-time: sync store → settings so the UI shows the connection details.
     if (!settings.baseUrl && store.baseUrl) {
       await this.setSettings({
         baseUrl: store.baseUrl,
@@ -60,10 +92,12 @@ export default class JellyfinServerDevice extends Homey.Device {
       baseUrl,
       apiKey,
       userId,
+      insecureTls: settings.insecureTls === true,
       persistedItemIds,
       saveItemIds: (ids) => this.homey.settings.set(ITEM_CACHE_KEY_PREFIX + this.serverId, ids),
       libraryPollMs: (settings.libraryPollMinutes ?? 5) * 60_000,
       fallbackPollMs: (settings.fallbackPollSeconds ?? 30) * 1_000,
+      activePollMs: (settings.activePollSeconds ?? 5) * 1_000,
     });
 
     this.registerHubHandlers();
@@ -71,18 +105,28 @@ export default class JellyfinServerDevice extends Homey.Device {
     const cached = this.hub.getLastCounts();
     if (cached) await this.applyCounts(cached);
     await this.safeSet('scan_in_progress', false);
+    await this.safeSet('socket_online', this.hub.isSocketOpen());
+    await this.safeSet('stream_count', this.hub.getStreamCount());
+    await this.safeSet('transcoding_count', this.hub.getTranscodingCount());
 
     this.registerFlowHandlers();
     this.setAvailable().catch(() => undefined);
   }
 
-  async onSettings({ newSettings, changedKeys }: {
+  async onSettings({
+    newSettings,
+    changedKeys,
+  }: {
     oldSettings: ServerSettings;
     newSettings: ServerSettings;
     changedKeys: string[];
   }): Promise<void> {
-    const connectionTouched = ['baseUrl', 'apiKey', 'userName'].some((k) => changedKeys.includes(k));
-    const pollTouched = ['libraryPollMinutes', 'fallbackPollSeconds'].some((k) => changedKeys.includes(k));
+    const connectionTouched = ['baseUrl', 'apiKey', 'userName', 'insecureTls'].some((k) =>
+      changedKeys.includes(k),
+    );
+    const pollTouched = ['libraryPollMinutes', 'fallbackPollSeconds', 'activePollSeconds'].some(
+      (k) => changedKeys.includes(k),
+    );
 
     if (connectionTouched || pollTouched) {
       this.log('Settings changed; recreating hub', changedKeys);
@@ -114,23 +158,80 @@ export default class JellyfinServerDevice extends Homey.Device {
 
   private registerHubHandlers(): void {
     if (!this.hub) return;
-    const onCounts = (counts: ItemCounts) => this.applyCounts(counts).catch((e) => this.error(e));
-    const onNewItem = (ev: NewItemEvent) => this.handleNewItem(ev).catch((e) => this.error(e));
+    const hub = this.hub;
+
+    const onCounts = (counts: ItemCounts) =>
+      this.applyCounts(counts).catch((e) => this.error(e));
+    const onNewItem = (ev: NewItemEvent) =>
+      this.handleNewItem(ev).catch((e) => this.error(e));
     const onScan = (duration: number) =>
       this.handleScanFinished(duration).catch((e) => this.error(e));
     const onUser = (data: { user: string; client: string; deviceName: string }) =>
       this.handleUserLoggedIn(data).catch((e) => this.error(e));
+    const onUp = () => {
+      this.safeSet('socket_online', true).catch(() => undefined);
+      this.homey.flow
+        .getDeviceTriggerCard('server_connected')
+        .trigger(this, {}, undefined)
+        .catch(() => undefined);
+    };
+    const onDown = () => {
+      this.safeSet('socket_online', false).catch(() => undefined);
+      this.homey.flow
+        .getDeviceTriggerCard('server_disconnected')
+        .trigger(this, {}, undefined)
+        .catch(() => undefined);
+    };
+    const onStreams = (data: { count: number; transcoding: number }) => {
+      this.safeSet('stream_count', data.count).catch(() => undefined);
+      this.safeSet('transcoding_count', data.transcoding).catch(() => undefined);
+      this.homey.flow
+        .getDeviceTriggerCard('stream_count_changed')
+        .trigger(this, { count: data.count, transcoding: data.transcoding }, undefined)
+        .catch(() => undefined);
+    };
+    const onTransStart = (data: { user: string; deviceName: string; title: string; reasons: string[] }) => {
+      this.homey.flow
+        .getDeviceTriggerCard('transcoding_started')
+        .trigger(
+          this,
+          {
+            user: data.user,
+            device_name: data.deviceName,
+            title: data.title,
+            reasons: (data.reasons || []).join(', '),
+          },
+          undefined,
+        )
+        .catch(() => undefined);
+    };
+    const onTransStop = (data: { user: string; title: string }) => {
+      this.homey.flow
+        .getDeviceTriggerCard('transcoding_stopped')
+        .trigger(this, { user: data.user, title: data.title }, undefined)
+        .catch(() => undefined);
+    };
 
-    this.hub.on('library:counts', onCounts);
-    this.hub.on('library:new_item', onNewItem);
-    this.hub.on('library:scan_finished', onScan);
-    this.hub.on('user:logged_in', onUser);
+    hub.on('library:counts', onCounts);
+    hub.on('library:new_item', onNewItem);
+    hub.on('library:scan_finished', onScan);
+    hub.on('user:logged_in', onUser);
+    hub.on('connection:up', onUp);
+    hub.on('connection:down', onDown);
+    hub.on('streams:count', onStreams);
+    hub.on('transcoding:started', onTransStart);
+    hub.on('transcoding:stopped', onTransStop);
 
     this.offCallbacks.push(
-      () => this.hub?.off('library:counts', onCounts),
-      () => this.hub?.off('library:new_item', onNewItem),
-      () => this.hub?.off('library:scan_finished', onScan),
-      () => this.hub?.off('user:logged_in', onUser),
+      () => hub.off('library:counts', onCounts),
+      () => hub.off('library:new_item', onNewItem),
+      () => hub.off('library:scan_finished', onScan),
+      () => hub.off('user:logged_in', onUser),
+      () => hub.off('connection:up', onUp),
+      () => hub.off('connection:down', onDown),
+      () => hub.off('streams:count', onStreams),
+      () => hub.off('transcoding:started', onTransStart),
+      () => hub.off('transcoding:stopped', onTransStop),
     );
   }
 
@@ -138,11 +239,47 @@ export default class JellyfinServerDevice extends Homey.Device {
 
   private registerFlowHandlers(): void {
     const newItemTrigger = this.homey.flow.getDeviceTriggerCard('new_item_added');
-    newItemTrigger.registerRunListener(async (args, state: { type: string }) => {
-      const wanted = (args.item_type as string) ?? 'any';
-      if (wanted === 'any') return true;
-      return state.type === wanted;
+    newItemTrigger.registerRunListener(async (args, state: { type: string; libraryId?: string }) => {
+      const wantedType = (args.item_type as string) ?? 'any';
+      if (wantedType !== 'any' && state.type !== wantedType) return false;
+      const wantedLib = args.library as { id?: string } | undefined;
+      if (wantedLib?.id && wantedLib.id !== state.libraryId) return false;
+      return true;
     });
+    newItemTrigger.registerArgumentAutocompleteListener('library', async (query) => {
+      if (!this.hub) return [{ name: 'Any', id: '' }];
+      const folders = await this.hub.client.getMediaFolders();
+      const items = folders.Items.map((f) => ({ name: f.Name, id: f.Id }));
+      const all: Array<{ name: string; id: string }> = [{ name: 'Any library', id: '' }, ...items];
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((i) => i.name.toLowerCase().includes(q));
+    });
+
+    const userTrigger = this.homey.flow.getDeviceTriggerCard('user_logged_in');
+    userTrigger.registerRunListener(async (args, state: { userId?: string; userName: string }) => {
+      const wanted = args.user as { id?: string; name?: string } | undefined;
+      if (!wanted?.id) return true;
+      if (wanted.id === 'any') return true;
+      return state.userId === wanted.id || state.userName === wanted.name;
+    });
+    userTrigger.registerArgumentAutocompleteListener('user', async (query) => {
+      if (!this.hub) return [{ name: 'Any user', id: 'any' }];
+      const users = await this.hub.client.getUsers().catch(() => []);
+      const all: Array<{ name: string; id: string }> = [
+        { name: 'Any user', id: 'any' },
+        ...users.map((u) => ({ name: u.Name, id: u.Id })),
+      ];
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((i) => i.name.toLowerCase().includes(q));
+    });
+
+    this.homey.flow
+      .getConditionCard('stream_count_above')
+      .registerRunListener(async (args: { threshold: number }) => {
+        return (this.hub?.getStreamCount() ?? 0) > (args.threshold ?? 0);
+      });
 
     const scanAction = this.homey.flow.getActionCard('start_library_scan');
     scanAction.registerRunListener(async (args) => {
@@ -172,6 +309,9 @@ export default class JellyfinServerDevice extends Homey.Device {
 
   private async handleNewItem(ev: NewItemEvent): Promise<void> {
     const item = ev.item;
+    this.lastPosterUrl = ev.posterUrl ?? '';
+    if (this.posterImage) await this.posterImage.update().catch(() => undefined);
+
     const tokens = {
       title: item.Name ?? '',
       type: item.Type ?? '',
@@ -181,11 +321,12 @@ export default class JellyfinServerDevice extends Homey.Device {
       year: typeof item.ProductionYear === 'number' ? item.ProductionYear : 0,
       library_name: ev.libraryName,
       poster_url: ev.posterUrl ?? '',
+      poster: this.posterImage as unknown,
     };
     await this.safeSet('last_added_title', this.describeItem(item));
     await this.homey.flow
       .getDeviceTriggerCard('new_item_added')
-      .trigger(this, tokens, { type: item.Type ?? '' })
+      .trigger(this, tokens as never, { type: item.Type ?? '', libraryId: item.ParentId })
       .catch((err: Error) => this.error('new_item_added trigger failed', err.message));
   }
 
@@ -201,10 +342,15 @@ export default class JellyfinServerDevice extends Homey.Device {
     user: string;
     client: string;
     deviceName: string;
+    userId?: string;
   }): Promise<void> {
     await this.homey.flow
       .getDeviceTriggerCard('user_logged_in')
-      .trigger(this, { user: data.user, client: data.client, device_name: data.deviceName })
+      .trigger(
+        this,
+        { user: data.user, client: data.client, device_name: data.deviceName },
+        { userId: data.userId, userName: data.user },
+      )
       .catch((err: Error) => this.error('user_logged_in trigger failed', err.message));
   }
 

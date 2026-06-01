@@ -1,0 +1,9 @@
+{
+  "title": { "en": "Resume Continue Watching", "de": "Continue-Watching fortsetzen" },
+  "args": [
+    { "name": "device", "type": "device", "filter": "driver_id=user" }
+  ],
+  "tokens": [
+    { "name": "title", "type": "string", "title": { "en": "Title", "de": "Titel" } }
+  ]
+}

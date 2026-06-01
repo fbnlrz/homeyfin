@@ -1,0 +1,4 @@
+{
+  "title": { "en": "Server connection lost", "de": "Server-Verbindung verloren" },
+  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }]
+}

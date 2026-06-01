@@ -1,0 +1,7 @@
+{
+  "type": "string",
+  "title": { "en": "Up next", "de": "Als Nächstes" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}
