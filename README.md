@@ -1,81 +1,82 @@
 # Homeyfin
 
-Selfhosted Jellyfin-Integration für Homey. SDK v3, TypeScript, ohne
-App-Store-Veröffentlichung — du installierst direkt von Source auf dein
-eigenes Homey.
+Selfhosted Jellyfin integration for Homey. SDK v3, TypeScript — install
+directly from source on your own Homey, no App Store required.
 
 PR: https://github.com/fbnlrz/homeyfin/pull/1
 
-> **Built with Claude Code** — diese App wurde komplett *vibe-coded* mit
-> [Claude Code](https://claude.com/claude-code) (Opus 4.7). Von Architektur
-> über Implementierung, Bug-Audits und Pair-Flow-Debugging bis zum
-> App-Store-Submit-Prep durch dialogische Iteration in einer einzigen
-> Session entstanden. Die menschliche Hand am Steuer: Vision, Feedback
-> nach jedem `homey app run --remote`, und die finalen Entscheidungen
-> über Architektur und Scope.
+> **Built with Claude Code** — this app was completely *vibe-coded*
+> with [Claude Code](https://claude.com/claude-code) (Opus 4.7). From
+> architecture, implementation, bug audits and pair-flow debugging all
+> the way to App-Store-submission prep, every line was iterated
+> dialogically in a single session. The human at the wheel: vision,
+> feedback after every `homey app run --remote`, and the final calls on
+> architecture and scope.
 >
-> Du wirst sehen, dass Code-Style und Architektur konsequent durchgezogen
-> sind — Resultat des kontinuierlichen Refactorings (Multi-Device-Flow-
-> Listener-Bug, Pair-Cross-View-Race, Stop-Debounce, Smart-Polling).
-> Bugs willkommen via Issues — die menschliche Reviewer-Schicht muss man
-> für die Edge-Cases am Ende immer dazuhaben.
+> You'll notice the code style and architecture stay consistent end to
+> end — that's the result of continuous refactoring (multi-device flow
+> listener bug, pair-view cross-state race, stop-debounce, smart
+> polling). Bugs welcome via Issues — the human review layer is always
+> needed for the edge cases the AI doesn't catch.
 
 ---
 
-## Features auf einen Blick
+## At a glance
 
-**Server-Device** (1 pro Jellyfin-Instanz)
-- Library-Counts: Filme, Serien, Folgen, „Zuletzt hinzugefügt"
-- Stream-Count + Transcoding-Count, Connection-Status, Uptime
-- Trigger: neuer Inhalt (mit Library/Typ-Filter, Poster-Image-Token),
-  Library-Scan fertig, User logged-in (mit User-Filter),
-  Transcoding-Start/Stop, Stream-Count-Änderung,
-  Connection-Lost/Restored
-- Actions: Library-Scan, Server-Restart, Server-Shutdown, Health-Check
+**Server device** (one per Jellyfin server)
+- Library counts: movies, series, episodes, "latest added" title
+- Stream count, transcoding count, connection state, server uptime
+- Triggers: new item added (filter by type / library, includes a poster
+  image token for push notifications), library scan finished, user
+  logged in (with user filter), transcoding started / stopped, stream
+  count changed, connection lost / restored
+- Actions: start library scan, restart server, shutdown server,
+  health check
 
-**User-Device** (1 pro Jellyfin-User)
-- Aggregiert die aktuell aktive Session des Users — Steuerung wirkt
-  automatisch auf den Client wo der User gerade läuft
-- Volle Wiedergabesteuerung: Play/Pause, Next/Prev, Volume (mit Cap),
-  Mute, Seek, Skip ±, Skip-Chapter
-- Now-Playing: Titel, Untertitel, Position, Dauer, Album-Art im
-  Mobile-App
-- Standard-Caps: `speaker_track/artist/album` (kompatibel mit Sonos &
-  Co. Flows)
-- Custom-Caps: `client_online`, `is_transcoding`, `unwatched_count`,
-  `continue_watching_title`, `watch_minutes_week`
-- Trigger: Started, Paused, Resumed, Stopped, Now-Playing-Changed,
-  Progress reached %, Minutes before End, Daily Summary
-- Actions: Play Item (Suche), Play Random (mit Genre-Filter),
-  Continue Watching, Add to Queue (Next/Last), Clear Queue, Send
-  Message, Set Audio/Subtitle Track, Mark Watched, Toggle Favorite,
-  Bookmark
+**User device** (one per Jellyfin user)
+- Aggregates the user's currently active session — playback control
+  automatically routes to whichever client the user is on right now
+- Full transport control: play / pause, next / previous, volume (with
+  cap), mute, seek, skip ±, skip chapter
+- Now-playing: title, subtitle, position, duration, album art in the
+  mobile app
+- Standard capabilities: `speaker_track / artist / album` (compatible
+  with Sonos-style flows)
+- Custom capabilities: `client_online`, `is_transcoding`,
+  `unwatched_count`, `continue_watching_title`, `watch_minutes_week`
+- Triggers: started, paused, resumed, stopped, now-playing-changed,
+  progress reached %, minutes before end, daily summary
+- Actions: play item (autocomplete search), play random (with genre
+  filter), continue watching, add to queue (next / last), clear queue,
+  send message, set audio / subtitle track, mark watched, toggle
+  favorite, bookmark
 
 **Widgets**
-- **Server overview**: User-Avatare mit Initialen, Equalizer-Animation
-  bei aktiven Streams, Count-up-Bump bei Stat-Änderungen,
-  Transcoding-Badges, Light/Dark-Mode automatisch
-- **Now playing**: Großer Poster mit Backdrop-Blur, scrubbable
-  Progress-Bar, volle Steuerung (Prev-Chapter, −10 s, Play/Pause,
-  +10 s, Next-Chapter), Ghost-Buttons für Favorit & Watched
+- **Server overview**: user avatar initials, equalizer animation on
+  active streams, count-up bump animation on stat changes, transcoding
+  badges, automatic light / dark theme
+- **Now playing**: big poster with blurred backdrop, scrubbable
+  progress bar, full controls (prev chapter, −10 s, play / pause,
+  +10 s, next chapter), ghost buttons for favorite & mark-watched
 
 **Reliability**
-- WebSocket + Smart-Polling: idle = nur Socket, active = paralleles
-  schnelles Polling, Socket-Down = langsamer HTTP-Fallback
-- Auto-Reconnect mit Backoff
-- Persistenter „neue Inhalte"-Cache (App-Restart spammt keine Trigger)
-- Stopped-Debounce gegen Netzwerk-Hiccups
-- HTTPS-Self-Signed-Cert-Support
-- Repair-Flow: API-Key ändern ohne Device + Flows zu verlieren
+- WebSocket + smart polling: idle = socket only, active = parallel fast
+  polling, socket-down = slower HTTP fallback
+- Auto-reconnect with exponential backoff
+- Persistent "new item" cache (app restarts don't re-fire triggers)
+- Stopped-trigger debounce against network blips
+- HTTPS self-signed certificate support
+- Repair flow: rotate the API key without losing the device or its
+  flows
 
 ---
 
-## Installation auf selfhosted Homey (ohne App-Store)
+## Installing on a selfhosted Homey (no App Store)
 
-Vorausgesetzt: **Homey Pro** (lokal) oder **Homey Core / Self-Hosted
-Server** in Proxmox-LXC/Docker/VM, erreichbar im LAN.
+Prerequisites: **Homey Pro** (local) or **Homey Core / Self-Hosted
+Server** in Proxmox LXC / Docker / VM, reachable on your LAN.
 
-### 1. Tools auf deinem PC (Windows / macOS / Linux)
+### 1. Tools on your PC (Windows / macOS / Linux)
 
 ```powershell
 # Node.js LTS (>=18)            https://nodejs.org
@@ -84,73 +85,72 @@ Server** in Proxmox-LXC/Docker/VM, erreichbar im LAN.
 npm install -g homey
 ```
 
-### 2. Mit Athom anmelden und deinen Homey auswählen
+### 2. Sign in with Athom and pick your Homey
 
 ```powershell
-homey login            # öffnet Browser, Account von developer.homey.app
-homey list             # zeigt alle erreichbaren Homeys
-homey select           # interaktiv den richtigen Homey wählen
+homey login            # opens a browser, uses your developer.homey.app account
+homey list             # shows reachable Homeys
+homey select           # pick the right Homey interactively
 ```
 
-Bei einem selfhosted Homey, der nicht via mDNS broadcastet, IP
-manuell setzen (PowerShell):
+If your selfhosted Homey doesn't broadcast over mDNS, set the IP
+manually (PowerShell):
 
 ```powershell
-$env:HOMEY_HOST = "192.168.1.48"   # IP deines LXC-Containers
+$env:HOMEY_HOST = "192.168.1.48"   # IP of your LXC container
 ```
 
-`homey whoami` bestätigt, dass du eingeloggt bist und welchen Homey du
-hast.
+`homey whoami` confirms you're signed in and which Homey is active.
 
-### 3. Repo klonen und Branch auschecken
+### 3. Clone the repo and check out the branch
 
 ```powershell
 cd $HOME\Documents
 git clone https://github.com/fbnlrz/homeyfin.git
 cd homeyfin
-git checkout claude/sharp-shannon-zmO4J   # oder main wenn gemerged
+git checkout claude/sharp-shannon-zmO4J   # or main once merged
 npm install
 ```
 
-### 4. App installieren
+### 4. Install the app
 
 ```powershell
 homey app install
 ```
 
-Das ist der **permanente Install** — die App überlebt Container-
-Reboots, läuft im Hintergrund, schreibt Logs ins Homey-System-Log.
+This is the **permanent install** — the app survives container reboots,
+runs in the background, writes to the Homey system log.
 
-`homey app install` macht intern:
-1. TypeScript kompilieren (Output nach `.homeybuild/`)
-2. App validieren (`level=debug` per Default)
-3. Als `.tar` packen
-4. Auf den Homey deployen + installieren
+`homey app install` internally:
+1. Compiles TypeScript (output to `.homeybuild/`)
+2. Validates the app (`level=debug` by default)
+3. Packs it as a `.tar`
+4. Deploys and installs it on the Homey
 
-Bei der ersten Installation kann das 30-60 s dauern. Danach erscheint
-**„Homeyfin"** in der Homey-App unter *Einstellungen → Apps*.
+First install takes 30–60 s. Afterwards **"Homeyfin"** shows up in the
+Homey app under *Settings → Apps*.
 
-### 5. In Homey einrichten
+### 5. Configure in Homey
 
-**Server-Device hinzufügen**
-1. Homey-App → *Geräte → Hinzufügen → Homeyfin → Jellyfin Server*
-2. URL eingeben: `http://<jellyfin-ip>:8096`
-3. API-Key eingeben (aus Jellyfin: *Dashboard → API Keys → New API Key*)
-4. *Test connection* klicken — User-Dropdown erscheint
-5. Default-User wählen → *Add device*
+**Add the server device**
+1. Homey app → *Devices → Add → Homeyfin → Jellyfin Server*
+2. Enter the URL: `http://<jellyfin-ip>:8096`
+3. Enter the API key (from Jellyfin: *Dashboard → API Keys → New API Key*)
+4. Tap *Test connection* — the user dropdown appears
+5. Pick the default user → *Add device*
 
-**User-Devices hinzufügen** (eines pro Familienmitglied)
-1. *Geräte → Hinzufügen → Homeyfin → Jellyfin User*
-2. Server aus Dropdown wählen, *Load users* klicken
-3. User auswählen, *Add user*
+**Add a user device per family member**
+1. *Devices → Add → Homeyfin → Jellyfin User*
+2. Pick the server from the dropdown, *Load users*
+3. Pick the user, *Add user*
 
-**Widgets aufs Dashboard**
-1. Dashboard öffnen → *Widget hinzufügen*
-2. „Server overview" und/oder „Now playing" aus der Galerie wählen
+**Add widgets to the dashboard**
+1. Open the dashboard → *Add widget*
+2. Pick "Server overview" and/or "Now playing" from the gallery
 
 ---
 
-## Updates einspielen
+## Updates
 
 ```powershell
 cd $HOME\Documents\homeyfin
@@ -158,28 +158,27 @@ git pull
 homey app install
 ```
 
-App-ID und Driver-IDs bleiben gleich → Pairings, Settings, Flows
-bleiben erhalten. Nur die Version sollte hochgezählt werden, damit
-Homey weiß, dass es neu ist:
+The app ID and driver IDs stay the same → pairings, settings and flows
+survive. Only the version should be bumped so Homey knows it's new:
 
-`.homeycompose/app.json` → `"version": "0.1.0"` → `"0.2.0"` → speichern,
-`homey app install` ausführen.
+`.homeycompose/app.json` → `"version": "0.1.0"` → `"0.2.0"` → save,
+run `homey app install`.
 
 ---
 
-## Logs anschauen
+## Reading logs
 
-**Während Entwicklung (Auto-Reload bei Änderungen):**
+**During development (hot reload on changes):**
 ```powershell
 npm run run
 ```
 
-**Bei installierter App (nur Log-Stream):**
+**Against an installed app (live log stream):**
 ```powershell
 homey app log
 ```
 
-**Im LXC selbst** (SSH in den Container):
+**Inside the LXC itself** (SSH into the container):
 ```bash
 journalctl -u homey-core -f | grep homeyfin
 ```
@@ -188,92 +187,92 @@ journalctl -u homey-core -f | grep homeyfin
 
 ## Troubleshooting
 
-**„Could not find a valid Homey App"**
-→ Generierte `app.json` fehlt im Root. Lösung: `npm run build:manifest`
-ausführen, dann nochmal `homey app install`. Die npm-Scripts
-`validate`/`run`/`install:app` machen das automatisch.
+**"Could not find a valid Homey App"**
+→ The generated `app.json` is missing in the root. Fix:
+`npm run build:manifest`, then `homey app install` again. The npm
+scripts `validate` / `run` / `install:app` do this for you.
 
-**„Expected outDir to be ./.homeybuild"**
-→ tsconfig hat falschen `outDir`. Im Repo schon korrigiert; bei Fork:
-`outDir: "./.homeybuild"` setzen.
+**"Expected outDir to be ./.homeybuild"**
+→ tsconfig has the wrong `outDir`. Already fixed in the repo; on a
+fork: set `outDir: "./.homeybuild"`.
 
-**„api.js found but no api section in app.json manifest"**
-→ App-Root-`api.ts` ohne korrespondierenden `api`-Block. Im Repo: Widget-
-APIs liegen in `widgets/<id>/api.ts` mit eigenem `api`-Block im
-`widget.compose.json` — kein Root-Level-API mehr nötig.
+**"api.js found but no api section in app.json manifest"**
+→ A root-level `api.ts` without a matching `api` block. In this repo
+widget APIs live under `widgets/<id>/api.ts` with their own `api` block
+in `widget.compose.json` — no root-level API needed.
 
-**Widget taucht nicht im Dashboard auf**
-→ Sicherstellen, dass `widget.compose.json` direkt in `widgets/<id>/`
-liegt (NICHT unter `.homeycompose/widgets/`). Plus
-`preview-light.png` + `preview-dark.png` im selben Ordner.
+**Widget doesn't show up on the dashboard**
+→ Make sure `widget.compose.json` sits directly in `widgets/<id>/`
+(NOT under `.homeycompose/widgets/`). Plus `preview-light.png` +
+`preview-dark.png` in the same folder.
 
-**Compatibility-Error: „App widgets require >=12.1.0"**
-→ `compatibility` in `.homeycompose/app.json` auf `">=12.1.0"` setzen.
+**Compatibility error: "App widgets require >=12.1.0"**
+→ Set `compatibility` in `.homeycompose/app.json` to `">=12.1.0"`.
 
-**TLS-Fehler bei HTTPS-Jellyfin mit Self-Signed-Cert**
-→ Server-Device-Settings → *Allow self-signed HTTPS* aktivieren. Dann
-neu speichern (Hub startet neu).
+**TLS error against an HTTPS Jellyfin with a self-signed cert**
+→ Server device settings → *Allow self-signed HTTPS* → enable. Save
+again (the hub restarts).
 
-**Pairing-Dialog schließt sich beim Klick auf Add ohne Fehler**
-→ Vorher `git pull` machen. Frühere Versionen hatten ein
-Cross-View-State-Problem im Pair-Flow; aktuelle Version (Branch
-`claude/sharp-shannon-zmO4J`) macht alles in einem View.
+**Pair dialog closes on "Add" without an error**
+→ Run `git pull` first. Older versions had a cross-view state issue
+in the pair flow; the current branch (`claude/sharp-shannon-zmO4J`)
+does everything in a single view.
 
-**Push-Notification zeigt kein Cover**
-→ `playback_started`-Trigger benutzen (hat einen `poster`-Image-Token);
-in der Notification-Action das Bild-Feld auf den Token mappen.
+**Push notification shows no cover image**
+→ Use the `playback_started` trigger (it carries a `poster` image
+token); in the notification action, map the image field to the token.
 
 ---
 
-## Komplette App entfernen
+## Uninstall completely
 
 ```powershell
 homey app uninstall com.frlrnzn.homeyfin
 ```
 
-Entfernt die App, alle Geräte und Settings. Persistierte Sachen
-(`itemCache:`, `watch:`, `serverStartTs:`) werden auch beim Device-
-Delete weggeräumt.
+Removes the app, all devices and settings. Persisted entries
+(`itemCache:`, `watch:`, `serverStartTs:`) are also cleaned up when
+individual devices are deleted.
 
 ---
 
-## Entwicklung / Eigene Änderungen
+## Development / making changes
 
 ```bash
 npm install
-npm run build:manifest         # merges .homeycompose/ in app.json
-npx tsc --noEmit               # type-check ohne Emit
+npm run build:manifest         # merges .homeycompose/ into app.json
+npx tsc --noEmit               # type-check without emit
 npm run validate               # build + homey app validate
-npm run run                    # build + homey app run (Hot-Reload-Dev)
+npm run run                    # build + homey app run (hot-reload dev)
 npm test                       # tsc -p tsconfig.test.json + unit tests
 ```
 
-**Schichten**
+**Layers**
 ```
-.homeycompose/         # Manifest-Quelle (capabilities, flow, settings)
-drivers/server/        # Server-Driver + Device
-drivers/user/          # User-Driver + Device
-lib/JellyfinClient.ts  # REST-Wrapper (Session-, Library-, Admin-Endpoints)
-lib/JellyfinSocket.ts  # WebSocket mit Reconnect + KeepAlive
-lib/ServerHub.ts       # Singleton pro Server, Event-Fanout, Smart-Polling
+.homeycompose/         # manifest source (capabilities, flow, settings)
+drivers/server/        # server driver + device
+drivers/user/          # user driver + device
+lib/JellyfinClient.ts  # REST wrapper (session, library, admin endpoints)
+lib/JellyfinSocket.ts  # WebSocket with reconnect + keep-alive
+lib/ServerHub.ts       # per-server singleton, event fan-out, smart polling
 widgets/<id>/          # widget.compose.json + public/ + api.ts
-scripts/build-app-json.mjs   # merged .homeycompose/ → app.json
-scripts/build-assets.mjs     # generiert PNG-Platzhalter
-app.ts                 # App.onInit/onUninit, Hub-Pool
-api.ts                 # (entfernt) — Widget-APIs liegen unter widgets/<id>/api.ts
+scripts/build-app-json.mjs   # merges .homeycompose/ → app.json
+scripts/build-assets.mjs     # generates PNG placeholders
+app.ts                 # App.onInit/onUninit, hub pool
 ```
 
-**Continuous Integration** (`.github/workflows/ci.yml`)
+**Continuous integration** (`.github/workflows/ci.yml`)
 - `tsc --noEmit`
-- Unit-Tests (`node --import tsx --test test/*.test.ts`)
-- Manifest-Build
+- Unit tests (`node --import tsx --test test/*.test.ts`)
+- Manifest build
 - `homey app validate --level publish`
 
-läuft auf jeden Push und PR.
+Runs on every push and PR.
 
 ---
 
-## Lizenz
+## License
 
-MIT — Frei nutzen, forken, modifizieren. Jellyfin ist Trademark der
-Jellyfin-Project-Community; diese App ist ein inoffizielles Client-Tool.
+MIT — free to use, fork, modify. Jellyfin is a trademark of the
+Jellyfin Foundation; this app is an unofficial third-party client and
+is not affiliated with or endorsed by the Foundation.
