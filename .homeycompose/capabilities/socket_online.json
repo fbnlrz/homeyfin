@@ -3,5 +3,8 @@
   "title": { "en": "Server connected", "de": "Server verbunden" },
   "getable": true,
   "setable": false,
-  "uiComponent": "sensor"
+  "uiComponent": "sensor",
+  "insights": true,
+  "insightsTitleTrue":  { "en": "Connected",    "de": "Verbunden" },
+  "insightsTitleFalse": { "en": "Disconnected", "de": "Getrennt" }
 }

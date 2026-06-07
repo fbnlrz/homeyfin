@@ -3,5 +3,8 @@
   "title": { "en": "Client online", "de": "Client online" },
   "getable": true,
   "setable": false,
-  "uiComponent": "sensor"
+  "uiComponent": "sensor",
+  "insights": true,
+  "insightsTitleTrue":  { "en": "Online",  "de": "Online" },
+  "insightsTitleFalse": { "en": "Offline", "de": "Offline" }
 }
