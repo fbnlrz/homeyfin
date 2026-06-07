@@ -124,9 +124,20 @@ SETUP
 
 4. Add widgets to your dashboard from the widget gallery.
 
+DEVELOPMENT NOTE
+================
+
+This app was vibe-coded with Claude Code (Anthropic) as a development
+companion: design, implementation, bug audits and the App-Store prep
+were iterated dialogically across a single session, with human review,
+real-hardware testing after every change, and the final architecture
+calls staying with the author. The source is open — if you find a bug
+the AI-and-human pair didn't, please open an issue.
+
 CREDITS
 =======
 
 Source: https://github.com/fbnlrz/homeyfin
 Issues: https://github.com/fbnlrz/homeyfin/issues
 Author: Fabian-René Lorenzen <frlrnzn@gmail.com>
+Built with: Claude Code (Anthropic Opus 4.7)
