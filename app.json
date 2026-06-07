@@ -1215,6 +1215,10 @@
           "en": "Bookmark current item",
           "de": "Aktuelles Item merken"
         },
+        "titleFormatted": {
+          "en": "Bookmark current item to [[playlist_name]]",
+          "de": "Aktuelles Item zu [[playlist_name]] hinzufügen"
+        },
         "hint": {
           "en": "Adds the currently playing item to a Jellyfin playlist (auto-created on first use).",
           "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt)."
