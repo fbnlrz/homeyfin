@@ -69,7 +69,16 @@
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor"
+      "uiComponent": "sensor",
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Online",
+        "de": "Online"
+      },
+      "insightsTitleFalse": {
+        "en": "Offline",
+        "de": "Offline"
+      }
     },
     "continue_watching_title": {
       "type": "string",
@@ -89,7 +98,16 @@
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor"
+      "uiComponent": "sensor",
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Transcoding",
+        "de": "Transcodiert"
+      },
+      "insightsTitleFalse": {
+        "en": "Direct play",
+        "de": "Direkt-Wiedergabe"
+      }
     },
     "last_added_title": {
       "type": "string",
@@ -110,6 +128,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "library_movies_count": {
@@ -121,6 +140,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "library_series_count": {
@@ -132,6 +152,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "media_duration": {
@@ -146,6 +167,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "media_position": {
@@ -160,6 +182,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "media_subtitle": {
@@ -190,7 +213,16 @@
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor"
+      "uiComponent": "sensor",
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Scan started",
+        "de": "Scan gestartet"
+      },
+      "insightsTitleFalse": {
+        "en": "Scan finished",
+        "de": "Scan beendet"
+      }
     },
     "server_uptime": {
       "type": "number",
@@ -201,6 +233,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "socket_online": {
@@ -211,7 +244,16 @@
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor"
+      "uiComponent": "sensor",
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Connected",
+        "de": "Verbunden"
+      },
+      "insightsTitleFalse": {
+        "en": "Disconnected",
+        "de": "Getrennt"
+      }
     },
     "stream_count": {
       "type": "number",
@@ -222,6 +264,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "transcoding_count": {
@@ -233,6 +276,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "unwatched_count": {
@@ -244,6 +288,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     },
     "watch_minutes_week": {
@@ -255,6 +300,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
+      "insights": true,
       "decimals": 0
     }
   },

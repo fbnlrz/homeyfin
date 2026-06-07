@@ -3,5 +3,8 @@
   "title": { "en": "Transcoding", "de": "Transcodiert" },
   "getable": true,
   "setable": false,
-  "uiComponent": "sensor"
+  "uiComponent": "sensor",
+  "insights": true,
+  "insightsTitleTrue":  { "en": "Transcoding",     "de": "Transcodiert" },
+  "insightsTitleFalse": { "en": "Direct play",     "de": "Direkt-Wiedergabe" }
 }

@@ -3,5 +3,8 @@
   "title": { "en": "Library scan running", "de": "Bibliotheks-Scan läuft" },
   "getable": true,
   "setable": false,
-  "uiComponent": "sensor"
+  "uiComponent": "sensor",
+  "insights": true,
+  "insightsTitleTrue":  { "en": "Scan started",  "de": "Scan gestartet" },
+  "insightsTitleFalse": { "en": "Scan finished", "de": "Scan beendet" }
 }
