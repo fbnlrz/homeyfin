@@ -1,6 +1,6 @@
 {
   "id": "com.frlrnzn.homeyfin",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": [
@@ -11,8 +11,8 @@
     "de": "Homeyfin"
   },
   "description": {
-    "en": "Control your Jellyfin server and clients from Homey.",
-    "de": "Steuere deinen Jellyfin-Server und -Clients aus Homey."
+    "en": "Unofficial Jellyfin integration for Homey. One Homey device per Jellyfin user — playback control automatically routes to whichever client the user is currently active on. Triggers for play / pause / stop, progress milestones, transcoding start, new library content. Server overview widget and a full-control Now Playing widget. Not affiliated with the Jellyfin Foundation.",
+    "de": "Inoffizielle Jellyfin-Integration für Homey. Ein Homey-Gerät pro Jellyfin-Benutzer — Wiedergabesteuerung wirkt automatisch auf den Client, wo der Benutzer gerade aktiv ist. Trigger für Play / Pause / Stop, Fortschritts-Meilensteine, Transcoding-Start, neue Bibliotheksinhalte. Server-Übersichts-Widget und ein vollwertiges Now-Playing-Widget. Nicht mit der Jellyfin Foundation verbunden."
   },
   "category": [
     "video"
@@ -24,23 +24,40 @@
     "xlarge": "/assets/images/xlarge.png"
   },
   "author": {
-    "name": "frlrnzn",
+    "name": "Fabian-René Lorenzen",
     "email": "frlrnzn@gmail.com"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Fabian-René Lorenzen",
+        "email": "frlrnzn@gmail.com"
+      }
+    ]
   },
   "brandColor": "#00A4DC",
   "source": "https://github.com/fbnlrz/homeyfin",
+  "homepage": "https://github.com/fbnlrz/homeyfin",
+  "support": "https://github.com/fbnlrz/homeyfin/issues",
+  "bugs": {
+    "url": "https://github.com/fbnlrz/homeyfin/issues"
+  },
   "tags": {
     "en": [
       "jellyfin",
       "media",
       "video",
-      "movies"
+      "movies",
+      "tv",
+      "stream"
     ],
     "de": [
       "jellyfin",
       "medien",
       "video",
-      "filme"
+      "filme",
+      "tv",
+      "stream"
     ]
   },
   "capabilities": {
