@@ -3,7 +3,9 @@
 All notable changes to Homeyfin are documented here. The format roughly
 follows Keep a Changelog; dates are not pinned while pre-1.0.
 
-## [Unreleased]
+## [1.0.0] - 2026-06-07
+
+First public release.
 
 ### Added (second feature batch)
 - **Chapter navigation**: action *Skip chapter* (next / previous) using

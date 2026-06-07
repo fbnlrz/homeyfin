@@ -6,6 +6,20 @@ eigenes Homey.
 
 PR: https://github.com/fbnlrz/homeyfin/pull/1
 
+> **Built with Claude Code** — diese App wurde komplett *vibe-coded* mit
+> [Claude Code](https://claude.com/claude-code) (Opus 4.7). Von Architektur
+> über Implementierung, Bug-Audits und Pair-Flow-Debugging bis zum
+> App-Store-Submit-Prep durch dialogische Iteration in einer einzigen
+> Session entstanden. Die menschliche Hand am Steuer: Vision, Feedback
+> nach jedem `homey app run --remote`, und die finalen Entscheidungen
+> über Architektur und Scope.
+>
+> Du wirst sehen, dass Code-Style und Architektur konsequent durchgezogen
+> sind — Resultat des kontinuierlichen Refactorings (Multi-Device-Flow-
+> Listener-Bug, Pair-Cross-View-Race, Stop-Debounce, Smart-Polling).
+> Bugs willkommen via Issues — die menschliche Reviewer-Schicht muss man
+> für die Edge-Cases am Ende immer dazuhaben.
+
 ---
 
 ## Features auf einen Blick
