@@ -1,4 +1,4 @@
-Homeyfin — Unofficial Jellyfin integration for Homey
+Media Control for Jellyfin — Unofficial Jellyfin integration for Homey
 
 Note: This app is not affiliated with or endorsed by the Jellyfin Foundation.
 Jellyfin is a trademark of the Jellyfin Foundation; this is an unofficial
@@ -7,7 +7,7 @@ third-party client.
 WHAT IT DOES
 ============
 
-Homeyfin lets you control your Jellyfin media server and its users from
+This app lets you control your Jellyfin media server and its users from
 Homey. The integration is user-centric: each Homey device represents
 one Jellyfin user, and playback commands automatically route to whichever
 client the user is currently active on (living-room TV in the evening,
@@ -114,12 +114,12 @@ SETUP
    Dashboard -> API Keys -> + (New API Key)
 
 2. In Homey, add the Jellyfin Server device:
-   Devices -> Add -> Homeyfin -> Jellyfin Server
+   Devices -> Add -> Media Control for Jellyfin -> Jellyfin Server
    Enter the server URL (e.g. http://192.168.1.10:8096) and the API key,
    tap "Test connection", pick the default user, then "Add device".
 
 3. Add one Jellyfin User device per family member:
-   Devices -> Add -> Homeyfin -> Jellyfin User
+   Devices -> Add -> Media Control for Jellyfin -> Jellyfin User
    Pick the server, load the user list, pick the user.
 
 4. Add widgets to your dashboard from the widget gallery.
