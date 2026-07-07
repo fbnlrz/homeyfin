@@ -1,0 +1,11 @@
+{
+  "1.0.0": {
+    "en": "first build"
+  },
+  "1.1.0": {
+    "en": "add metrics / insights"
+  },
+  "1.2.0": {
+    "en": "prerelease work "
+  }
+}
