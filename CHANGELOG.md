@@ -3,6 +3,23 @@
 All notable changes to Homeyfin are documented here. The format roughly
 follows Keep a Changelog; dates are not pinned while pre-1.0.
 
+## [Unreleased]
+
+### Fixed (SDK-compliance / Homey Apps SDK guidance)
+- **App & driver icons** rewritten as a single solid `<path>` with
+  `fill-rule="evenodd"`. The previous icons used a `<linearGradient>` inside
+  `<defs>`, which Homey's monochrome icon renderer silently drops — the icon
+  showed up as an empty coloured disc.
+- **Timers** in both device classes now use `this.homey.setInterval` /
+  `setTimeout` / `clearInterval` / `clearTimeout` instead of the Node globals,
+  so they are auto-cleared on app destroy.
+- **`onUninit()`** added to the server and user devices to tear down timers and
+  detach hub listeners on app shutdown/reload (previously only `onDeleted()`).
+- **`onSettings()`** now reads the fresh `newSettings` values instead of
+  `getSettings()` (which still returns the OLD values while the handler runs),
+  so changed poll intervals / TLS flag / refresh cadence / summary hour take
+  effect immediately instead of only after the next restart.
+
 ## [1.0.0] - 2026-06-07
 
 First public release.

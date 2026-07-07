@@ -76,23 +76,28 @@ export default class JellyfinServerDevice extends Homey.Device {
   }
 
   private startUptimePoll(): void {
-    if (this.uptimePollTimer) clearInterval(this.uptimePollTimer);
-    this.uptimePollTimer = setInterval(() => this.refreshUptime().catch(() => undefined), 60_000);
+    if (this.uptimePollTimer) this.homey.clearInterval(this.uptimePollTimer);
+    this.uptimePollTimer = this.homey.setInterval(
+      () => this.refreshUptime().catch(() => undefined),
+      60_000,
+    );
   }
 
   private bootstrapInFlight?: Promise<void>;
-  private async bootstrapHub(): Promise<void> {
+  private async bootstrapHub(settingsOverride?: ServerSettings): Promise<void> {
     // Serialize concurrent invocations (onInit + onSettings races).
     if (this.bootstrapInFlight) return this.bootstrapInFlight;
-    this.bootstrapInFlight = this.bootstrapHubInner().finally(() => {
+    this.bootstrapInFlight = this.bootstrapHubInner(settingsOverride).finally(() => {
       this.bootstrapInFlight = undefined;
     });
     return this.bootstrapInFlight;
   }
 
-  private async bootstrapHubInner(): Promise<void> {
+  private async bootstrapHubInner(settingsOverride?: ServerSettings): Promise<void> {
     const store = this.getStore() as ServerStore;
-    const settings = this.getSettings() as ServerSettings;
+    // During onSettings() this.getSettings() still returns the OLD values, so
+    // the caller passes the fresh newSettings as an override (SDK settings rule).
+    const settings = { ...(this.getSettings() as ServerSettings), ...(settingsOverride ?? {}) };
     const app = this.homey.app as HomeyfinApp;
 
     if (!settings.baseUrl && store.baseUrl) {
@@ -166,8 +171,16 @@ export default class JellyfinServerDevice extends Homey.Device {
       if (newSettings.userName) {
         await this.setStoreValue('userName', newSettings.userName).catch(() => undefined);
       }
-      await this.bootstrapHub();
+      // Pass newSettings through: getSettings() would still yield the old
+      // poll intervals / TLS flag until this handler resolves.
+      await this.bootstrapHub(newSettings);
     }
+  }
+
+  async onUninit(): Promise<void> {
+    // Detach hub listeners and stop the uptime timer on app shutdown/reload.
+    // The shared hub itself is released centrally by the app's onUninit.
+    this.unregister();
   }
 
   async onDeleted(): Promise<void> {
@@ -182,7 +195,7 @@ export default class JellyfinServerDevice extends Homey.Device {
     for (const off of this.offCallbacks) off();
     this.offCallbacks = [];
     if (this.uptimePollTimer) {
-      clearInterval(this.uptimePollTimer);
+      this.homey.clearInterval(this.uptimePollTimer);
       this.uptimePollTimer = undefined;
     }
   }

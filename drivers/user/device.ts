@@ -26,6 +26,7 @@ export default class JellyfinUserDevice extends Homey.Device {
   private stoppedDebounceTimer?: NodeJS.Timeout;
   private pendingStop?: { snap: ClientSnapshot; item: NowPlayingItem | undefined };
   private unwatchedTimer?: NodeJS.Timeout;
+  private initRetryTimer?: NodeJS.Timeout;
   private albumArtImage?: Homey.Image;
   private posterTokenImage?: Homey.Image;
   private lastArtworkUrl = '';
@@ -45,7 +46,10 @@ export default class JellyfinUserDevice extends Homey.Device {
     this.hub = app.getHub(this.store.serverId);
     if (!this.hub) {
       this.setUnavailable('Jellyfin server not connected yet').catch(() => undefined);
-      this.homey.setTimeout(() => this.onInit().catch((e) => this.error(e)), 5_000);
+      this.initRetryTimer = this.homey.setTimeout(
+        () => this.onInit().catch((e) => this.error(e)),
+        5_000,
+      );
       return;
     }
 
@@ -71,22 +75,38 @@ export default class JellyfinUserDevice extends Homey.Device {
     this.homey.settings.unset('watch:' + this.store.userId);
   }
 
-  async onSettings({ changedKeys }: { changedKeys: string[] }): Promise<void> {
+  async onUninit(): Promise<void> {
+    // Stop every timer and detach hub listeners on app shutdown/reload.
+    this.teardown();
+  }
+
+  async onSettings({
+    newSettings,
+    changedKeys,
+  }: {
+    oldSettings: UserSettings;
+    newSettings: UserSettings;
+    changedKeys: string[];
+  }): Promise<void> {
+    // this.getSettings() still returns the OLD values inside onSettings(), so
+    // feed the fresh newSettings straight into the timer restarts.
     if (changedKeys.includes('unwatchedRefreshMinutes')) {
-      this.startUnwatchedRefresh();
+      this.startUnwatchedRefresh(newSettings.unwatchedRefreshMinutes);
     }
     if (changedKeys.includes('dailySummaryHour')) {
-      this.scheduleSummary();
+      this.scheduleSummary(newSettings.dailySummaryHour);
     }
   }
 
   private teardown(): void {
     for (const off of this.offCallbacks) off();
     this.offCallbacks = [];
-    if (this.positionTimer) clearInterval(this.positionTimer);
-    if (this.unwatchedTimer) clearInterval(this.unwatchedTimer);
-    if (this.stoppedDebounceTimer) clearTimeout(this.stoppedDebounceTimer);
-    if (this.summaryTimer) clearTimeout(this.summaryTimer);
+    if (this.initRetryTimer) this.homey.clearTimeout(this.initRetryTimer);
+    if (this.positionTimer) this.homey.clearInterval(this.positionTimer);
+    if (this.unwatchedTimer) this.homey.clearInterval(this.unwatchedTimer);
+    if (this.stoppedDebounceTimer) this.homey.clearTimeout(this.stoppedDebounceTimer);
+    if (this.summaryTimer) this.homey.clearTimeout(this.summaryTimer);
+    this.initRetryTimer = undefined;
     this.positionTimer = undefined;
     this.unwatchedTimer = undefined;
     this.stoppedDebounceTimer = undefined;
@@ -135,11 +155,12 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   // --- Background refresh: unwatched + continue watching ----------------
 
-  private startUnwatchedRefresh(): void {
-    if (this.unwatchedTimer) clearInterval(this.unwatchedTimer);
-    const settings = this.getSettings() as UserSettings;
-    const minutes = Math.max(1, settings.unwatchedRefreshMinutes ?? 10);
-    this.unwatchedTimer = setInterval(
+  private startUnwatchedRefresh(minutesOverride?: number): void {
+    if (this.unwatchedTimer) this.homey.clearInterval(this.unwatchedTimer);
+    const configured =
+      minutesOverride ?? (this.getSettings() as UserSettings).unwatchedRefreshMinutes;
+    const minutes = Math.max(1, configured ?? 10);
+    this.unwatchedTimer = this.homey.setInterval(
       () => this.refreshUserData().catch(() => undefined),
       minutes * 60_000,
     );
@@ -190,7 +211,7 @@ export default class JellyfinUserDevice extends Homey.Device {
     }
     this.safeSet('watch_minutes_week', Math.floor(this.watchSecondsThisWeek / 60)).catch(() => undefined);
 
-    this.positionTimer = setInterval(() => {
+    this.positionTimer = this.homey.setInterval(() => {
       const snap = this.hub?.getUserSnapshot(this.store.userId);
       if (!snap || !snap.online || snap.isPaused || !snap.nowPlaying) return;
       const current = (this.getCapabilityValue('media_position') as number | null) ?? 0;
@@ -234,10 +255,10 @@ export default class JellyfinUserDevice extends Homey.Device {
     }
   }
 
-  private scheduleSummary(): void {
-    if (this.summaryTimer) clearTimeout(this.summaryTimer);
-    const settings = this.getSettings() as UserSettings;
-    const hour = ((settings.dailySummaryHour ?? 22) + 24) % 24;
+  private scheduleSummary(hourOverride?: number): void {
+    if (this.summaryTimer) this.homey.clearTimeout(this.summaryTimer);
+    const configured = hourOverride ?? (this.getSettings() as UserSettings).dailySummaryHour;
+    const hour = ((configured ?? 22) + 24) % 24;
     const now = new Date();
     const next = new Date(now);
     next.setHours(hour, 0, 0, 0);
@@ -373,7 +394,7 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   private cancelPendingStop(): void {
     if (this.stoppedDebounceTimer) {
-      clearTimeout(this.stoppedDebounceTimer);
+      this.homey.clearTimeout(this.stoppedDebounceTimer);
       this.stoppedDebounceTimer = undefined;
     }
     this.pendingStop = undefined;
