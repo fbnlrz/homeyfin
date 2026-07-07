@@ -7,5 +7,10 @@
   },
   "1.2.0": {
     "en": "prerelease work "
+  },
+  "2.0.0": {
+    "en": "New name (Media Control for Jellyfin), fixed app & capability icons, redesigned App Store image, SDK-compliance fixes, Dutch translations.",
+    "de": "Neuer Name (Mediensteuerung für Jellyfin), korrigierte App- und Capability-Icons, neues App-Store-Bild, SDK-Konformität, niederländische Übersetzungen.",
+    "nl": "Nieuwe naam (Mediabediening voor Jellyfin), gecorrigeerde app- en capability-iconen, nieuw App Store-beeld, SDK-verbeteringen, Nederlandse vertalingen."
   }
 }
