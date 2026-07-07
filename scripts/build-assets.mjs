@@ -175,18 +175,12 @@ function widgetPreview(theme) {
   };
 }
 
+// NOTE: The App Store image (assets/images/*) and the driver tiles
+// (drivers/*/assets/images/*) are now hand-designed and rendered from
+// scripts/design/*.html via `node scripts/render-store-images.mjs`. They are
+// intentionally NOT regenerated here so this fallback generator can never
+// clobber them. Only the widget gallery previews are produced below.
 const tasks = [
-  // App-level icons
-  { file: 'assets/images/small.png',  w: 250,  h: 175,  fn: iconPixel },
-  { file: 'assets/images/large.png',  w: 500,  h: 350,  fn: iconPixel },
-  { file: 'assets/images/xlarge.png', w: 1000, h: 700,  fn: iconPixel },
-  // Drivers
-  { file: 'drivers/server/assets/images/small.png',  w: 75,   h: 75,   fn: iconPixel },
-  { file: 'drivers/server/assets/images/large.png',  w: 500,  h: 500,  fn: iconPixel },
-  { file: 'drivers/server/assets/images/xlarge.png', w: 1000, h: 1000, fn: iconPixel },
-  { file: 'drivers/user/assets/images/small.png',    w: 75,   h: 75,   fn: iconPixel },
-  { file: 'drivers/user/assets/images/large.png',    w: 500,  h: 500,  fn: iconPixel },
-  { file: 'drivers/user/assets/images/xlarge.png',   w: 1000, h: 1000, fn: iconPixel },
   // Widget previews
   { file: 'widgets/server_overview/preview-light.png', w: 800, h: 280, fn: widgetPreview('light') },
   { file: 'widgets/server_overview/preview-dark.png',  w: 800, h: 280, fn: widgetPreview('dark') },

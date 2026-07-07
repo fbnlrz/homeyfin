@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Transcoding streams", "de": "Transcodierende Streams" },
+  "title": {
+    "en": "Transcoding streams",
+    "de": "Transcodierende Streams"
+  },
+  "icon": "/assets/capabilities/transcode.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

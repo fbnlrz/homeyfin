@@ -1,6 +1,10 @@
 {
   "type": "string",
-  "title": { "en": "Up next", "de": "Als Nächstes" },
+  "title": {
+    "en": "Up next",
+    "de": "Als Nächstes"
+  },
+  "icon": "/assets/capabilities/streams.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor"

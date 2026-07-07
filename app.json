@@ -67,6 +67,7 @@
         "en": "Client online",
         "de": "Client online"
       },
+      "icon": "/assets/capabilities/person.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -86,6 +87,7 @@
         "en": "Up next",
         "de": "Als Nächstes"
       },
+      "icon": "/assets/capabilities/streams.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor"
@@ -96,6 +98,7 @@
         "en": "Transcoding",
         "de": "Transcodiert"
       },
+      "icon": "/assets/capabilities/transcode.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -115,6 +118,7 @@
         "en": "Last added",
         "de": "Zuletzt hinzugefügt"
       },
+      "icon": "/assets/capabilities/new.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor"
@@ -125,6 +129,7 @@
         "en": "Episodes",
         "de": "Folgen"
       },
+      "icon": "/assets/capabilities/episodes.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -137,6 +142,7 @@
         "en": "Movies",
         "de": "Filme"
       },
+      "icon": "/assets/capabilities/movies.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -149,6 +155,7 @@
         "en": "Series",
         "de": "Serien"
       },
+      "icon": "/assets/capabilities/series.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -161,6 +168,7 @@
         "en": "Duration",
         "de": "Dauer"
       },
+      "icon": "/assets/capabilities/clock.svg",
       "units": {
         "en": "s"
       },
@@ -176,6 +184,7 @@
         "en": "Position",
         "de": "Position"
       },
+      "icon": "/assets/capabilities/clock.svg",
       "units": {
         "en": "s"
       },
@@ -191,6 +200,7 @@
         "en": "Subtitle",
         "de": "Untertitel"
       },
+      "icon": "/assets/capabilities/subtitle.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor"
@@ -201,6 +211,7 @@
         "en": "Now playing",
         "de": "Läuft gerade"
       },
+      "icon": "/assets/capabilities/streams.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor"
@@ -211,6 +222,7 @@
         "en": "Library scan running",
         "de": "Bibliotheks-Scan läuft"
       },
+      "icon": "/assets/capabilities/scan.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -230,6 +242,7 @@
         "en": "Uptime (min)",
         "de": "Uptime (Min)"
       },
+      "icon": "/assets/capabilities/clock.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -242,6 +255,7 @@
         "en": "Server connected",
         "de": "Server verbunden"
       },
+      "icon": "/assets/capabilities/server.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -261,6 +275,7 @@
         "en": "Active streams",
         "de": "Aktive Streams"
       },
+      "icon": "/assets/capabilities/streams.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -273,6 +288,7 @@
         "en": "Transcoding streams",
         "de": "Transcodierende Streams"
       },
+      "icon": "/assets/capabilities/transcode.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -285,6 +301,7 @@
         "en": "Unwatched episodes",
         "de": "Ungesehene Folgen"
       },
+      "icon": "/assets/capabilities/eye.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
@@ -297,6 +314,7 @@
         "en": "Watch time this week (min)",
         "de": "Watch-Time diese Woche (Min)"
       },
+      "icon": "/assets/capabilities/clock.svg",
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",

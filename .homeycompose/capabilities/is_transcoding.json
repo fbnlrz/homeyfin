@@ -1,10 +1,20 @@
 {
   "type": "boolean",
-  "title": { "en": "Transcoding", "de": "Transcodiert" },
+  "title": {
+    "en": "Transcoding",
+    "de": "Transcodiert"
+  },
+  "icon": "/assets/capabilities/transcode.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
   "insights": true,
-  "insightsTitleTrue":  { "en": "Transcoding",     "de": "Transcodiert" },
-  "insightsTitleFalse": { "en": "Direct play",     "de": "Direkt-Wiedergabe" }
+  "insightsTitleTrue": {
+    "en": "Transcoding",
+    "de": "Transcodiert"
+  },
+  "insightsTitleFalse": {
+    "en": "Direct play",
+    "de": "Direkt-Wiedergabe"
+  }
 }

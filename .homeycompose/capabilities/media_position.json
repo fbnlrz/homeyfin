@@ -1,7 +1,13 @@
 {
   "type": "number",
-  "title": { "en": "Position", "de": "Position" },
-  "units": { "en": "s" },
+  "title": {
+    "en": "Position",
+    "de": "Position"
+  },
+  "icon": "/assets/capabilities/clock.svg",
+  "units": {
+    "en": "s"
+  },
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

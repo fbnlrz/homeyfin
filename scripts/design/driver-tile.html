@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  html { background: #0a0e1a; }
+  body {
+    background:
+      radial-gradient(80% 70% at 22% 12%, rgba(0,164,220,0.34), transparent 55%),
+      radial-gradient(85% 80% at 84% 92%, rgba(170,92,195,0.40), transparent 55%),
+      linear-gradient(150deg, #0c1120 0%, #0f1526 55%, #0a0e1a 100%);
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+  }
+  body::after { content:""; position:absolute; inset:0;
+    background: radial-gradient(120% 120% at 50% 50%, transparent 58%, rgba(0,0,0,0.45)); }
+
+  /* faint stacked "posters" behind the emblem for media context */
+  .card { position: absolute; width: 34vw; height: 46vw; border-radius: 4vw;
+    box-shadow: 0 4vw 8vw rgba(0,0,0,0.5); opacity: 0.85; }
+  .c1 { transform: rotate(-16deg) translate(-20vw,2vw); background: linear-gradient(150deg,#12d0b0,#0a5f86); }
+  .c2 { transform: rotate(15deg) translate(20vw,2vw); background: linear-gradient(150deg,#ff6ea8,#7a2f86); }
+
+  .emblem {
+    position: relative; z-index: 2;
+    width: 52vw; height: 52vw; border-radius: 15vw;
+    background: linear-gradient(135deg, var(--purple, #aa5cc3), var(--cyan, #00a4dc));
+    display: grid; place-items: center;
+    box-shadow: 0 6vw 12vw rgba(0,0,0,0.55), inset 0 2vw 4vw rgba(255,255,255,0.22), inset 0 -2vw 5vw rgba(0,0,0,0.25);
+  }
+  .emblem::before { content:""; position:absolute; inset:0; border-radius:15vw; box-shadow: inset 0 0 0 0.6vw rgba(255,255,255,0.18); }
+  .emblem svg { width: 26vw; height: 26vw; fill: #fff; filter: drop-shadow(0 1vw 2vw rgba(0,0,0,0.35)); }
+</style>
+</head>
+<body>
+  <div class="card c1"></div>
+  <div class="card c2"></div>
+  <div class="emblem" id="emblem"><span id="glyph"></span></div>
+  <script>
+    const glyphs = {
+      server: '<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 4h16v6H4ZM6 5.6h2v2.8H6ZM4 12h16v6H4ZM6 13.6h2v2.8H6Z"/></svg>',
+      user: '<svg viewBox="0 0 24 24"><path d="M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 13c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>',
+      play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7Z"/></svg>'
+    };
+    const which = (location.search.match(/glyph=(\w+)/) || [,'play'])[1];
+    document.getElementById('glyph').innerHTML = glyphs[which] || glyphs.play;
+  </script>
+</body>
+</html>

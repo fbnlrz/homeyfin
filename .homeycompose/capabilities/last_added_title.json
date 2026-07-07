@@ -1,6 +1,10 @@
 {
   "type": "string",
-  "title": { "en": "Last added", "de": "Zuletzt hinzugefügt" },
+  "title": {
+    "en": "Last added",
+    "de": "Zuletzt hinzugefügt"
+  },
+  "icon": "/assets/capabilities/new.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor"

@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Episodes", "de": "Folgen" },
+  "title": {
+    "en": "Episodes",
+    "de": "Folgen"
+  },
+  "icon": "/assets/capabilities/episodes.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

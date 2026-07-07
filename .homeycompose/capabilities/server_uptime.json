@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Uptime (min)", "de": "Uptime (Min)" },
+  "title": {
+    "en": "Uptime (min)",
+    "de": "Uptime (Min)"
+  },
+  "icon": "/assets/capabilities/clock.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
