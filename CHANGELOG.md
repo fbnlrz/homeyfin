@@ -5,6 +5,14 @@ follows Keep a Changelog; dates are not pinned while pre-1.0.
 
 ## [Unreleased]
 
+### Changed (app name & id)
+- Renamed the app to **"Media Control for Jellyfin"** (id
+  `com.frlrnzn.mediacontrol`). Homey forbids "Homey" in the app name, and the
+  "… for Jellyfin" affix is the form Jellyfin's own branding guidelines
+  explicitly permit for unofficial third-party apps (own logo, no
+  `org.jellyfin` namespace, unofficial disclaimer — all satisfied). The hero
+  wordmark and store texts were updated to match.
+
 ### Added / Changed (visuals)
 - **Capability icons**: every custom capability now ships a monochrome
   single-path icon (`assets/capabilities/*.svg`) referenced via `icon`.

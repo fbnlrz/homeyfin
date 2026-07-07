@@ -1,12 +1,12 @@
 {
-  "id": "com.frlrnzn.homeyfin",
+  "id": "com.frlrnzn.mediacontrol",
   "version": "1.0.0",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": ["local"],
   "name": {
-    "en": "Homeyfin",
-    "de": "Homeyfin"
+    "en": "Media Control for Jellyfin",
+    "de": "Mediensteuerung für Jellyfin"
   },
   "description": {
     "en": "Unofficial Jellyfin integration for Homey. One Homey device per Jellyfin user — playback control automatically routes to whichever client the user is currently active on. Triggers for play / pause / stop, progress milestones, transcoding start, new library content. Server overview widget and a full-control Now Playing widget. Not affiliated with the Jellyfin Foundation.",
