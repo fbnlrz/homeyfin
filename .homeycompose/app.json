@@ -1,9 +1,14 @@
 {
+
   "id": "com.frlrnzn.mediacontrol",
   "version": "1.0.0",
+  "id": "com.frlrnzn.homeyfin",
+  "version": "1.2.0",
   "compatibility": ">=12.1.0",
   "sdk": 3,
-  "platforms": ["local"],
+  "platforms": [
+    "local"
+  ],
   "name": {
     "en": "Media Control for Jellyfin",
     "de": "Mediensteuerung für Jellyfin"
@@ -12,7 +17,9 @@
     "en": "Unofficial Jellyfin integration for Homey. One Homey device per Jellyfin user — playback control automatically routes to whichever client the user is currently active on. Triggers for play / pause / stop, progress milestones, transcoding start, new library content. Server overview widget and a full-control Now Playing widget. Not affiliated with the Jellyfin Foundation.",
     "de": "Inoffizielle Jellyfin-Integration für Homey. Ein Homey-Gerät pro Jellyfin-Benutzer — Wiedergabesteuerung wirkt automatisch auf den Client, wo der Benutzer gerade aktiv ist. Trigger für Play / Pause / Stop, Fortschritts-Meilensteine, Transcoding-Start, neue Bibliotheksinhalte. Server-Übersichts-Widget und ein vollwertiges Now-Playing-Widget. Nicht mit der Jellyfin Foundation verbunden."
   },
-  "category": ["video"],
+  "category": [
+    "video"
+  ],
   "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
@@ -25,7 +32,10 @@
   },
   "contributors": {
     "developers": [
-      { "name": "Fabian-René Lorenzen", "email": "frlrnzn@gmail.com" }
+      {
+        "name": "Fabian-René Lorenzen",
+        "email": "frlrnzn@gmail.com"
+      }
     ]
   },
   "brandColor": "#00A4DC",
@@ -36,7 +46,21 @@
     "url": "https://github.com/fbnlrz/homeyfin/issues"
   },
   "tags": {
-    "en": ["jellyfin", "media", "video", "movies", "tv", "stream"],
-    "de": ["jellyfin", "medien", "video", "filme", "tv", "stream"]
+    "en": [
+      "jellyfin",
+      "media",
+      "video",
+      "movies",
+      "tv",
+      "stream"
+    ],
+    "de": [
+      "jellyfin",
+      "medien",
+      "video",
+      "filme",
+      "tv",
+      "stream"
+    ]
   }
 }
