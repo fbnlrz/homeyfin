@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  html { background: #0a0e1a; }
+  :root {
+    --cyan: #00a4dc;
+    --purple: #aa5cc3;
+    --ink: #e9eef9;
+    --muted: #9fb0cc;
+  }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    background:
+      radial-gradient(90% 70% at 14% 8%, rgba(0,164,220,0.30), transparent 55%),
+      radial-gradient(90% 80% at 96% 100%, rgba(170,92,195,0.34), transparent 55%),
+      linear-gradient(150deg, #0c1120 0%, #0f1526 55%, #0a0e1a 100%);
+    color: var(--ink);
+    position: fixed; inset: 0;
+    /* Proportional scale: everything below is in vw so all export sizes match */
+    font-size: 1.4vw;
+  }
+  /* faint vignette + grain */
+  body::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 120% at 50% 50%, transparent 60%, rgba(0,0,0,0.45));
+    pointer-events: none;
+  }
+
+  .stage {
+    position: absolute; inset: 0;
+    display: flex; align-items: center;
+    padding: 0 6vw;
+    gap: 4vw;
+  }
+
+  /* ---- Poster fan (left) ---- */
+  .fan { position: relative; width: 30vw; height: 46vw; flex-shrink: 0; }
+  .poster {
+    position: absolute; top: 50%; left: 50%;
+    width: 20vw; height: 30vw;
+    border-radius: 1.6vw;
+    box-shadow: 0 2vw 4vw rgba(0,0,0,0.55), inset 0 0 0 0.12vw rgba(255,255,255,0.10);
+    overflow: hidden;
+    transform-origin: bottom center;
+  }
+  .poster .art { position: absolute; inset: 0; }
+  .poster .glyph { position: absolute; right: 1.2vw; top: 1.2vw; width: 3vw; height: 3vw; opacity: 0.9; }
+  .poster .bar {
+    position: absolute; left: 1.2vw; right: 1.2vw; bottom: 1.4vw; height: 0.7vw;
+    border-radius: 1vw; background: rgba(255,255,255,0.85);
+  }
+  .poster .bar::after {
+    content: ""; position: absolute; left: 0; top: 1.6vw; width: 62%; height: 0.7vw;
+    border-radius: 1vw; background: rgba(255,255,255,0.45);
+  }
+  .p1 { transform: translate(-50%,-50%) rotate(-15deg) translateX(-6.5vw); }
+  .p2 { transform: translate(-50%,-50%) rotate(-1deg) translateY(-1vw); z-index: 2; }
+  .p3 { transform: translate(-50%,-50%) rotate(13deg) translateX(6.5vw); }
+  .a-teal   { background: linear-gradient(150deg,#12d0b0,#0b7fa8 70%,#0a5f86); }
+  .a-magenta{ background: linear-gradient(150deg,#ff6ea8,#b23c9a 70%,#7a2f86); }
+  .a-amber  { background: linear-gradient(150deg,#ffca61,#f0803c 65%,#c8523a); }
+
+  /* ---- Now Playing card (right) ---- */
+  .panel {
+    flex: 1;
+    background: linear-gradient(160deg, rgba(30,40,64,0.86), rgba(16,22,40,0.82));
+    border: 0.1vw solid rgba(255,255,255,0.09);
+    border-radius: 2.4vw;
+    box-shadow: 0 3vw 6vw rgba(0,0,0,0.5), inset 0 0 0 0.1vw rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
+    padding: 2.6vw 2.8vw;
+    display: flex; flex-direction: column; gap: 1.9vw;
+    max-width: 46vw;
+  }
+  .brandline { display: flex; align-items: center; gap: 1.1vw; }
+  .mark {
+    width: 4.6vw; height: 4.6vw; border-radius: 1.35vw;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    display: grid; place-items: center;
+    box-shadow: 0 1vw 2.4vw rgba(0,164,220,0.45);
+  }
+  .mark svg { width: 2.3vw; height: 2.3vw; }
+  .wordmark { font-size: 3.1vw; font-weight: 800; letter-spacing: -0.03em; }
+  .wordmark b { background: linear-gradient(120deg,#5ad1ff,#c58be0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag {
+    margin-left: auto; font-size: 1.15vw; font-weight: 600; letter-spacing: 0.02em;
+    color: #cfe8ff; padding: 0.5vw 1.1vw; border-radius: 10vw;
+    background: rgba(0,164,220,0.16); border: 0.1vw solid rgba(0,164,220,0.35);
+  }
+
+  .now { display: flex; gap: 1.6vw; align-items: center; }
+  .thumb {
+    width: 7vw; height: 10vw; border-radius: 1.1vw; flex-shrink: 0;
+    background: linear-gradient(150deg,#2b6df0,#7d3bd6 70%,#3a1f86);
+    position: relative; overflow: hidden;
+    box-shadow: 0 1.2vw 2.6vw rgba(0,0,0,0.5);
+  }
+  .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; }
+  .thumb .play svg { width: 2.6vw; height: 2.6vw; filter: drop-shadow(0 0.3vw 0.6vw rgba(0,0,0,0.4)); }
+  .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.7vw; }
+  .kicker { font-size: 1.15vw; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cyan); font-weight: 700; }
+  .title { font-size: 2.5vw; font-weight: 700; line-height: 1.05; }
+  .sub { font-size: 1.4vw; color: var(--muted); font-weight: 500; }
+  .prog { margin-top: 0.5vw; height: 0.75vw; border-radius: 1vw; background: rgba(255,255,255,0.12); position: relative; overflow: hidden; }
+  .prog > span { position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 1vw; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .time { display: flex; justify-content: space-between; font-size: 1.1vw; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .chips { display: flex; gap: 1.2vw; }
+  .chip {
+    flex: 1; background: rgba(255,255,255,0.05); border: 0.1vw solid rgba(255,255,255,0.07);
+    border-radius: 1.4vw; padding: 1.2vw 1vw; display: flex; align-items: center; gap: 1vw;
+  }
+  .chip .ci { width: 2.7vw; height: 2.7vw; border-radius: 0.9vw; display: grid; place-items: center; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(0,164,220,0.22), rgba(170,92,195,0.22)); }
+  .chip .ci svg { width: 1.7vw; height: 1.7vw; }
+  .chip .val { font-size: 2vw; font-weight: 800; line-height: 1; }
+  .chip .lab { font-size: 1.05vw; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.25vw; }
+
+  .eq { position: absolute; right: 3.4vw; top: 3vw; display: flex; gap: 0.5vw; align-items: flex-end; height: 3.6vw; opacity: 0.9; }
+  .eq i { width: 0.75vw; border-radius: 1vw; background: linear-gradient(180deg,#5ad1ff,#c58be0); }
+  .eq i:nth-child(1){height:38%} .eq i:nth-child(2){height:88%} .eq i:nth-child(3){height:60%}
+  .eq i:nth-child(4){height:100%} .eq i:nth-child(5){height:46%}
+
+  svg { fill: #fff; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="fan">
+      <div class="poster p1"><div class="art a-teal"></div>
+        <svg class="glyph" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM10 8.5v7l6-3.5Z" fill-rule="evenodd"/></svg>
+        <div class="bar"></div>
+      </div>
+      <div class="poster p3"><div class="art a-amber"></div>
+        <svg class="glyph" viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4ZM13.5 4H20v6.5h-6.5ZM4 13.5h6.5V20H4ZM13.5 13.5H20V20h-6.5Z"/></svg>
+        <div class="bar"></div>
+      </div>
+      <div class="poster p2"><div class="art a-magenta"></div>
+        <svg class="glyph" viewBox="0 0 24 24"><path d="M8 5v14l11-7Z"/></svg>
+        <div class="bar"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="brandline">
+        <div class="mark"><svg viewBox="0 0 24 24"><path d="M7 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 7 5.5Z"/></svg></div>
+        <div class="wordmark">Homey<b>fin</b></div>
+        <div class="tag">for Jellyfin</div>
+      </div>
+
+      <div class="now">
+        <div class="thumb"><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7Z"/></svg></div></div>
+        <div class="meta">
+          <div class="kicker">Now Playing</div>
+          <div class="title">The Grand Journey</div>
+          <div class="sub">Season 2 · Episode 5 — Living Room TV</div>
+          <div class="prog"><span></span></div>
+          <div class="time"><span>34:12</span><span>55:00</span></div>
+        </div>
+      </div>
+
+      <div class="chips">
+        <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM10 8.5v7l6-3.5Z" fill-rule="evenodd"/></svg></div><div><div class="val">1282</div><div class="lab">Movies</div></div></div>
+        <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4ZM13.5 4H20v6.5h-6.5ZM4 13.5h6.5V20H4ZM13.5 13.5H20V20h-6.5Z"/></svg></div><div><div class="val">478</div><div class="lab">Series</div></div></div>
+        <div class="chip"><div class="ci"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7Z"/></svg></div><div><div class="val">2</div><div class="lab">Streams</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="eq"><i></i><i></i><i></i><i></i><i></i></div>
+</body>
+</html>

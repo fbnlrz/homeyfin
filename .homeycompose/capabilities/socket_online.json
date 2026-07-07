@@ -1,10 +1,20 @@
 {
   "type": "boolean",
-  "title": { "en": "Server connected", "de": "Server verbunden" },
+  "title": {
+    "en": "Server connected",
+    "de": "Server verbunden"
+  },
+  "icon": "/assets/capabilities/server.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
   "insights": true,
-  "insightsTitleTrue":  { "en": "Connected",    "de": "Verbunden" },
-  "insightsTitleFalse": { "en": "Disconnected", "de": "Getrennt" }
+  "insightsTitleTrue": {
+    "en": "Connected",
+    "de": "Verbunden"
+  },
+  "insightsTitleFalse": {
+    "en": "Disconnected",
+    "de": "Getrennt"
+  }
 }

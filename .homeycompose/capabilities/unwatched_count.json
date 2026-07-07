@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Unwatched episodes", "de": "Ungesehene Folgen" },
+  "title": {
+    "en": "Unwatched episodes",
+    "de": "Ungesehene Folgen"
+  },
+  "icon": "/assets/capabilities/eye.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

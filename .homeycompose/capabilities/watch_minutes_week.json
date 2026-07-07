@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Watch time this week (min)", "de": "Watch-Time diese Woche (Min)" },
+  "title": {
+    "en": "Watch time this week (min)",
+    "de": "Watch-Time diese Woche (Min)"
+  },
+  "icon": "/assets/capabilities/clock.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

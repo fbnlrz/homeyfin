@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Active streams", "de": "Aktive Streams" },
+  "title": {
+    "en": "Active streams",
+    "de": "Aktive Streams"
+  },
+  "icon": "/assets/capabilities/streams.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

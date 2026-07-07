@@ -1,6 +1,10 @@
 {
   "type": "string",
-  "title": { "en": "Now playing", "de": "Läuft gerade" },
+  "title": {
+    "en": "Now playing",
+    "de": "Läuft gerade"
+  },
+  "icon": "/assets/capabilities/streams.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor"

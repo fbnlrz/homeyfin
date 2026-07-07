@@ -1,7 +1,13 @@
 {
   "type": "number",
-  "title": { "en": "Duration", "de": "Dauer" },
-  "units": { "en": "s" },
+  "title": {
+    "en": "Duration",
+    "de": "Dauer"
+  },
+  "icon": "/assets/capabilities/clock.svg",
+  "units": {
+    "en": "s"
+  },
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

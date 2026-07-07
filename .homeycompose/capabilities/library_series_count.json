@@ -1,6 +1,10 @@
 {
   "type": "number",
-  "title": { "en": "Series", "de": "Serien" },
+  "title": {
+    "en": "Series",
+    "de": "Serien"
+  },
+  "icon": "/assets/capabilities/series.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",

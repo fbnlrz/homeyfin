@@ -5,6 +5,17 @@ follows Keep a Changelog; dates are not pinned while pre-1.0.
 
 ## [Unreleased]
 
+### Added / Changed (visuals)
+- **Capability icons**: every custom capability now ships a monochrome
+  single-path icon (`assets/capabilities/*.svg`) referenced via `icon`.
+  Previously the device pages showed dashed empty-box placeholders because
+  custom capabilities had no icon.
+- **App Store image & driver tiles** redesigned. The app image is now a
+  proper "Now Playing" hero (poster fan + now-playing card + library stats)
+  instead of a plain play button, per Homey App Store guideline 1.4; the
+  server/user driver tiles get matching branded emblems. Rendered from
+  `scripts/design/*.html` via `scripts/render-store-images.mjs`.
+
 ### Fixed (SDK-compliance / Homey Apps SDK guidance)
 - **App & driver icons** rewritten as a single solid `<path>` with
   `fill-rule="evenodd"`. The previous icons used a `<linearGradient>` inside

@@ -1,6 +1,10 @@
 {
   "type": "string",
-  "title": { "en": "Subtitle", "de": "Untertitel" },
+  "title": {
+    "en": "Subtitle",
+    "de": "Untertitel"
+  },
+  "icon": "/assets/capabilities/subtitle.svg",
   "getable": true,
   "setable": false,
   "uiComponent": "sensor"
