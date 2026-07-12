@@ -8,11 +8,13 @@
   ],
   "name": {
     "en": "Media Control for Jellyfin",
-    "de": "Mediensteuerung für Jellyfin"
+    "de": "Mediensteuerung für Jellyfin",
+    "nl": "Mediabediening voor Jellyfin"
   },
   "description": {
-    "en": "Unofficial Jellyfin integration for Homey. One Homey device per Jellyfin user — playback control automatically routes to whichever client the user is currently active on. Triggers for play / pause / stop, progress milestones, transcoding start, new library content. Server overview widget and a full-control Now Playing widget. Not affiliated with the Jellyfin Foundation.",
-    "de": "Inoffizielle Jellyfin-Integration für Homey. Ein Homey-Gerät pro Jellyfin-Benutzer — Wiedergabesteuerung wirkt automatisch auf den Client, wo der Benutzer gerade aktiv ist. Trigger für Play / Pause / Stop, Fortschritts-Meilensteine, Transcoding-Start, neue Bibliotheksinhalte. Server-Übersichts-Widget und ein vollwertiges Now-Playing-Widget. Nicht mit der Jellyfin Foundation verbunden."
+    "en": "Control Jellyfin from Homey — playback, now-playing info, library stats, Flow triggers and dashboard widgets. One Homey device per user. Unofficial; not affiliated with the Jellyfin Foundation.",
+    "de": "Steuere Jellyfin mit Homey — Wiedergabe, Now-Playing-Infos, Bibliotheks-Statistiken, Flow-Trigger und Dashboard-Widgets. Ein Homey-Gerät pro Benutzer. Inoffiziell; nicht mit der Jellyfin Foundation verbunden.",
+    "nl": "Bedien Jellyfin vanuit Homey — afspelen, now-playing-info, bibliotheekstatistieken, Flow-triggers en dashboardwidgets. Eén Homey-apparaat per gebruiker. Onofficieel; niet gelieerd aan de Jellyfin Foundation."
   },
   "category": [
     "video"
@@ -56,6 +58,14 @@
       "medien",
       "video",
       "filme",
+      "tv",
+      "stream"
+    ],
+    "nl": [
+      "jellyfin",
+      "media",
+      "video",
+      "films",
       "tv",
       "stream"
     ]

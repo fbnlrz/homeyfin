@@ -1,5 +1,5 @@
 {
-  "name": "com.frlrnzn.mediacontrol",
+  "name": "com.frlrnzn.homeyfin",
   "version": "0.1.0",
   "description": "Jellyfin integration for Homey",
   "main": "app.js",
