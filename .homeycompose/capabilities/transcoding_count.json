@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Transcoding streams",
-    "de": "Transcodierende Streams"
+    "de": "Transcodierende Streams",
+    "nl": "Transcoderende streams"
   },
   "icon": "/assets/capabilities/transcode.svg",
   "getable": true,

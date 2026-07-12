@@ -2,7 +2,8 @@
   "type": "string",
   "title": {
     "en": "Now playing",
-    "de": "Läuft gerade"
+    "de": "Läuft gerade",
+    "nl": "Wordt nu afgespeeld"
   },
   "icon": "/assets/capabilities/streams.svg",
   "getable": true,

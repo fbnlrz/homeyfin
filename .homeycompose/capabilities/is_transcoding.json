@@ -2,7 +2,8 @@
   "type": "boolean",
   "title": {
     "en": "Transcoding",
-    "de": "Transcodiert"
+    "de": "Transcodiert",
+    "nl": "Transcodeert"
   },
   "icon": "/assets/capabilities/transcode.svg",
   "getable": true,
@@ -11,10 +12,12 @@
   "insights": true,
   "insightsTitleTrue": {
     "en": "Transcoding",
-    "de": "Transcodiert"
+    "de": "Transcodiert",
+    "nl": "Transcodeert"
   },
   "insightsTitleFalse": {
     "en": "Direct play",
-    "de": "Direkt-Wiedergabe"
+    "de": "Direkt-Wiedergabe",
+    "nl": "Direct afspelen"
   }
 }

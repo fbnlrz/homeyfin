@@ -2,7 +2,8 @@
   "type": "boolean",
   "title": {
     "en": "Library scan running",
-    "de": "Bibliotheks-Scan läuft"
+    "de": "Bibliotheks-Scan läuft",
+    "nl": "Bibliotheekscan actief"
   },
   "icon": "/assets/capabilities/scan.svg",
   "getable": true,
@@ -11,10 +12,12 @@
   "insights": true,
   "insightsTitleTrue": {
     "en": "Scan started",
-    "de": "Scan gestartet"
+    "de": "Scan gestartet",
+    "nl": "Scan gestart"
   },
   "insightsTitleFalse": {
     "en": "Scan finished",
-    "de": "Scan beendet"
+    "de": "Scan beendet",
+    "nl": "Scan voltooid"
   }
 }

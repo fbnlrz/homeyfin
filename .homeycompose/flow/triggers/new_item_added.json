@@ -1,49 +1,167 @@
 {
   "title": {
     "en": "New item added to library",
-    "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
+    "de": "Neuer Inhalt zur Bibliothek hinzugefügt",
+    "nl": "Nieuw item toegevoegd aan bibliotheek"
   },
   "titleFormatted": {
     "en": "New [[item_type]] in [[library]]",
-    "de": "Neuer Inhalt ([[item_type]]) in [[library]]"
+    "de": "Neuer Inhalt ([[item_type]]) in [[library]]",
+    "nl": "Nieuw [[item_type]] in [[library]]"
   },
   "hint": {
     "en": "Triggers when a new movie, episode or series is added.",
-    "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
+    "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird.",
+    "nl": "Wordt geactiveerd wanneer een nieuwe film, aflevering of serie wordt toegevoegd."
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=server" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    },
     {
       "name": "item_type",
       "type": "dropdown",
-      "title": { "en": "Type", "de": "Typ" },
+      "title": {
+        "en": "Type",
+        "de": "Typ",
+        "nl": "Type"
+      },
       "values": [
-        { "id": "any",     "label": { "en": "Any",     "de": "Alle" } },
-        { "id": "Movie",   "label": { "en": "Movie",   "de": "Film" } },
-        { "id": "Episode", "label": { "en": "Episode", "de": "Folge" } },
-        { "id": "Series",  "label": { "en": "Series",  "de": "Serie" } },
-        { "id": "Audio",   "label": { "en": "Audio",   "de": "Musik" } }
+        {
+          "id": "any",
+          "label": {
+            "en": "Any",
+            "de": "Alle",
+            "nl": "Alle"
+          }
+        },
+        {
+          "id": "Movie",
+          "label": {
+            "en": "Movie",
+            "de": "Film",
+            "nl": "Film"
+          }
+        },
+        {
+          "id": "Episode",
+          "label": {
+            "en": "Episode",
+            "de": "Folge",
+            "nl": "Aflevering"
+          }
+        },
+        {
+          "id": "Series",
+          "label": {
+            "en": "Series",
+            "de": "Serie",
+            "nl": "Serie"
+          }
+        },
+        {
+          "id": "Audio",
+          "label": {
+            "en": "Audio",
+            "de": "Musik",
+            "nl": "Audio"
+          }
+        }
       ]
     },
     {
       "name": "library",
       "type": "autocomplete",
-      "title": { "en": "Library", "de": "Bibliothek" }
+      "title": {
+        "en": "Library",
+        "de": "Bibliothek",
+        "nl": "Bibliotheek"
+      }
     }
   ],
   "tokens": [
-    { "name": "title",        "type": "string", "title": { "en": "Title",       "de": "Titel" } },
-    { "name": "type",         "type": "string", "title": { "en": "Type",        "de": "Typ" } },
-    { "name": "series",       "type": "string", "title": { "en": "Series",      "de": "Serie" } },
-    { "name": "season",       "type": "number", "title": { "en": "Season",      "de": "Staffel" } },
-    { "name": "episode",      "type": "number", "title": { "en": "Episode",     "de": "Folge" } },
-    { "name": "year",         "type": "number", "title": { "en": "Year",        "de": "Jahr" } },
-    { "name": "library_name", "type": "string", "title": { "en": "Library",     "de": "Bibliothek" } },
-    { "name": "poster_url",   "type": "string", "title": { "en": "Poster URL",  "de": "Poster-URL" } },
+    {
+      "name": "title",
+      "type": "string",
+      "title": {
+        "en": "Title",
+        "de": "Titel",
+        "nl": "Titel"
+      }
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "title": {
+        "en": "Type",
+        "de": "Typ",
+        "nl": "Type"
+      }
+    },
+    {
+      "name": "series",
+      "type": "string",
+      "title": {
+        "en": "Series",
+        "de": "Serie",
+        "nl": "Serie"
+      }
+    },
+    {
+      "name": "season",
+      "type": "number",
+      "title": {
+        "en": "Season",
+        "de": "Staffel",
+        "nl": "Seizoen"
+      }
+    },
+    {
+      "name": "episode",
+      "type": "number",
+      "title": {
+        "en": "Episode",
+        "de": "Folge",
+        "nl": "Aflevering"
+      }
+    },
+    {
+      "name": "year",
+      "type": "number",
+      "title": {
+        "en": "Year",
+        "de": "Jahr",
+        "nl": "Jaar"
+      }
+    },
+    {
+      "name": "library_name",
+      "type": "string",
+      "title": {
+        "en": "Library",
+        "de": "Bibliothek",
+        "nl": "Bibliotheek"
+      }
+    },
+    {
+      "name": "poster_url",
+      "type": "string",
+      "title": {
+        "en": "Poster URL",
+        "de": "Poster-URL",
+        "nl": "Poster-URL"
+      }
+    },
     {
       "name": "poster",
       "type": "image",
-      "title": { "en": "Poster", "de": "Poster" }
+      "title": {
+        "en": "Poster",
+        "de": "Poster",
+        "nl": "Poster"
+      }
     }
   ]
 }

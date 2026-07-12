@@ -2,11 +2,13 @@
   "type": "number",
   "title": {
     "en": "Duration",
-    "de": "Dauer"
+    "de": "Dauer",
+    "nl": "Duur"
   },
   "icon": "/assets/capabilities/clock.svg",
   "units": {
-    "en": "s"
+    "en": "s",
+    "nl": "s"
   },
   "getable": true,
   "setable": false,

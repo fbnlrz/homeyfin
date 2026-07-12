@@ -1,19 +1,33 @@
 {
-  "title": { "en": "Play item", "de": "Item abspielen" },
+  "title": {
+    "en": "Play item",
+    "de": "Item abspielen",
+    "nl": "Item afspelen"
+  },
   "titleFormatted": {
     "en": "Play [[item]]",
-    "de": "Spiele [[item]]"
+    "de": "Spiele [[item]]",
+    "nl": "[[item]] afspelen"
   },
   "hint": {
     "en": "Searches the user's library and starts the picked item on whatever client they're active on.",
-    "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers."
+    "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers.",
+    "nl": "Doorzoekt de bibliotheek van de gebruiker en start het gekozen item op de client waarop hij actief is."
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "item",
       "type": "autocomplete",
-      "title": { "en": "Item", "de": "Item" }
+      "title": {
+        "en": "Item",
+        "de": "Item",
+        "nl": "Item"
+      }
     }
   ]
 }

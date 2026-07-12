@@ -1,27 +1,66 @@
 {
-  "title": { "en": "Play random", "de": "Zufällig abspielen" },
+  "title": {
+    "en": "Play random",
+    "de": "Zufällig abspielen",
+    "nl": "Willekeurig afspelen"
+  },
   "titleFormatted": {
     "en": "Play a random [[item_type]] in [[genre]]",
-    "de": "Zufälligen [[item_type]] in [[genre]] abspielen"
+    "de": "Zufälligen [[item_type]] in [[genre]] abspielen",
+    "nl": "Willekeurige [[item_type]] in [[genre]] afspelen"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "item_type",
       "type": "dropdown",
-      "title": { "en": "Type", "de": "Typ" },
+      "title": {
+        "en": "Type",
+        "de": "Typ",
+        "nl": "Type"
+      },
       "values": [
-        { "id": "Movie",   "label": { "en": "Movie",   "de": "Film" } },
-        { "id": "Episode", "label": { "en": "Episode", "de": "Folge" } }
+        {
+          "id": "Movie",
+          "label": {
+            "en": "Movie",
+            "de": "Film",
+            "nl": "Film"
+          }
+        },
+        {
+          "id": "Episode",
+          "label": {
+            "en": "Episode",
+            "de": "Folge",
+            "nl": "Aflevering"
+          }
+        }
       ]
     },
     {
       "name": "genre",
       "type": "autocomplete",
-      "title": { "en": "Genre", "de": "Genre" }
+      "title": {
+        "en": "Genre",
+        "de": "Genre",
+        "nl": "Genre"
+      }
     }
   ],
   "tokens": [
-    { "name": "title", "type": "string", "title": { "en": "Title", "de": "Titel" } }
+    {
+      "name": "title",
+      "type": "string",
+      "title": {
+        "en": "Title",
+        "de": "Titel",
+        "nl": "Titel"
+      }
+    }
   ]
 }

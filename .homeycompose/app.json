@@ -1,18 +1,18 @@
 {
   "id": "com.frlrnzn.homeyfin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": ["local"],
   "name": {
-    "en": "Media Control for Jellyfin",
-    "de": "Mediensteuerung für Jellyfin",
-    "nl": "Mediabediening voor Jellyfin"
+    "en": "Jellycontrol",
+    "de": "Jellycontrol",
+    "nl": "Jellycontrol"
   },
   "description": {
-    "en": "Control Jellyfin from Homey — playback, now-playing info, library stats, Flow triggers and dashboard widgets. One Homey device per user. Unofficial; not affiliated with the Jellyfin Foundation.",
-    "de": "Steuere Jellyfin mit Homey — Wiedergabe, Now-Playing-Infos, Bibliotheks-Statistiken, Flow-Trigger und Dashboard-Widgets. Ein Homey-Gerät pro Benutzer. Inoffiziell; nicht mit der Jellyfin Foundation verbunden.",
-    "nl": "Bedien Jellyfin vanuit Homey — afspelen, now-playing-info, bibliotheekstatistieken, Flow-triggers en dashboardwidgets. Eén Homey-apparaat per gebruiker. Onofficieel; niet gelieerd aan de Jellyfin Foundation."
+    "en": "Control your Jellyfin media server straight from Homey.",
+    "de": "Steuere deinen Jellyfin-Medienserver direkt mit Homey.",
+    "nl": "Bedien je Jellyfin-mediaserver rechtstreeks vanuit Homey."
   },
   "category": ["video"],
   "permissions": [],

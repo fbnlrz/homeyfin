@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Movies",
-    "de": "Filme"
+    "de": "Filme",
+    "nl": "Films"
   },
   "icon": "/assets/capabilities/movies.svg",
   "getable": true,

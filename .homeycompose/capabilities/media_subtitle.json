@@ -2,7 +2,8 @@
   "type": "string",
   "title": {
     "en": "Subtitle",
-    "de": "Untertitel"
+    "de": "Untertitel",
+    "nl": "Ondertitel"
   },
   "icon": "/assets/capabilities/subtitle.svg",
   "getable": true,

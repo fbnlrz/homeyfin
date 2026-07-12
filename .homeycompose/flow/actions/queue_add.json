@@ -1,23 +1,54 @@
 {
-  "title": { "en": "Add to queue", "de": "Zur Warteschlange hinzufügen" },
+  "title": {
+    "en": "Add to queue",
+    "de": "Zur Warteschlange hinzufügen",
+    "nl": "Aan wachtrij toevoegen"
+  },
   "titleFormatted": {
     "en": "Queue [[item]] ([[where]])",
-    "de": "[[item]] in Warteschlange ([[where]])"
+    "de": "[[item]] in Warteschlange ([[where]])",
+    "nl": "[[item]] in wachtrij ([[where]])"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "item",
       "type": "autocomplete",
-      "title": { "en": "Item", "de": "Item" }
+      "title": {
+        "en": "Item",
+        "de": "Item",
+        "nl": "Item"
+      }
     },
     {
       "name": "where",
       "type": "dropdown",
-      "title": { "en": "Position", "de": "Position" },
+      "title": {
+        "en": "Position",
+        "de": "Position",
+        "nl": "Positie"
+      },
       "values": [
-        { "id": "PlayNext", "label": { "en": "Up next", "de": "Als Nächstes" } },
-        { "id": "PlayLast", "label": { "en": "End of queue", "de": "Ans Ende" } }
+        {
+          "id": "PlayNext",
+          "label": {
+            "en": "Up next",
+            "de": "Als Nächstes",
+            "nl": "Verder kijken"
+          }
+        },
+        {
+          "id": "PlayLast",
+          "label": {
+            "en": "End of queue",
+            "de": "Ans Ende",
+            "nl": "Einde van wachtrij"
+          }
+        }
       ]
     }
   ]

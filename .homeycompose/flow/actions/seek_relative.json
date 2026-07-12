@@ -1,19 +1,33 @@
 {
-  "title": { "en": "Skip forward/back", "de": "Vor-/Zurückspulen" },
+  "title": {
+    "en": "Skip forward/back",
+    "de": "Vor-/Zurückspulen",
+    "nl": "Vooruit/terug spoelen"
+  },
   "titleFormatted": {
     "en": "Skip [[seconds]] s",
-    "de": "Spule [[seconds]] s"
+    "de": "Spule [[seconds]] s",
+    "nl": "[[seconds]] s spoelen"
   },
   "hint": {
     "en": "Negative values skip backward (e.g. -30).",
-    "de": "Negative Werte spulen zurück (z. B. -30)."
+    "de": "Negative Werte spulen zurück (z. B. -30).",
+    "nl": "Negatieve waarden spoelen terug (bijv. -30)."
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "seconds",
       "type": "number",
-      "title": { "en": "Delta (s)", "de": "Delta (s)" },
+      "title": {
+        "en": "Delta (s)",
+        "de": "Delta (s)",
+        "nl": "Delta (s)"
+      },
       "min": -3600,
       "max": 3600,
       "step": 5

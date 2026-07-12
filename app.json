@@ -1,20 +1,20 @@
 {
   "id": "com.frlrnzn.homeyfin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": [
     "local"
   ],
   "name": {
-    "en": "Media Control for Jellyfin",
-    "de": "Mediensteuerung für Jellyfin",
-    "nl": "Mediabediening voor Jellyfin"
+    "en": "Jellycontrol",
+    "de": "Jellycontrol",
+    "nl": "Jellycontrol"
   },
   "description": {
-    "en": "Control Jellyfin from Homey — playback, now-playing info, library stats, Flow triggers and dashboard widgets. One Homey device per user. Unofficial; not affiliated with the Jellyfin Foundation.",
-    "de": "Steuere Jellyfin mit Homey — Wiedergabe, Now-Playing-Infos, Bibliotheks-Statistiken, Flow-Trigger und Dashboard-Widgets. Ein Homey-Gerät pro Benutzer. Inoffiziell; nicht mit der Jellyfin Foundation verbunden.",
-    "nl": "Bedien Jellyfin vanuit Homey — afspelen, now-playing-info, bibliotheekstatistieken, Flow-triggers en dashboardwidgets. Eén Homey-apparaat per gebruiker. Onofficieel; niet gelieerd aan de Jellyfin Foundation."
+    "en": "Control your Jellyfin media server straight from Homey.",
+    "de": "Steuere deinen Jellyfin-Medienserver direkt mit Homey.",
+    "nl": "Bedien je Jellyfin-mediaserver rechtstreeks vanuit Homey."
   },
   "category": [
     "video"
@@ -75,7 +75,8 @@
       "type": "boolean",
       "title": {
         "en": "Client online",
-        "de": "Client online"
+        "de": "Client online",
+        "nl": "Client online"
       },
       "icon": "/assets/capabilities/person.svg",
       "getable": true,
@@ -84,18 +85,21 @@
       "insights": true,
       "insightsTitleTrue": {
         "en": "Online",
-        "de": "Online"
+        "de": "Online",
+        "nl": "Online"
       },
       "insightsTitleFalse": {
         "en": "Offline",
-        "de": "Offline"
+        "de": "Offline",
+        "nl": "Offline"
       }
     },
     "continue_watching_title": {
       "type": "string",
       "title": {
         "en": "Up next",
-        "de": "Als Nächstes"
+        "de": "Als Nächstes",
+        "nl": "Verder kijken"
       },
       "icon": "/assets/capabilities/streams.svg",
       "getable": true,
@@ -106,7 +110,8 @@
       "type": "boolean",
       "title": {
         "en": "Transcoding",
-        "de": "Transcodiert"
+        "de": "Transcodiert",
+        "nl": "Transcodeert"
       },
       "icon": "/assets/capabilities/transcode.svg",
       "getable": true,
@@ -115,18 +120,21 @@
       "insights": true,
       "insightsTitleTrue": {
         "en": "Transcoding",
-        "de": "Transcodiert"
+        "de": "Transcodiert",
+        "nl": "Transcodeert"
       },
       "insightsTitleFalse": {
         "en": "Direct play",
-        "de": "Direkt-Wiedergabe"
+        "de": "Direkt-Wiedergabe",
+        "nl": "Direct afspelen"
       }
     },
     "last_added_title": {
       "type": "string",
       "title": {
         "en": "Last added",
-        "de": "Zuletzt hinzugefügt"
+        "de": "Zuletzt hinzugefügt",
+        "nl": "Laatst toegevoegd"
       },
       "icon": "/assets/capabilities/new.svg",
       "getable": true,
@@ -137,7 +145,8 @@
       "type": "number",
       "title": {
         "en": "Episodes",
-        "de": "Folgen"
+        "de": "Folgen",
+        "nl": "Afleveringen"
       },
       "icon": "/assets/capabilities/episodes.svg",
       "getable": true,
@@ -150,7 +159,8 @@
       "type": "number",
       "title": {
         "en": "Movies",
-        "de": "Filme"
+        "de": "Filme",
+        "nl": "Films"
       },
       "icon": "/assets/capabilities/movies.svg",
       "getable": true,
@@ -163,7 +173,8 @@
       "type": "number",
       "title": {
         "en": "Series",
-        "de": "Serien"
+        "de": "Serien",
+        "nl": "Series"
       },
       "icon": "/assets/capabilities/series.svg",
       "getable": true,
@@ -176,11 +187,13 @@
       "type": "number",
       "title": {
         "en": "Duration",
-        "de": "Dauer"
+        "de": "Dauer",
+        "nl": "Duur"
       },
       "icon": "/assets/capabilities/clock.svg",
       "units": {
-        "en": "s"
+        "en": "s",
+        "nl": "s"
       },
       "getable": true,
       "setable": false,
@@ -192,11 +205,13 @@
       "type": "number",
       "title": {
         "en": "Position",
-        "de": "Position"
+        "de": "Position",
+        "nl": "Positie"
       },
       "icon": "/assets/capabilities/clock.svg",
       "units": {
-        "en": "s"
+        "en": "s",
+        "nl": "s"
       },
       "getable": true,
       "setable": false,
@@ -208,7 +223,8 @@
       "type": "string",
       "title": {
         "en": "Subtitle",
-        "de": "Untertitel"
+        "de": "Untertitel",
+        "nl": "Ondertitel"
       },
       "icon": "/assets/capabilities/subtitle.svg",
       "getable": true,
@@ -219,7 +235,8 @@
       "type": "string",
       "title": {
         "en": "Now playing",
-        "de": "Läuft gerade"
+        "de": "Läuft gerade",
+        "nl": "Wordt nu afgespeeld"
       },
       "icon": "/assets/capabilities/streams.svg",
       "getable": true,
@@ -230,7 +247,8 @@
       "type": "boolean",
       "title": {
         "en": "Library scan running",
-        "de": "Bibliotheks-Scan läuft"
+        "de": "Bibliotheks-Scan läuft",
+        "nl": "Bibliotheekscan actief"
       },
       "icon": "/assets/capabilities/scan.svg",
       "getable": true,
@@ -239,18 +257,21 @@
       "insights": true,
       "insightsTitleTrue": {
         "en": "Scan started",
-        "de": "Scan gestartet"
+        "de": "Scan gestartet",
+        "nl": "Scan gestart"
       },
       "insightsTitleFalse": {
         "en": "Scan finished",
-        "de": "Scan beendet"
+        "de": "Scan beendet",
+        "nl": "Scan voltooid"
       }
     },
     "server_uptime": {
       "type": "number",
       "title": {
         "en": "Uptime (min)",
-        "de": "Uptime (Min)"
+        "de": "Uptime (Min)",
+        "nl": "Uptime (min)"
       },
       "icon": "/assets/capabilities/clock.svg",
       "getable": true,
@@ -263,7 +284,8 @@
       "type": "boolean",
       "title": {
         "en": "Server connected",
-        "de": "Server verbunden"
+        "de": "Server verbunden",
+        "nl": "Server verbonden"
       },
       "icon": "/assets/capabilities/server.svg",
       "getable": true,
@@ -272,18 +294,21 @@
       "insights": true,
       "insightsTitleTrue": {
         "en": "Connected",
-        "de": "Verbunden"
+        "de": "Verbunden",
+        "nl": "Verbonden"
       },
       "insightsTitleFalse": {
         "en": "Disconnected",
-        "de": "Getrennt"
+        "de": "Getrennt",
+        "nl": "Verbinding verbroken"
       }
     },
     "stream_count": {
       "type": "number",
       "title": {
         "en": "Active streams",
-        "de": "Aktive Streams"
+        "de": "Aktive Streams",
+        "nl": "Actieve streams"
       },
       "icon": "/assets/capabilities/streams.svg",
       "getable": true,
@@ -296,7 +321,8 @@
       "type": "number",
       "title": {
         "en": "Transcoding streams",
-        "de": "Transcodierende Streams"
+        "de": "Transcodierende Streams",
+        "nl": "Transcoderende streams"
       },
       "icon": "/assets/capabilities/transcode.svg",
       "getable": true,
@@ -309,7 +335,8 @@
       "type": "number",
       "title": {
         "en": "Unwatched episodes",
-        "de": "Ungesehene Folgen"
+        "de": "Ungesehene Folgen",
+        "nl": "Ongekeken afleveringen"
       },
       "icon": "/assets/capabilities/eye.svg",
       "getable": true,
@@ -322,7 +349,8 @@
       "type": "number",
       "title": {
         "en": "Watch time this week (min)",
-        "de": "Watch-Time diese Woche (Min)"
+        "de": "Watch-Time diese Woche (Min)",
+        "nl": "Kijktijd deze week (min)"
       },
       "icon": "/assets/capabilities/clock.svg",
       "getable": true,
@@ -338,11 +366,13 @@
         "id": "daily_summary",
         "title": {
           "en": "Daily summary",
-          "de": "Tageszusammenfassung"
+          "de": "Tageszusammenfassung",
+          "nl": "Dagelijkse samenvatting"
         },
         "hint": {
           "en": "Fires once a day with watch-time totals for the user.",
-          "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst."
+          "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst.",
+          "nl": "Wordt eenmaal per dag geactiveerd met de totale kijktijd van de gebruiker."
         },
         "args": [
           {
@@ -357,7 +387,8 @@
             "type": "number",
             "title": {
               "en": "Minutes today",
-              "de": "Minuten heute"
+              "de": "Minuten heute",
+              "nl": "Minuten vandaag"
             }
           },
           {
@@ -365,7 +396,8 @@
             "type": "number",
             "title": {
               "en": "Minutes this week",
-              "de": "Minuten diese Woche"
+              "de": "Minuten diese Woche",
+              "nl": "Minuten deze week"
             }
           }
         ]
@@ -374,7 +406,8 @@
         "id": "library_scan_finished",
         "title": {
           "en": "Library scan finished",
-          "de": "Bibliotheks-Scan abgeschlossen"
+          "de": "Bibliotheks-Scan abgeschlossen",
+          "nl": "Bibliotheekscan voltooid"
         },
         "args": [
           {
@@ -389,7 +422,8 @@
             "type": "number",
             "title": {
               "en": "Duration (s)",
-              "de": "Dauer (s)"
+              "de": "Dauer (s)",
+              "nl": "Duur (s)"
             }
           }
         ]
@@ -398,15 +432,18 @@
         "id": "minutes_before_end",
         "title": {
           "en": "Minutes before end",
-          "de": "Minuten vor Ende"
+          "de": "Minuten vor Ende",
+          "nl": "Minuten voor het einde"
         },
         "hint": {
           "en": "Fires once per item when the remaining time crosses the threshold.",
-          "de": "Wird einmal pro Item ausgelöst, wenn die verbleibende Zeit den Schwellwert unterschreitet."
+          "de": "Wird einmal pro Item ausgelöst, wenn die verbleibende Zeit den Schwellwert unterschreitet.",
+          "nl": "Wordt eenmaal per item geactiveerd wanneer de resterende tijd de drempel passeert."
         },
         "titleFormatted": {
           "en": "[[minutes]] minutes before end",
-          "de": "[[minutes]] Minuten vor Ende"
+          "de": "[[minutes]] Minuten vor Ende",
+          "nl": "[[minutes]] minuten voor het einde"
         },
         "args": [
           {
@@ -419,13 +456,15 @@
             "type": "number",
             "title": {
               "en": "Minutes",
-              "de": "Minuten"
+              "de": "Minuten",
+              "nl": "Minuten"
             },
             "min": 1,
             "max": 60,
             "step": 1,
             "placeholder": {
-              "en": "5"
+              "en": "5",
+              "nl": "5"
             }
           }
         ],
@@ -435,7 +474,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -443,7 +483,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -451,7 +492,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -459,7 +501,8 @@
             "type": "number",
             "title": {
               "en": "Remaining (s)",
-              "de": "Restzeit (s)"
+              "de": "Restzeit (s)",
+              "nl": "Resterend (s)"
             }
           }
         ]
@@ -468,15 +511,18 @@
         "id": "new_item_added",
         "title": {
           "en": "New item added to library",
-          "de": "Neuer Inhalt zur Bibliothek hinzugefügt"
+          "de": "Neuer Inhalt zur Bibliothek hinzugefügt",
+          "nl": "Nieuw item toegevoegd aan bibliotheek"
         },
         "titleFormatted": {
           "en": "New [[item_type]] in [[library]]",
-          "de": "Neuer Inhalt ([[item_type]]) in [[library]]"
+          "de": "Neuer Inhalt ([[item_type]]) in [[library]]",
+          "nl": "Nieuw [[item_type]] in [[library]]"
         },
         "hint": {
           "en": "Triggers when a new movie, episode or series is added.",
-          "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird."
+          "de": "Wird ausgelöst, wenn ein neuer Film, Folge oder Serie hinzugefügt wird.",
+          "nl": "Wordt geactiveerd wanneer een nieuwe film, aflevering of serie wordt toegevoegd."
         },
         "args": [
           {
@@ -489,42 +535,48 @@
             "type": "dropdown",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             },
             "values": [
               {
                 "id": "any",
                 "label": {
                   "en": "Any",
-                  "de": "Alle"
+                  "de": "Alle",
+                  "nl": "Alle"
                 }
               },
               {
                 "id": "Movie",
                 "label": {
                   "en": "Movie",
-                  "de": "Film"
+                  "de": "Film",
+                  "nl": "Film"
                 }
               },
               {
                 "id": "Episode",
                 "label": {
                   "en": "Episode",
-                  "de": "Folge"
+                  "de": "Folge",
+                  "nl": "Aflevering"
                 }
               },
               {
                 "id": "Series",
                 "label": {
                   "en": "Series",
-                  "de": "Serie"
+                  "de": "Serie",
+                  "nl": "Serie"
                 }
               },
               {
                 "id": "Audio",
                 "label": {
                   "en": "Audio",
-                  "de": "Musik"
+                  "de": "Musik",
+                  "nl": "Audio"
                 }
               }
             ]
@@ -534,7 +586,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Library",
-              "de": "Bibliothek"
+              "de": "Bibliothek",
+              "nl": "Bibliotheek"
             }
           }
         ],
@@ -544,7 +597,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -552,7 +606,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -560,7 +615,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -568,7 +624,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -576,7 +633,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           },
           {
@@ -584,7 +642,8 @@
             "type": "number",
             "title": {
               "en": "Year",
-              "de": "Jahr"
+              "de": "Jahr",
+              "nl": "Jaar"
             }
           },
           {
@@ -592,7 +651,8 @@
             "type": "string",
             "title": {
               "en": "Library",
-              "de": "Bibliothek"
+              "de": "Bibliothek",
+              "nl": "Bibliotheek"
             }
           },
           {
@@ -600,7 +660,8 @@
             "type": "string",
             "title": {
               "en": "Poster URL",
-              "de": "Poster-URL"
+              "de": "Poster-URL",
+              "nl": "Poster-URL"
             }
           },
           {
@@ -608,7 +669,8 @@
             "type": "image",
             "title": {
               "en": "Poster",
-              "de": "Poster"
+              "de": "Poster",
+              "nl": "Poster"
             }
           }
         ]
@@ -617,7 +679,8 @@
         "id": "now_playing_changed",
         "title": {
           "en": "Now playing changed",
-          "de": "Aktuelle Wiedergabe geändert"
+          "de": "Aktuelle Wiedergabe geändert",
+          "nl": "Afgespeeld item gewijzigd"
         },
         "args": [
           {
@@ -632,7 +695,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -640,7 +704,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -648,7 +713,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -656,7 +722,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -664,7 +731,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           }
         ]
@@ -673,7 +741,8 @@
         "id": "playback_paused",
         "title": {
           "en": "Playback paused",
-          "de": "Wiedergabe pausiert"
+          "de": "Wiedergabe pausiert",
+          "nl": "Afspelen gepauzeerd"
         },
         "args": [
           {
@@ -688,7 +757,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -696,7 +766,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -704,7 +775,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -712,7 +784,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -720,7 +793,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           },
           {
@@ -728,7 +802,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           }
         ]
@@ -737,7 +812,8 @@
         "id": "playback_resumed",
         "title": {
           "en": "Playback resumed",
-          "de": "Wiedergabe fortgesetzt"
+          "de": "Wiedergabe fortgesetzt",
+          "nl": "Afspelen hervat"
         },
         "args": [
           {
@@ -752,7 +828,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -760,7 +837,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -768,7 +846,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -776,7 +855,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -784,7 +864,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           },
           {
@@ -792,7 +873,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           }
         ]
@@ -801,7 +883,8 @@
         "id": "playback_started",
         "title": {
           "en": "Playback started",
-          "de": "Wiedergabe gestartet"
+          "de": "Wiedergabe gestartet",
+          "nl": "Afspelen gestart"
         },
         "args": [
           {
@@ -816,7 +899,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -824,7 +908,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -832,7 +917,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -840,7 +926,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -848,7 +935,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           },
           {
@@ -856,7 +944,8 @@
             "type": "number",
             "title": {
               "en": "Runtime (s)",
-              "de": "Laufzeit (s)"
+              "de": "Laufzeit (s)",
+              "nl": "Speelduur (s)"
             }
           },
           {
@@ -864,7 +953,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           },
           {
@@ -872,7 +962,8 @@
             "type": "image",
             "title": {
               "en": "Poster",
-              "de": "Poster"
+              "de": "Poster",
+              "nl": "Poster"
             }
           }
         ]
@@ -881,7 +972,8 @@
         "id": "playback_stopped",
         "title": {
           "en": "Playback stopped",
-          "de": "Wiedergabe gestoppt"
+          "de": "Wiedergabe gestoppt",
+          "nl": "Afspelen gestopt"
         },
         "args": [
           {
@@ -896,7 +988,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -904,7 +997,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           },
           {
@@ -912,7 +1006,8 @@
             "type": "string",
             "title": {
               "en": "Series",
-              "de": "Serie"
+              "de": "Serie",
+              "nl": "Serie"
             }
           },
           {
@@ -920,7 +1015,8 @@
             "type": "number",
             "title": {
               "en": "Season",
-              "de": "Staffel"
+              "de": "Staffel",
+              "nl": "Seizoen"
             }
           },
           {
@@ -928,7 +1024,8 @@
             "type": "number",
             "title": {
               "en": "Episode",
-              "de": "Folge"
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           },
           {
@@ -936,7 +1033,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           }
         ]
@@ -945,15 +1043,18 @@
         "id": "progress_percent",
         "title": {
           "en": "Progress reached %",
-          "de": "Fortschritt erreicht %"
+          "de": "Fortschritt erreicht %",
+          "nl": "Voortgangspercentage bereikt"
         },
         "hint": {
           "en": "Fires once per item when playback crosses the given percentage.",
-          "de": "Wird einmal pro Item ausgelöst, wenn der Fortschritt den Prozentsatz überschreitet."
+          "de": "Wird einmal pro Item ausgelöst, wenn der Fortschritt den Prozentsatz überschreitet.",
+          "nl": "Wordt eenmaal per item geactiveerd wanneer het afspelen het opgegeven percentage passeert."
         },
         "titleFormatted": {
           "en": "Reached [[percent]]% of item",
-          "de": "Erreicht [[percent]] % des Items"
+          "de": "Erreicht [[percent]] % des Items",
+          "nl": "[[percent]]% van item bereikt"
         },
         "args": [
           {
@@ -966,13 +1067,15 @@
             "type": "number",
             "title": {
               "en": "Percent",
-              "de": "Prozent"
+              "de": "Prozent",
+              "nl": "Procent"
             },
             "min": 1,
             "max": 99,
             "step": 1,
             "placeholder": {
-              "en": "50"
+              "en": "50",
+              "nl": "50"
             }
           }
         ],
@@ -982,7 +1085,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -990,7 +1094,8 @@
             "type": "string",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             }
           }
         ]
@@ -999,7 +1104,8 @@
         "id": "server_connected",
         "title": {
           "en": "Server connection restored",
-          "de": "Server-Verbindung wiederhergestellt"
+          "de": "Server-Verbindung wiederhergestellt",
+          "nl": "Serververbinding hersteld"
         },
         "args": [
           {
@@ -1013,7 +1119,8 @@
         "id": "server_disconnected",
         "title": {
           "en": "Server connection lost",
-          "de": "Server-Verbindung verloren"
+          "de": "Server-Verbindung verloren",
+          "nl": "Serververbinding verbroken"
         },
         "args": [
           {
@@ -1027,7 +1134,8 @@
         "id": "stream_count_changed",
         "title": {
           "en": "Active streams changed",
-          "de": "Aktive Streams geändert"
+          "de": "Aktive Streams geändert",
+          "nl": "Actieve streams gewijzigd"
         },
         "args": [
           {
@@ -1042,7 +1150,8 @@
             "type": "number",
             "title": {
               "en": "Count",
-              "de": "Anzahl"
+              "de": "Anzahl",
+              "nl": "Aantal"
             }
           },
           {
@@ -1050,7 +1159,8 @@
             "type": "number",
             "title": {
               "en": "Transcoding",
-              "de": "Transcodierend"
+              "de": "Transcodierend",
+              "nl": "Transcodeert"
             }
           }
         ]
@@ -1059,7 +1169,8 @@
         "id": "transcoding_started",
         "title": {
           "en": "Transcoding started",
-          "de": "Transcodierung gestartet"
+          "de": "Transcodierung gestartet",
+          "nl": "Transcodering gestart"
         },
         "args": [
           {
@@ -1074,7 +1185,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           },
           {
@@ -1082,7 +1194,8 @@
             "type": "string",
             "title": {
               "en": "Device",
-              "de": "Gerät"
+              "de": "Gerät",
+              "nl": "Apparaat"
             }
           },
           {
@@ -1090,7 +1203,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           },
           {
@@ -1098,7 +1212,8 @@
             "type": "string",
             "title": {
               "en": "Reasons",
-              "de": "Gründe"
+              "de": "Gründe",
+              "nl": "Redenen"
             }
           }
         ]
@@ -1107,7 +1222,8 @@
         "id": "transcoding_stopped",
         "title": {
           "en": "Transcoding stopped",
-          "de": "Transcodierung beendet"
+          "de": "Transcodierung beendet",
+          "nl": "Transcodering gestopt"
         },
         "args": [
           {
@@ -1122,7 +1238,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           },
           {
@@ -1130,7 +1247,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           }
         ]
@@ -1139,11 +1257,13 @@
         "id": "user_logged_in",
         "title": {
           "en": "User logged in",
-          "de": "Benutzer angemeldet"
+          "de": "Benutzer angemeldet",
+          "nl": "Gebruiker aangemeld"
         },
         "titleFormatted": {
           "en": "User [[user]] logged in",
-          "de": "Benutzer [[user]] angemeldet"
+          "de": "Benutzer [[user]] angemeldet",
+          "nl": "Gebruiker [[user]] aangemeld"
         },
         "args": [
           {
@@ -1156,7 +1276,8 @@
             "type": "autocomplete",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           }
         ],
@@ -1166,7 +1287,8 @@
             "type": "string",
             "title": {
               "en": "User",
-              "de": "Benutzer"
+              "de": "Benutzer",
+              "nl": "Gebruiker"
             }
           },
           {
@@ -1174,7 +1296,8 @@
             "type": "string",
             "title": {
               "en": "Client",
-              "de": "Client"
+              "de": "Client",
+              "nl": "Client"
             }
           },
           {
@@ -1182,7 +1305,8 @@
             "type": "string",
             "title": {
               "en": "Device",
-              "de": "Gerät"
+              "de": "Gerät",
+              "nl": "Apparaat"
             }
           }
         ]
@@ -1193,7 +1317,8 @@
         "id": "is_playing",
         "title": {
           "en": "Is !{{playing|not playing}}",
-          "de": "Spielt !{{|nicht}}"
+          "de": "Spielt !{{|nicht}}",
+          "nl": "Speelt !{{af|niet af}}"
         },
         "args": [
           {
@@ -1207,7 +1332,8 @@
         "id": "is_transcoding",
         "title": {
           "en": "User !{{is|is not}} transcoding",
-          "de": "Benutzer !{{transcodiert|transcodiert nicht}}"
+          "de": "Benutzer !{{transcodiert|transcodiert nicht}}",
+          "nl": "Gebruiker !{{transcodeert|transcodeert niet}}"
         },
         "args": [
           {
@@ -1221,11 +1347,13 @@
         "id": "media_type_is",
         "title": {
           "en": "Media type !{{is|is not}}",
-          "de": "Medientyp !{{ist|ist nicht}}"
+          "de": "Medientyp !{{ist|ist nicht}}",
+          "nl": "Mediatype !{{is|is niet}}"
         },
         "titleFormatted": {
           "en": "Media type !{{is|is not}} [[media_type]]",
-          "de": "Medientyp !{{ist|ist nicht}} [[media_type]]"
+          "de": "Medientyp !{{ist|ist nicht}} [[media_type]]",
+          "nl": "Mediatype !{{is|is niet}} [[media_type]]"
         },
         "args": [
           {
@@ -1238,28 +1366,32 @@
             "type": "dropdown",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             },
             "values": [
               {
                 "id": "Movie",
                 "label": {
                   "en": "Movie",
-                  "de": "Film"
+                  "de": "Film",
+                  "nl": "Film"
                 }
               },
               {
                 "id": "Episode",
                 "label": {
                   "en": "Episode",
-                  "de": "Folge"
+                  "de": "Folge",
+                  "nl": "Aflevering"
                 }
               },
               {
                 "id": "Audio",
                 "label": {
                   "en": "Audio",
-                  "de": "Musik"
+                  "de": "Musik",
+                  "nl": "Audio"
                 }
               }
             ]
@@ -1270,11 +1402,13 @@
         "id": "stream_count_above",
         "title": {
           "en": "Active streams !{{is|is not}} above",
-          "de": "Aktive Streams !{{liegen über|liegen nicht über}}"
+          "de": "Aktive Streams !{{liegen über|liegen nicht über}}",
+          "nl": "Actieve streams !{{is|is niet}} boven"
         },
         "titleFormatted": {
           "en": "Active streams !{{is|is not}} above [[threshold]]",
-          "de": "Aktive Streams !{{liegen über|liegen nicht über}} [[threshold]]"
+          "de": "Aktive Streams !{{liegen über|liegen nicht über}} [[threshold]]",
+          "nl": "Actieve streams !{{is|is niet}} boven [[threshold]]"
         },
         "args": [
           {
@@ -1287,13 +1421,15 @@
             "type": "number",
             "title": {
               "en": "Threshold",
-              "de": "Schwellwert"
+              "de": "Schwellwert",
+              "nl": "Drempel"
             },
             "min": 0,
             "max": 50,
             "step": 1,
             "placeholder": {
-              "en": "1"
+              "en": "1",
+              "nl": "1"
             }
           }
         ]
@@ -1304,15 +1440,18 @@
         "id": "bookmark",
         "title": {
           "en": "Bookmark current item",
-          "de": "Aktuelles Item merken"
+          "de": "Aktuelles Item merken",
+          "nl": "Huidig item opslaan"
         },
         "titleFormatted": {
           "en": "Bookmark current item to [[playlist_name]]",
-          "de": "Aktuelles Item zu [[playlist_name]] hinzufügen"
+          "de": "Aktuelles Item zu [[playlist_name]] hinzufügen",
+          "nl": "Huidig item opslaan in [[playlist_name]]"
         },
         "hint": {
           "en": "Adds the currently playing item to a Jellyfin playlist (auto-created on first use).",
-          "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt)."
+          "de": "Fügt das aktuell laufende Item zu einer Jellyfin-Playlist hinzu (wird beim ersten Mal angelegt).",
+          "nl": "Voegt het item dat nu wordt afgespeeld toe aan een Jellyfin-afspeellijst (automatisch aangemaakt bij eerste gebruik)."
         },
         "args": [
           {
@@ -1325,11 +1464,13 @@
             "type": "text",
             "title": {
               "en": "Playlist",
-              "de": "Playlist"
+              "de": "Playlist",
+              "nl": "Afspeellijst"
             },
             "placeholder": {
               "en": "Homey Watchlist",
-              "de": "Homey Watchlist"
+              "de": "Homey Watchlist",
+              "nl": "Homey Watchlist"
             }
           }
         ],
@@ -1339,7 +1480,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           }
         ]
@@ -1348,7 +1490,8 @@
         "id": "continue_watching",
         "title": {
           "en": "Resume Continue Watching",
-          "de": "Continue-Watching fortsetzen"
+          "de": "Continue-Watching fortsetzen",
+          "nl": "Verder kijken hervatten"
         },
         "args": [
           {
@@ -1363,7 +1506,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           }
         ]
@@ -1372,7 +1516,8 @@
         "id": "health_check",
         "title": {
           "en": "Health check",
-          "de": "Health-Check"
+          "de": "Health-Check",
+          "nl": "Health check"
         },
         "args": [
           {
@@ -1387,7 +1532,8 @@
             "type": "boolean",
             "title": {
               "en": "OK",
-              "de": "OK"
+              "de": "OK",
+              "nl": "OK"
             }
           },
           {
@@ -1395,7 +1541,8 @@
             "type": "string",
             "title": {
               "en": "Version",
-              "de": "Version"
+              "de": "Version",
+              "nl": "Versie"
             }
           },
           {
@@ -1403,7 +1550,8 @@
             "type": "string",
             "title": {
               "en": "Server",
-              "de": "Server"
+              "de": "Server",
+              "nl": "Server"
             }
           },
           {
@@ -1411,7 +1559,8 @@
             "type": "number",
             "title": {
               "en": "Latency (ms)",
-              "de": "Latenz (ms)"
+              "de": "Latenz (ms)",
+              "nl": "Latentie (ms)"
             }
           }
         ]
@@ -1420,7 +1569,8 @@
         "id": "mark_watched",
         "title": {
           "en": "Mark current item as watched",
-          "de": "Aktuelles Item als gesehen markieren"
+          "de": "Aktuelles Item als gesehen markieren",
+          "nl": "Huidig item markeren als bekeken"
         },
         "args": [
           {
@@ -1434,15 +1584,18 @@
         "id": "play_item",
         "title": {
           "en": "Play item",
-          "de": "Item abspielen"
+          "de": "Item abspielen",
+          "nl": "Item afspelen"
         },
         "titleFormatted": {
           "en": "Play [[item]]",
-          "de": "Spiele [[item]]"
+          "de": "Spiele [[item]]",
+          "nl": "[[item]] afspelen"
         },
         "hint": {
           "en": "Searches the user's library and starts the picked item on whatever client they're active on.",
-          "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers."
+          "de": "Sucht in der Bibliothek und startet das gewählte Item auf dem aktiven Client des Benutzers.",
+          "nl": "Doorzoekt de bibliotheek van de gebruiker en start het gekozen item op de client waarop hij actief is."
         },
         "args": [
           {
@@ -1455,7 +1608,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Item",
-              "de": "Item"
+              "de": "Item",
+              "nl": "Item"
             }
           }
         ]
@@ -1464,11 +1618,13 @@
         "id": "play_random",
         "title": {
           "en": "Play random",
-          "de": "Zufällig abspielen"
+          "de": "Zufällig abspielen",
+          "nl": "Willekeurig afspelen"
         },
         "titleFormatted": {
           "en": "Play a random [[item_type]] in [[genre]]",
-          "de": "Zufälligen [[item_type]] in [[genre]] abspielen"
+          "de": "Zufälligen [[item_type]] in [[genre]] abspielen",
+          "nl": "Willekeurige [[item_type]] in [[genre]] afspelen"
         },
         "args": [
           {
@@ -1481,21 +1637,24 @@
             "type": "dropdown",
             "title": {
               "en": "Type",
-              "de": "Typ"
+              "de": "Typ",
+              "nl": "Type"
             },
             "values": [
               {
                 "id": "Movie",
                 "label": {
                   "en": "Movie",
-                  "de": "Film"
+                  "de": "Film",
+                  "nl": "Film"
                 }
               },
               {
                 "id": "Episode",
                 "label": {
                   "en": "Episode",
-                  "de": "Folge"
+                  "de": "Folge",
+                  "nl": "Aflevering"
                 }
               }
             ]
@@ -1505,7 +1664,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Genre",
-              "de": "Genre"
+              "de": "Genre",
+              "nl": "Genre"
             }
           }
         ],
@@ -1515,7 +1675,8 @@
             "type": "string",
             "title": {
               "en": "Title",
-              "de": "Titel"
+              "de": "Titel",
+              "nl": "Titel"
             }
           }
         ]
@@ -1524,11 +1685,13 @@
         "id": "queue_add",
         "title": {
           "en": "Add to queue",
-          "de": "Zur Warteschlange hinzufügen"
+          "de": "Zur Warteschlange hinzufügen",
+          "nl": "Aan wachtrij toevoegen"
         },
         "titleFormatted": {
           "en": "Queue [[item]] ([[where]])",
-          "de": "[[item]] in Warteschlange ([[where]])"
+          "de": "[[item]] in Warteschlange ([[where]])",
+          "nl": "[[item]] in wachtrij ([[where]])"
         },
         "args": [
           {
@@ -1541,7 +1704,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Item",
-              "de": "Item"
+              "de": "Item",
+              "nl": "Item"
             }
           },
           {
@@ -1549,21 +1713,24 @@
             "type": "dropdown",
             "title": {
               "en": "Position",
-              "de": "Position"
+              "de": "Position",
+              "nl": "Positie"
             },
             "values": [
               {
                 "id": "PlayNext",
                 "label": {
                   "en": "Up next",
-                  "de": "Als Nächstes"
+                  "de": "Als Nächstes",
+                  "nl": "Verder kijken"
                 }
               },
               {
                 "id": "PlayLast",
                 "label": {
                   "en": "End of queue",
-                  "de": "Ans Ende"
+                  "de": "Ans Ende",
+                  "nl": "Einde van wachtrij"
                 }
               }
             ]
@@ -1574,7 +1741,8 @@
         "id": "queue_clear",
         "title": {
           "en": "Clear queue / stop",
-          "de": "Warteschlange leeren / stoppen"
+          "de": "Warteschlange leeren / stoppen",
+          "nl": "Wachtrij wissen / stoppen"
         },
         "args": [
           {
@@ -1588,11 +1756,13 @@
         "id": "restart_server",
         "title": {
           "en": "Restart Jellyfin server",
-          "de": "Jellyfin-Server neu starten"
+          "de": "Jellyfin-Server neu starten",
+          "nl": "Jellyfin-server herstarten"
         },
         "hint": {
           "en": "Requires the API key to belong to an admin user.",
-          "de": "Erfordert einen Admin-API-Key."
+          "de": "Erfordert einen Admin-API-Key.",
+          "nl": "Vereist dat de API-sleutel van een beheerder is."
         },
         "args": [
           {
@@ -1606,15 +1776,18 @@
         "id": "seek_relative",
         "title": {
           "en": "Skip forward/back",
-          "de": "Vor-/Zurückspulen"
+          "de": "Vor-/Zurückspulen",
+          "nl": "Vooruit/terug spoelen"
         },
         "titleFormatted": {
           "en": "Skip [[seconds]] s",
-          "de": "Spule [[seconds]] s"
+          "de": "Spule [[seconds]] s",
+          "nl": "[[seconds]] s spoelen"
         },
         "hint": {
           "en": "Negative values skip backward (e.g. -30).",
-          "de": "Negative Werte spulen zurück (z. B. -30)."
+          "de": "Negative Werte spulen zurück (z. B. -30).",
+          "nl": "Negatieve waarden spoelen terug (bijv. -30)."
         },
         "args": [
           {
@@ -1627,7 +1800,8 @@
             "type": "number",
             "title": {
               "en": "Delta (s)",
-              "de": "Delta (s)"
+              "de": "Delta (s)",
+              "nl": "Delta (s)"
             },
             "min": -3600,
             "max": 3600,
@@ -1639,11 +1813,13 @@
         "id": "seek_to",
         "title": {
           "en": "Seek to position",
-          "de": "Spule zu Position"
+          "de": "Spule zu Position",
+          "nl": "Naar positie spoelen"
         },
         "titleFormatted": {
           "en": "Seek to [[seconds]] s",
-          "de": "Spule zu [[seconds]] s"
+          "de": "Spule zu [[seconds]] s",
+          "nl": "Naar [[seconds]] s spoelen"
         },
         "args": [
           {
@@ -1656,7 +1832,8 @@
             "type": "number",
             "title": {
               "en": "Position (s)",
-              "de": "Position (s)"
+              "de": "Position (s)",
+              "nl": "Positie (s)"
             },
             "min": 0,
             "max": 99999,
@@ -1668,11 +1845,13 @@
         "id": "send_message",
         "title": {
           "en": "Send message to client",
-          "de": "Nachricht an Client senden"
+          "de": "Nachricht an Client senden",
+          "nl": "Bericht naar client sturen"
         },
         "titleFormatted": {
           "en": "Send message [[header]]: [[text]] (timeout [[timeout_ms]] ms)",
-          "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)"
+          "de": "Nachricht senden [[header]]: [[text]] (Timeout [[timeout_ms]] ms)",
+          "nl": "Bericht sturen [[header]]: [[text]] (time-out [[timeout_ms]] ms)"
         },
         "args": [
           {
@@ -1685,11 +1864,13 @@
             "type": "text",
             "title": {
               "en": "Header",
-              "de": "Überschrift"
+              "de": "Überschrift",
+              "nl": "Kop"
             },
             "placeholder": {
               "en": "Homey",
-              "de": "Homey"
+              "de": "Homey",
+              "nl": "Homey"
             }
           },
           {
@@ -1697,7 +1878,8 @@
             "type": "text",
             "title": {
               "en": "Text",
-              "de": "Text"
+              "de": "Text",
+              "nl": "Tekst"
             }
           },
           {
@@ -1705,14 +1887,16 @@
             "type": "number",
             "title": {
               "en": "Timeout (ms)",
-              "de": "Timeout (ms)"
+              "de": "Timeout (ms)",
+              "nl": "Time-out (ms)"
             },
             "min": 0,
             "max": 60000,
             "step": 500,
             "placeholder": {
               "en": "5000",
-              "de": "5000"
+              "de": "5000",
+              "nl": "5000"
             }
           }
         ]
@@ -1721,11 +1905,13 @@
         "id": "set_audio_track",
         "title": {
           "en": "Set audio track",
-          "de": "Audio-Spur wählen"
+          "de": "Audio-Spur wählen",
+          "nl": "Audiospoor instellen"
         },
         "titleFormatted": {
           "en": "Set audio track to [[track]]",
-          "de": "Audio-Spur auf [[track]] setzen"
+          "de": "Audio-Spur auf [[track]] setzen",
+          "nl": "Audiospoor instellen op [[track]]"
         },
         "args": [
           {
@@ -1738,7 +1924,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Track",
-              "de": "Spur"
+              "de": "Spur",
+              "nl": "Spoor"
             }
           }
         ]
@@ -1747,11 +1934,13 @@
         "id": "set_subtitle_track",
         "title": {
           "en": "Set subtitle track",
-          "de": "Untertitel wählen"
+          "de": "Untertitel wählen",
+          "nl": "Ondertitelspoor instellen"
         },
         "titleFormatted": {
           "en": "Set subtitle to [[track]]",
-          "de": "Untertitel auf [[track]] setzen"
+          "de": "Untertitel auf [[track]] setzen",
+          "nl": "Ondertiteling instellen op [[track]]"
         },
         "args": [
           {
@@ -1764,7 +1953,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Track",
-              "de": "Spur"
+              "de": "Spur",
+              "nl": "Spoor"
             }
           }
         ]
@@ -1773,11 +1963,13 @@
         "id": "shutdown_server",
         "title": {
           "en": "Shut down Jellyfin server",
-          "de": "Jellyfin-Server herunterfahren"
+          "de": "Jellyfin-Server herunterfahren",
+          "nl": "Jellyfin-server afsluiten"
         },
         "hint": {
           "en": "Requires the API key to belong to an admin user.",
-          "de": "Erfordert einen Admin-API-Key."
+          "de": "Erfordert einen Admin-API-Key.",
+          "nl": "Vereist dat de API-sleutel van een beheerder is."
         },
         "args": [
           {
@@ -1791,15 +1983,18 @@
         "id": "skip_chapter",
         "title": {
           "en": "Skip chapter",
-          "de": "Kapitel überspringen"
+          "de": "Kapitel überspringen",
+          "nl": "Hoofdstuk overslaan"
         },
         "titleFormatted": {
           "en": "Skip [[direction]] chapter",
-          "de": "[[direction]] Kapitel überspringen"
+          "de": "[[direction]] Kapitel überspringen",
+          "nl": "Naar [[direction]] hoofdstuk"
         },
         "hint": {
           "en": "Jumps to the previous / next chapter boundary using the item's chapter data. Handy for Intros & Credits.",
-          "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann."
+          "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann.",
+          "nl": "Springt naar het vorige / volgende hoofdstuk op basis van de hoofdstukgegevens van het item. Handig voor intro's en aftiteling."
         },
         "args": [
           {
@@ -1812,21 +2007,24 @@
             "type": "dropdown",
             "title": {
               "en": "Direction",
-              "de": "Richtung"
+              "de": "Richtung",
+              "nl": "Richting"
             },
             "values": [
               {
                 "id": "next",
                 "label": {
                   "en": "Next",
-                  "de": "Nächstes"
+                  "de": "Nächstes",
+                  "nl": "Volgende"
                 }
               },
               {
                 "id": "prev",
                 "label": {
                   "en": "Previous",
-                  "de": "Vorheriges"
+                  "de": "Vorheriges",
+                  "nl": "Vorige"
                 }
               }
             ]
@@ -1837,11 +2035,13 @@
         "id": "start_library_scan",
         "title": {
           "en": "Scan library",
-          "de": "Bibliothek scannen"
+          "de": "Bibliothek scannen",
+          "nl": "Bibliotheek scannen"
         },
         "titleFormatted": {
           "en": "Scan library [[library]]",
-          "de": "Bibliothek [[library]] scannen"
+          "de": "Bibliothek [[library]] scannen",
+          "nl": "Bibliotheek [[library]] scannen"
         },
         "args": [
           {
@@ -1854,7 +2054,8 @@
             "type": "autocomplete",
             "title": {
               "en": "Library",
-              "de": "Bibliothek"
+              "de": "Bibliothek",
+              "nl": "Bibliotheek"
             }
           }
         ]
@@ -1863,7 +2064,8 @@
         "id": "toggle_favorite",
         "title": {
           "en": "Toggle favorite on current item",
-          "de": "Favorit für aktuelles Item umschalten"
+          "de": "Favorit für aktuelles Item umschalten",
+          "nl": "Favoriet omschakelen voor huidig item"
         },
         "args": [
           {
@@ -1879,7 +2081,8 @@
     {
       "name": {
         "en": "Jellyfin Server",
-        "de": "Jellyfin-Server"
+        "de": "Jellyfin-Server",
+        "nl": "Jellyfin-server"
       },
       "class": "other",
       "capabilities": [
@@ -1919,7 +2122,8 @@
           "type": "group",
           "label": {
             "en": "Connection",
-            "de": "Verbindung"
+            "de": "Verbindung",
+            "nl": "Verbinding"
           },
           "children": [
             {
@@ -1927,11 +2131,13 @@
               "type": "text",
               "label": {
                 "en": "Server URL",
-                "de": "Server-URL"
+                "de": "Server-URL",
+                "nl": "Server-URL"
               },
               "hint": {
                 "en": "e.g. http://192.168.1.10:8096",
-                "de": "z. B. http://192.168.1.10:8096"
+                "de": "z. B. http://192.168.1.10:8096",
+                "nl": "bijv. http://192.168.1.10:8096"
               },
               "value": ""
             },
@@ -1940,7 +2146,8 @@
               "type": "password",
               "label": {
                 "en": "API Key",
-                "de": "API-Schlüssel"
+                "de": "API-Schlüssel",
+                "nl": "API-sleutel"
               },
               "value": ""
             },
@@ -1949,11 +2156,13 @@
               "type": "text",
               "label": {
                 "en": "Default user",
-                "de": "Standard-Benutzer"
+                "de": "Standard-Benutzer",
+                "nl": "Standaardgebruiker"
               },
               "hint": {
                 "en": "User whose latest items / counts are reported.",
-                "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden."
+                "de": "Benutzer, dessen 'Zuletzt hinzugefügt' und Counts angezeigt werden.",
+                "nl": "Gebruiker van wie de nieuwste items / aantallen worden getoond."
               },
               "value": ""
             },
@@ -1962,11 +2171,13 @@
               "type": "checkbox",
               "label": {
                 "en": "Allow self-signed HTTPS",
-                "de": "Selbst-signierte HTTPS-Zertifikate erlauben"
+                "de": "Selbst-signierte HTTPS-Zertifikate erlauben",
+                "nl": "Zelfondertekende HTTPS toestaan"
               },
               "hint": {
                 "en": "Tick this if your Jellyfin uses HTTPS with a self-signed certificate.",
-                "de": "Aktivieren, wenn dein Jellyfin HTTPS mit selbst-signiertem Zertifikat nutzt."
+                "de": "Aktivieren, wenn dein Jellyfin HTTPS mit selbst-signiertem Zertifikat nutzt.",
+                "nl": "Vink dit aan als je Jellyfin HTTPS met een zelfondertekend certificaat gebruikt."
               },
               "value": false
             }
@@ -1976,7 +2187,8 @@
           "type": "group",
           "label": {
             "en": "Polling",
-            "de": "Polling"
+            "de": "Polling",
+            "nl": "Polling"
           },
           "children": [
             {
@@ -1984,7 +2196,8 @@
               "type": "number",
               "label": {
                 "en": "Library refresh (min)",
-                "de": "Bibliotheks-Refresh (min)"
+                "de": "Bibliotheks-Refresh (min)",
+                "nl": "Bibliotheek-verversing (min)"
               },
               "value": 5,
               "min": 1,
@@ -1995,11 +2208,13 @@
               "type": "number",
               "label": {
                 "en": "Idle session poll (s)",
-                "de": "Idle-Session-Polling (s)"
+                "de": "Idle-Session-Polling (s)",
+                "nl": "Inactieve sessie-polling (s)"
               },
               "hint": {
                 "en": "How often to poll /Sessions while no clients are streaming (and the WebSocket is down).",
-                "de": "Wie oft /Sessions abgefragt werden, wenn nichts streamt (und der Socket weg ist)."
+                "de": "Wie oft /Sessions abgefragt werden, wenn nichts streamt (und der Socket weg ist).",
+                "nl": "Hoe vaak /Sessions wordt opgevraagd wanneer er niets streamt (en de WebSocket niet beschikbaar is)."
               },
               "value": 30,
               "min": 5,
@@ -2010,11 +2225,13 @@
               "type": "number",
               "label": {
                 "en": "Active session poll (s)",
-                "de": "Aktiv-Session-Polling (s)"
+                "de": "Aktiv-Session-Polling (s)",
+                "nl": "Actieve sessie-polling (s)"
               },
               "hint": {
                 "en": "How often to poll /Sessions while something is playing (used as a low-latency fallback alongside the WebSocket).",
-                "de": "Wie oft /Sessions abgefragt werden, wenn etwas läuft (Polling parallel zum WebSocket für niedrige Latenz)."
+                "de": "Wie oft /Sessions abgefragt werden, wenn etwas läuft (Polling parallel zum WebSocket für niedrige Latenz).",
+                "nl": "Hoe vaak /Sessions wordt opgevraagd terwijl er iets afspeelt (lage-latentie-fallback naast de WebSocket)."
               },
               "value": 5,
               "min": 2,
@@ -2028,7 +2245,8 @@
     {
       "name": {
         "en": "Jellyfin User",
-        "de": "Jellyfin-Benutzer"
+        "de": "Jellyfin-Benutzer",
+        "nl": "Jellyfin-gebruiker"
       },
       "class": "tv",
       "capabilities": [
@@ -2071,7 +2289,8 @@
           "type": "group",
           "label": {
             "en": "Behavior",
-            "de": "Verhalten"
+            "de": "Verhalten",
+            "nl": "Gedrag"
           },
           "children": [
             {
@@ -2079,11 +2298,13 @@
               "type": "number",
               "label": {
                 "en": "Stop debounce (ms)",
-                "de": "Stop-Entprellzeit (ms)"
+                "de": "Stop-Entprellzeit (ms)",
+                "nl": "Stop-vertraging (ms)"
               },
               "hint": {
                 "en": "Wait this long after the user's session disappears before firing the Stopped trigger.",
-                "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert."
+                "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert.",
+                "nl": "Wacht zo lang nadat de sessie van de gebruiker verdwijnt voordat de Gestopt-trigger wordt geactiveerd."
               },
               "value": 4000,
               "min": 0,
@@ -2094,7 +2315,8 @@
               "type": "number",
               "label": {
                 "en": "Unwatched refresh (min)",
-                "de": "Refresh ungesehen (min)"
+                "de": "Refresh ungesehen (min)",
+                "nl": "Verversing ongekeken (min)"
               },
               "value": 10,
               "min": 1,
@@ -2105,11 +2327,13 @@
               "type": "number",
               "label": {
                 "en": "Volume cap (%)",
-                "de": "Lautstärke-Limit (%)"
+                "de": "Lautstärke-Limit (%)",
+                "nl": "Volumelimiet (%)"
               },
               "hint": {
                 "en": "Maximum volume that Homey will send to the client (0 = disabled).",
-                "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus)."
+                "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus).",
+                "nl": "Maximaal volume dat Homey naar de client stuurt (0 = uitgeschakeld)."
               },
               "value": 0,
               "min": 0,
@@ -2120,11 +2344,13 @@
               "type": "number",
               "label": {
                 "en": "Daily summary hour",
-                "de": "Tageszusammenfassung (Stunde)"
+                "de": "Tageszusammenfassung (Stunde)",
+                "nl": "Uur dagelijkse samenvatting"
               },
               "hint": {
                 "en": "Hour of the day (0-23) when the daily summary trigger fires.",
-                "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert."
+                "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert.",
+                "nl": "Uur van de dag (0-23) waarop de dagelijkse samenvatting wordt geactiveerd."
               },
               "value": 22,
               "min": 0,
@@ -2140,7 +2366,8 @@
     "now_playing": {
       "name": {
         "en": "Now playing",
-        "de": "Läuft gerade"
+        "de": "Läuft gerade",
+        "nl": "Wordt nu afgespeeld"
       },
       "height": 320,
       "settings": [
@@ -2149,7 +2376,8 @@
           "type": "number",
           "title": {
             "en": "Refresh interval (s)",
-            "de": "Aktualisierung (s)"
+            "de": "Aktualisierung (s)",
+            "nl": "Verversingsinterval (s)"
           },
           "value": 2,
           "min": 1,
@@ -2190,7 +2418,8 @@
     "server_overview": {
       "name": {
         "en": "Server overview",
-        "de": "Server-Übersicht"
+        "de": "Server-Übersicht",
+        "nl": "Serveroverzicht"
       },
       "height": 280,
       "settings": [
@@ -2199,7 +2428,8 @@
           "type": "number",
           "title": {
             "en": "Refresh interval (s)",
-            "de": "Aktualisierung (s)"
+            "de": "Aktualisierung (s)",
+            "nl": "Verversingsinterval (s)"
           },
           "value": 5,
           "min": 2,

@@ -1,12 +1,39 @@
 {
-  "title": { "en": "Daily summary", "de": "Tageszusammenfassung" },
+  "title": {
+    "en": "Daily summary",
+    "de": "Tageszusammenfassung",
+    "nl": "Dagelijkse samenvatting"
+  },
   "hint": {
     "en": "Fires once a day with watch-time totals for the user.",
-    "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst."
+    "de": "Wird einmal täglich mit Watch-Time-Tokens des Benutzers ausgelöst.",
+    "nl": "Wordt eenmaal per dag geactiveerd met de totale kijktijd van de gebruiker."
   },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }],
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ],
   "tokens": [
-    { "name": "minutes_today", "type": "number", "title": { "en": "Minutes today", "de": "Minuten heute" } },
-    { "name": "minutes_week",  "type": "number", "title": { "en": "Minutes this week", "de": "Minuten diese Woche" } }
+    {
+      "name": "minutes_today",
+      "type": "number",
+      "title": {
+        "en": "Minutes today",
+        "de": "Minuten heute",
+        "nl": "Minuten vandaag"
+      }
+    },
+    {
+      "name": "minutes_week",
+      "type": "number",
+      "title": {
+        "en": "Minutes this week",
+        "de": "Minuten diese Woche",
+        "nl": "Minuten deze week"
+      }
+    }
   ]
 }

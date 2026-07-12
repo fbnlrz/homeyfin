@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* Guideline 1.9/1.10: 1024x1024, transparent background, simple shapes, no text. */
+  html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  body { position: fixed; inset: 0; display: grid; place-items: center; }
+
+  :root {
+    --cyan: #00a4dc;
+    --purple: #aa5cc3;
+  }
+  body[data-theme="light"] {
+    --card: #ffffff;
+    --tile: #eef1f6;
+    --bar: #d7dde8;
+    --bar-strong: #aeb9cb;
+    --shadow: rgba(30, 45, 70, 0.18);
+  }
+  body[data-theme="dark"] {
+    --card: #1c2437;
+    --tile: #273047;
+    --bar: #3a465f;
+    --bar-strong: #56637f;
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  .card {
+    width: 78vw;
+    border-radius: 6vw;
+    background: var(--card);
+    box-shadow: 0 4vw 9vw var(--shadow);
+    padding: 5vw;
+    display: flex; flex-direction: column; gap: 4vw;
+  }
+
+  .bar { border-radius: 2vw; background: var(--bar); }
+  .bar.strong { background: var(--bar-strong); }
+  .brand-dot { border-radius: 2.4vw; background: linear-gradient(135deg, var(--purple), var(--cyan)); flex-shrink: 0; }
+
+  /* --- header (shared) --- */
+  .head { display: flex; align-items: center; gap: 3vw; }
+  .head .brand-dot { width: 8vw; height: 8vw; }
+  .head .lines { flex: 1; display: flex; flex-direction: column; gap: 1.8vw; }
+  .head .lines .bar:nth-child(1) { width: 40%; height: 3vw; }
+  .head .lines .bar:nth-child(2) { width: 26%; height: 2.2vw; }
+  .pill { width: 14vw; height: 4.6vw; border-radius: 4vw; background: var(--tile); }
+
+  /* --- server overview --- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.6vw; }
+  .stat { background: var(--tile); border-radius: 3vw; padding: 3vw 2vw; display: flex; flex-direction: column; align-items: center; gap: 1.8vw; }
+  .stat .bar:nth-child(1) { width: 55%; height: 3.6vw; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .stat .bar:nth-child(2) { width: 70%; height: 1.8vw; }
+
+  .stream { display: flex; align-items: center; gap: 3vw; background: var(--tile); border-radius: 3vw; padding: 2.6vw; }
+  .poster { width: 8.5vw; height: 12.5vw; border-radius: 2vw; flex-shrink: 0; }
+  .poster.a { background: linear-gradient(150deg, #12d0b0, #0a6f96); }
+  .poster.b { background: linear-gradient(150deg, #ff6ea8, #8a3390); }
+  .stream .mid { flex: 1; display: flex; flex-direction: column; gap: 2vw; }
+  .stream .mid .bar:nth-child(1) { width: 60%; height: 2.6vw; }
+  .stream .mid .bar:nth-child(2) { width: 42%; height: 2vw; }
+  .progress { height: 1.6vw; border-radius: 2vw; background: var(--bar); position: relative; overflow: hidden; }
+  .progress > i { position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 2vw; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+
+  /* --- now playing --- */
+  .np-hero { display: flex; gap: 4vw; align-items: center; }
+  .np-poster { width: 22vw; height: 32vw; border-radius: 3.4vw; background: linear-gradient(150deg, #2b6df0, #7d3bd6 70%, #3a1f86); position: relative; flex-shrink: 0; box-shadow: 0 2.5vw 5vw var(--shadow); }
+  .np-poster::after { content: ""; position: absolute; inset: 0; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.34) 0 6vw, transparent 6.2vw); }
+  .np-meta { flex: 1; display: flex; flex-direction: column; gap: 2.6vw; }
+  .np-meta .bar:nth-child(1) { width: 78%; height: 4vw; }
+  .np-meta .bar:nth-child(2) { width: 52%; height: 2.6vw; }
+  .np-meta .bar:nth-child(3) { width: 64%; height: 2.6vw; }
+
+  .np-progress { height: 2.2vw; border-radius: 3vw; background: var(--bar); position: relative; }
+  .np-progress > i { position: absolute; left: 0; top: 0; bottom: 0; width: 62%; border-radius: 3vw; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .np-progress > s { position: absolute; left: 62%; top: 50%; transform: translate(-50%, -50%); width: 5vw; height: 5vw; border-radius: 50%; background: var(--card); border: 1vw solid var(--cyan); box-shadow: 0 1vw 2.4vw var(--shadow); }
+
+  .controls { display: flex; justify-content: center; align-items: center; gap: 4.5vw; }
+  .btn { width: 9vw; height: 9vw; border-radius: 50%; background: var(--tile); display: grid; place-items: center; }
+  .btn.big { width: 14vw; height: 14vw; background: linear-gradient(135deg, var(--purple), var(--cyan)); box-shadow: 0 2vw 5vw var(--shadow); }
+  .btn i { display: block; width: 3vw; height: 3vw; border-radius: 1vw; background: var(--bar-strong); }
+  .btn.big i { width: 0; height: 0; border-radius: 0; background: none;
+    border-left: 4.6vw solid #fff; border-top: 2.9vw solid transparent; border-bottom: 2.9vw solid transparent; margin-left: 1vw; }
+</style>
+</head>
+<body data-theme="light">
+  <div class="card" id="card"></div>
+  <script>
+    const q = Object.fromEntries(new URLSearchParams(location.search));
+    document.body.dataset.theme = q.theme === 'dark' ? 'dark' : 'light';
+
+    const layouts = {
+      server_overview: `
+        <div class="head"><div class="brand-dot"></div><div class="lines"><div class="bar"></div><div class="bar"></div></div><div class="pill"></div></div>
+        <div class="stats">
+          <div class="stat"><div class="bar"></div><div class="bar"></div></div>
+          <div class="stat"><div class="bar"></div><div class="bar"></div></div>
+          <div class="stat"><div class="bar"></div><div class="bar"></div></div>
+          <div class="stat"><div class="bar"></div><div class="bar"></div></div>
+        </div>
+        <div class="stream"><div class="poster a"></div><div class="mid"><div class="bar"></div><div class="bar"></div><div class="progress"><i style="width:62%"></i></div></div></div>
+        <div class="stream"><div class="poster b"></div><div class="mid"><div class="bar"></div><div class="bar"></div><div class="progress"><i style="width:31%"></i></div></div></div>`,
+      now_playing: `
+        <div class="np-hero"><div class="np-poster"></div><div class="np-meta"><div class="bar strong"></div><div class="bar"></div><div class="bar"></div></div></div>
+        <div class="np-progress"><i></i><s></s></div>
+        <div class="controls">
+          <div class="btn"><i></i></div>
+          <div class="btn"><i></i></div>
+          <div class="btn big"><i></i></div>
+          <div class="btn"><i></i></div>
+          <div class="btn"><i></i></div>
+        </div>`
+    };
+    document.getElementById('card').innerHTML = layouts[q.widget] || layouts.now_playing;
+  </script>
+</body>
+</html>
