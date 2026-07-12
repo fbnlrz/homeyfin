@@ -12,5 +12,10 @@
     "en": "New name Jellycontrol, fixed icons, new store images and widget previews, shorter store texts, full Dutch translation, SDK-compliance fixes.",
     "de": "Neuer Name Jellycontrol, korrigierte Icons, neue Store-Bilder und Widget-Vorschauen, kürzere Store-Texte, vollständige niederländische Übersetzung, SDK-Konformität.",
     "nl": "Nieuwe naam Jellycontrol, gecorrigeerde iconen, nieuwe store-afbeeldingen en widget-previews, kortere store-teksten, volledige Nederlandse vertaling, SDK-verbeteringen."
+  },
+  "2.0.2": {
+    "en": "Renamed to Jellycontrol, new app icons and store images, distinct widget previews, and a complete Dutch translation.",
+    "de": "Umbenannt in Jellycontrol, neue App-Icons und Store-Bilder, eigene Widget-Vorschauen und vollständige niederländische Übersetzung.",
+    "nl": "Hernoemd naar Jellycontrol, nieuwe app-iconen en store-afbeeldingen, aparte widget-previews en volledige Nederlandse vertaling."
   }
 }
