@@ -17,5 +17,10 @@
     "en": "Renamed to Jellycontrol, new app icons and store images, distinct widget previews, and a complete Dutch translation.",
     "de": "Umbenannt in Jellycontrol, neue App-Icons und Store-Bilder, eigene Widget-Vorschauen und vollständige niederländische Übersetzung.",
     "nl": "Hernoemd naar Jellycontrol, nieuwe app-iconen en store-afbeeldingen, aparte widget-previews en volledige Nederlandse vertaling."
+  },
+  "2.0.3": {
+    "en": "New app ID and a fresh tagline.",
+    "de": "Neue App-ID und ein neuer Slogan.",
+    "nl": "Nieuwe app-ID en een nieuwe slogan."
   }
 }

@@ -1,6 +1,6 @@
 {
-  "id": "com.frlrnzn.homeyfin",
-  "version": "2.0.2",
+  "id": "com.frlrnzn.jellycontrol",
+  "version": "2.0.3",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": [
@@ -12,9 +12,9 @@
     "nl": "Jellycontrol"
   },
   "description": {
-    "en": "Control your Jellyfin media server straight from Homey.",
-    "de": "Steuere deinen Jellyfin-Medienserver direkt mit Homey.",
-    "nl": "Bedien je Jellyfin-mediaserver rechtstreeks vanuit Homey."
+    "en": "Let your home react to what you're watching.",
+    "de": "Lass dein Zuhause auf das reagieren, was du gerade schaust.",
+    "nl": "Laat je huis reageren op wat je kijkt."
   },
   "category": [
     "video"
