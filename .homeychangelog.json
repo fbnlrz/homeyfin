@@ -27,5 +27,15 @@
     "en": "Fix: volume, mute and play/pause on a user's stream now work on the first try, by always targeting the current session.",
     "de": "Fix: Lautstärke, Stummschalten und Play/Pause beim Stream eines Benutzers funktionieren jetzt auf Anhieb, da immer die aktuelle Session angesprochen wird.",
     "nl": "Fix: volume, dempen en afspelen/pauzeren van de stream van een gebruiker werken nu meteen, doordat altijd de huidige sessie wordt aangesproken."
+  },
+  "2.1.0": {
+    "en": "New: Jellyfin Player devices — add individual Jellyfin clients (per user), place them in Homey rooms and control them directly.",
+    "de": "Neu: Jellyfin-Player-Geräte — einzelne Jellyfin-Clients (pro Benutzer) hinzufügen, Homey-Räumen zuweisen und direkt steuern.",
+    "nl": "Nieuw: Jellyfin-speler-apparaten — voeg losse Jellyfin-clients (per gebruiker) toe, plaats ze in Homey-kamers en bedien ze direct."
+  },
+  "2.1.1": {
+    "en": "Fix: remote control could occasionally target the wrong session (the app's own connection); commands now always hit the real player and retry once on failure.",
+    "de": "Fix: Die Steuerung konnte gelegentlich die falsche Session treffen (die eigene App-Verbindung); Befehle zielen jetzt immer auf den echten Player und werden bei Fehler einmal wiederholt.",
+    "nl": "Fix: de bediening kon soms de verkeerde sessie raken (de eigen verbinding van de app); opdrachten treffen nu altijd de echte speler en worden bij een fout één keer opnieuw geprobeerd."
   }
 }

@@ -1,0 +1,59 @@
+{
+  "name": { "en": "Jellyfin Player", "de": "Jellyfin-Player", "nl": "Jellyfin-speler" },
+  "class": "tv",
+  "capabilities": [
+    "speaker_playing",
+    "speaker_next",
+    "speaker_prev",
+    "speaker_track",
+    "speaker_artist",
+    "speaker_album",
+    "volume_set",
+    "volume_mute",
+    "media_title",
+    "media_subtitle",
+    "media_position",
+    "media_duration",
+    "client_online",
+    "is_transcoding"
+  ],
+  "platforms": ["local"],
+  "connectivity": ["lan"],
+  "images": {
+    "small": "/drivers/player/assets/images/small.png",
+    "large": "/drivers/player/assets/images/large.png",
+    "xlarge": "/drivers/player/assets/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "list_devices",
+      "template": "list_devices",
+      "navigation": { "next": "add_devices" }
+    },
+    {
+      "id": "add_devices",
+      "template": "add_devices"
+    }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": { "en": "Behavior", "de": "Verhalten", "nl": "Gedrag" },
+      "children": [
+        {
+          "id": "volumeCapPercent",
+          "type": "number",
+          "label": { "en": "Volume cap (%)", "de": "Lautstärke-Limit (%)", "nl": "Volumelimiet (%)" },
+          "hint": {
+            "en": "Maximum volume that Homey will send to this player (0 = disabled).",
+            "de": "Maximale Lautstärke, die Homey an diesen Player sendet (0 = aus).",
+            "nl": "Maximaal volume dat Homey naar deze speler stuurt (0 = uitgeschakeld)."
+          },
+          "value": 0,
+          "min": 0,
+          "max": 100
+        }
+      ]
+    }
+  ]
+}

@@ -35,12 +35,13 @@
   <script>
     const glyphs = {
       server: '<svg viewBox="0 0 100 100"><path fill-rule="evenodd" d="M16 22 H84 V46 H16 Z M26 30 H40 V38 H26 Z M16 54 H84 V78 H16 Z M26 62 H40 V70 H26 Z"/></svg>',
-      user: '<svg viewBox="0 0 100 100"><path d="M50 20 A16 16 0 1 0 50 52 A16 16 0 1 0 50 20 Z M20 84 C20 66 33 56 50 56 C67 56 80 66 80 84 Z"/></svg>'
+      user: '<svg viewBox="0 0 100 100"><path d="M50 20 A16 16 0 1 0 50 52 A16 16 0 1 0 50 20 Z M20 84 C20 66 33 56 50 56 C67 56 80 66 80 84 Z"/></svg>',
+      player: '<svg viewBox="0 0 100 100"><path d="M35 25 L78 50 L35 75 Z"/></svg>'
     };
     const which = (location.search.match(/glyph=(\w+)/) || [,'server'])[1];
     document.getElementById('glyph').innerHTML = glyphs[which] || glyphs.server;
-    // user tile: play-state dot in Jellyfin cyan instead of green
-    if (which === 'user') document.getElementById('dot').style.background = '#00a4dc';
+    // user/player tile: play-state dot in Jellyfin cyan instead of green
+    if (which === 'user' || which === 'player') document.getElementById('dot').style.background = '#00a4dc';
   </script>
 </body>
 </html>
