@@ -22,5 +22,8 @@
     "en": "New app ID and a fresh tagline.",
     "de": "Neue App-ID und ein neuer Slogan.",
     "nl": "Nieuwe app-ID en een nieuwe slogan."
+  },
+  "2.0.4": {
+    "en": "changed app-id"
   }
 }

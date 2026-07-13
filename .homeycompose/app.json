@@ -1,9 +1,11 @@
 {
   "id": "com.frlrnzn.jellycontrol",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "compatibility": ">=12.1.0",
   "sdk": 3,
-  "platforms": ["local"],
+  "platforms": [
+    "local"
+  ],
   "name": {
     "en": "Jellycontrol",
     "de": "Jellycontrol",
@@ -14,7 +16,9 @@
     "de": "Lass dein Zuhause auf das reagieren, was du gerade schaust.",
     "nl": "Laat je huis reageren op wat je kijkt."
   },
-  "category": ["video"],
+  "category": [
+    "video"
+  ],
   "permissions": [],
   "images": {
     "small": "/assets/images/small.png",
@@ -27,7 +31,10 @@
   },
   "contributors": {
     "developers": [
-      { "name": "Fabian-René Lorenzen", "email": "frlrnzn@gmail.com" }
+      {
+        "name": "Fabian-René Lorenzen",
+        "email": "frlrnzn@gmail.com"
+      }
     ]
   },
   "brandColor": "#00A4DC",
@@ -38,8 +45,29 @@
     "url": "https://github.com/fbnlrz/homeyfin/issues"
   },
   "tags": {
-    "en": ["jellyfin", "media", "video", "movies", "tv", "stream"],
-    "de": ["jellyfin", "medien", "video", "filme", "tv", "stream"],
-    "nl": ["jellyfin", "media", "video", "films", "tv", "stream"]
+    "en": [
+      "jellyfin",
+      "media",
+      "video",
+      "movies",
+      "tv",
+      "stream"
+    ],
+    "de": [
+      "jellyfin",
+      "medien",
+      "video",
+      "filme",
+      "tv",
+      "stream"
+    ],
+    "nl": [
+      "jellyfin",
+      "media",
+      "video",
+      "films",
+      "tv",
+      "stream"
+    ]
   }
 }
