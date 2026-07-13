@@ -2,7 +2,8 @@
   "type": "boolean",
   "title": {
     "en": "Server connected",
-    "de": "Server verbunden"
+    "de": "Server verbunden",
+    "nl": "Server verbonden"
   },
   "icon": "/assets/capabilities/server.svg",
   "getable": true,
@@ -11,10 +12,12 @@
   "insights": true,
   "insightsTitleTrue": {
     "en": "Connected",
-    "de": "Verbunden"
+    "de": "Verbunden",
+    "nl": "Verbonden"
   },
   "insightsTitleFalse": {
     "en": "Disconnected",
-    "de": "Getrennt"
+    "de": "Getrennt",
+    "nl": "Verbinding verbroken"
   }
 }

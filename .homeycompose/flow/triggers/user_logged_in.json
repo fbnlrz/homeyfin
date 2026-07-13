@@ -1,20 +1,57 @@
 {
-  "title": { "en": "User logged in", "de": "Benutzer angemeldet" },
+  "title": {
+    "en": "User logged in",
+    "de": "Benutzer angemeldet",
+    "nl": "Gebruiker aangemeld"
+  },
   "titleFormatted": {
     "en": "User [[user]] logged in",
-    "de": "Benutzer [[user]] angemeldet"
+    "de": "Benutzer [[user]] angemeldet",
+    "nl": "Gebruiker [[user]] aangemeld"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=server" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    },
     {
       "name": "user",
       "type": "autocomplete",
-      "title": { "en": "User", "de": "Benutzer" }
+      "title": {
+        "en": "User",
+        "de": "Benutzer",
+        "nl": "Gebruiker"
+      }
     }
   ],
   "tokens": [
-    { "name": "user",        "type": "string", "title": { "en": "User",        "de": "Benutzer" } },
-    { "name": "client",      "type": "string", "title": { "en": "Client",      "de": "Client" } },
-    { "name": "device_name", "type": "string", "title": { "en": "Device",      "de": "Gerät" } }
+    {
+      "name": "user",
+      "type": "string",
+      "title": {
+        "en": "User",
+        "de": "Benutzer",
+        "nl": "Gebruiker"
+      }
+    },
+    {
+      "name": "client",
+      "type": "string",
+      "title": {
+        "en": "Client",
+        "de": "Client",
+        "nl": "Client"
+      }
+    },
+    {
+      "name": "device_name",
+      "type": "string",
+      "title": {
+        "en": "Device",
+        "de": "Gerät",
+        "nl": "Apparaat"
+      }
+    }
   ]
 }

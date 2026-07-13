@@ -1,4 +1,4 @@
-# Media Control for Jellyfin
+# Jellycontrol
 
 Selfhosted Jellyfin integration for Homey. SDK v3, TypeScript — install
 directly from source on your own Homey, no App Store required.
@@ -127,20 +127,20 @@ runs in the background, writes to the Homey system log.
 3. Packs it as a `.tar`
 4. Deploys and installs it on the Homey
 
-First install takes 30–60 s. Afterwards **"Media Control for Jellyfin"** shows up in the
+First install takes 30–60 s. Afterwards **"Jellycontrol"** shows up in the
 Homey app under *Settings → Apps*.
 
 ### 5. Configure in Homey
 
 **Add the server device**
-1. Homey app → *Devices → Add → Media Control for Jellyfin → Jellyfin Server*
+1. Homey app → *Devices → Add → Jellycontrol → Jellyfin Server*
 2. Enter the URL: `http://<jellyfin-ip>:8096`
 3. Enter the API key (from Jellyfin: *Dashboard → API Keys → New API Key*)
 4. Tap *Test connection* — the user dropdown appears
 5. Pick the default user → *Add device*
 
 **Add a user device per family member**
-1. *Devices → Add → Media Control for Jellyfin → Jellyfin User*
+1. *Devices → Add → Jellycontrol → Jellyfin User*
 2. Pick the server from the dropdown, *Load users*
 3. Pick the user, *Add user*
 

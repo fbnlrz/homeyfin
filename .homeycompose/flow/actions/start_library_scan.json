@@ -1,15 +1,28 @@
 {
-  "title": { "en": "Scan library", "de": "Bibliothek scannen" },
+  "title": {
+    "en": "Scan library",
+    "de": "Bibliothek scannen",
+    "nl": "Bibliotheek scannen"
+  },
   "titleFormatted": {
     "en": "Scan library [[library]]",
-    "de": "Bibliothek [[library]] scannen"
+    "de": "Bibliothek [[library]] scannen",
+    "nl": "Bibliotheek [[library]] scannen"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=server" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    },
     {
       "name": "library",
       "type": "autocomplete",
-      "title": { "en": "Library", "de": "Bibliothek" }
+      "title": {
+        "en": "Library",
+        "de": "Bibliothek",
+        "nl": "Bibliotheek"
+      }
     }
   ]
 }

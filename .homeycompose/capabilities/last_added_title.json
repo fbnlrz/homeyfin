@@ -2,7 +2,8 @@
   "type": "string",
   "title": {
     "en": "Last added",
-    "de": "Zuletzt hinzugefügt"
+    "de": "Zuletzt hinzugefügt",
+    "nl": "Laatst toegevoegd"
   },
   "icon": "/assets/capabilities/new.svg",
   "getable": true,

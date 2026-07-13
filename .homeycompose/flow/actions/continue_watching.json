@@ -1,9 +1,25 @@
 {
-  "title": { "en": "Resume Continue Watching", "de": "Continue-Watching fortsetzen" },
+  "title": {
+    "en": "Resume Continue Watching",
+    "de": "Continue-Watching fortsetzen",
+    "nl": "Verder kijken hervatten"
+  },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" }
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
   ],
   "tokens": [
-    { "name": "title", "type": "string", "title": { "en": "Title", "de": "Titel" } }
+    {
+      "name": "title",
+      "type": "string",
+      "title": {
+        "en": "Title",
+        "de": "Titel",
+        "nl": "Titel"
+      }
+    }
   ]
 }

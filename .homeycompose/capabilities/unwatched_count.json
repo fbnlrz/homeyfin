@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Unwatched episodes",
-    "de": "Ungesehene Folgen"
+    "de": "Ungesehene Folgen",
+    "nl": "Ongekeken afleveringen"
   },
   "icon": "/assets/capabilities/eye.svg",
   "getable": true,

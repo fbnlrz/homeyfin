@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Active streams",
-    "de": "Aktive Streams"
+    "de": "Aktive Streams",
+    "nl": "Actieve streams"
   },
   "icon": "/assets/capabilities/streams.svg",
   "getable": true,

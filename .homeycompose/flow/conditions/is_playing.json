@@ -1,7 +1,14 @@
 {
   "title": {
     "en": "Is !{{playing|not playing}}",
-    "de": "Spielt !{{|nicht}}"
+    "de": "Spielt !{{|nicht}}",
+    "nl": "Speelt !{{af|niet af}}"
   },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }]
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ]
 }

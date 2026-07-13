@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Series",
-    "de": "Serien"
+    "de": "Serien",
+    "nl": "Series"
   },
   "icon": "/assets/capabilities/series.svg",
   "getable": true,

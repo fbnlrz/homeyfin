@@ -1,22 +1,53 @@
 {
   "title": {
     "en": "Media type !{{is|is not}}",
-    "de": "Medientyp !{{ist|ist nicht}}"
+    "de": "Medientyp !{{ist|ist nicht}}",
+    "nl": "Mediatype !{{is|is niet}}"
   },
   "titleFormatted": {
     "en": "Media type !{{is|is not}} [[media_type]]",
-    "de": "Medientyp !{{ist|ist nicht}} [[media_type]]"
+    "de": "Medientyp !{{ist|ist nicht}} [[media_type]]",
+    "nl": "Mediatype !{{is|is niet}} [[media_type]]"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "media_type",
       "type": "dropdown",
-      "title": { "en": "Type", "de": "Typ" },
+      "title": {
+        "en": "Type",
+        "de": "Typ",
+        "nl": "Type"
+      },
       "values": [
-        { "id": "Movie",   "label": { "en": "Movie",   "de": "Film" } },
-        { "id": "Episode", "label": { "en": "Episode", "de": "Folge" } },
-        { "id": "Audio",   "label": { "en": "Audio",   "de": "Musik" } }
+        {
+          "id": "Movie",
+          "label": {
+            "en": "Movie",
+            "de": "Film",
+            "nl": "Film"
+          }
+        },
+        {
+          "id": "Episode",
+          "label": {
+            "en": "Episode",
+            "de": "Folge",
+            "nl": "Aflevering"
+          }
+        },
+        {
+          "id": "Audio",
+          "label": {
+            "en": "Audio",
+            "de": "Musik",
+            "nl": "Audio"
+          }
+        }
       ]
     }
   ]

@@ -1,7 +1,8 @@
 {
   "title": {
     "en": "Library scan finished",
-    "de": "Bibliotheks-Scan abgeschlossen"
+    "de": "Bibliotheks-Scan abgeschlossen",
+    "nl": "Bibliotheekscan voltooid"
   },
   "args": [
     {
@@ -11,6 +12,14 @@
     }
   ],
   "tokens": [
-    { "name": "duration_seconds", "type": "number", "title": { "en": "Duration (s)", "de": "Dauer (s)" } }
+    {
+      "name": "duration_seconds",
+      "type": "number",
+      "title": {
+        "en": "Duration (s)",
+        "de": "Dauer (s)",
+        "nl": "Duur (s)"
+      }
+    }
   ]
 }

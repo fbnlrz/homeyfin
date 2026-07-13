@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Watch time this week (min)",
-    "de": "Watch-Time diese Woche (Min)"
+    "de": "Watch-Time diese Woche (Min)",
+    "nl": "Kijktijd deze week (min)"
   },
   "icon": "/assets/capabilities/clock.svg",
   "getable": true,

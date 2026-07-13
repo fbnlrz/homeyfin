@@ -42,6 +42,12 @@ const jobs = [
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/small.png',    w: 75,   h: 75 },
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/large.png',    w: 500,  h: 500 },
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/xlarge.png',   w: 1000, h: 1000 },
+  // Widget gallery previews: 1024x1024, transparent background, one distinct
+  // mockup per widget (store guideline 1.9).
+  { html: 'widget-preview.html?widget=server_overview&theme=light', out: 'widgets/server_overview/preview-light.png', w: 1024, h: 1024, transparent: true },
+  { html: 'widget-preview.html?widget=server_overview&theme=dark',  out: 'widgets/server_overview/preview-dark.png',  w: 1024, h: 1024, transparent: true },
+  { html: 'widget-preview.html?widget=now_playing&theme=light',     out: 'widgets/now_playing/preview-light.png',     w: 1024, h: 1024, transparent: true },
+  { html: 'widget-preview.html?widget=now_playing&theme=dark',      out: 'widgets/now_playing/preview-dark.png',      w: 1024, h: 1024, transparent: true },
 ];
 
 const browser = await chromium.launch({ executablePath: findChrome(), args: ['--no-sandbox'] });
@@ -53,7 +59,11 @@ try {
     await page.goto(url, { waitUntil: 'networkidle' });
     const out = path.join(root, job.out);
     fs.mkdirSync(path.dirname(out), { recursive: true });
-    await page.screenshot({ path: out, clip: { x: 0, y: 0, width: job.w, height: job.h } });
+    await page.screenshot({
+      path: out,
+      clip: { x: 0, y: 0, width: job.w, height: job.h },
+      omitBackground: job.transparent === true,
+    });
     await page.close();
     console.log('wrote', job.out, `(${job.w}x${job.h})`);
   }

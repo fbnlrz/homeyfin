@@ -1,4 +1,14 @@
 {
-  "title": { "en": "Server connection restored", "de": "Server-Verbindung wiederhergestellt" },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=server" }]
+  "title": {
+    "en": "Server connection restored",
+    "de": "Server-Verbindung wiederhergestellt",
+    "nl": "Serververbinding hersteld"
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    }
+  ]
 }

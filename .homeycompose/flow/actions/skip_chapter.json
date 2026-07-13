@@ -1,22 +1,50 @@
 {
-  "title": { "en": "Skip chapter", "de": "Kapitel überspringen" },
+  "title": {
+    "en": "Skip chapter",
+    "de": "Kapitel überspringen",
+    "nl": "Hoofdstuk overslaan"
+  },
   "titleFormatted": {
     "en": "Skip [[direction]] chapter",
-    "de": "[[direction]] Kapitel überspringen"
+    "de": "[[direction]] Kapitel überspringen",
+    "nl": "Naar [[direction]] hoofdstuk"
   },
   "hint": {
     "en": "Jumps to the previous / next chapter boundary using the item's chapter data. Handy for Intros & Credits.",
-    "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann."
+    "de": "Springt zum vorherigen / nächsten Kapitel anhand der Item-Kapiteldaten. Praktisch für Intros & Abspann.",
+    "nl": "Springt naar het vorige / volgende hoofdstuk op basis van de hoofdstukgegevens van het item. Handig voor intro's en aftiteling."
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "direction",
       "type": "dropdown",
-      "title": { "en": "Direction", "de": "Richtung" },
+      "title": {
+        "en": "Direction",
+        "de": "Richtung",
+        "nl": "Richting"
+      },
       "values": [
-        { "id": "next", "label": { "en": "Next",     "de": "Nächstes" } },
-        { "id": "prev", "label": { "en": "Previous", "de": "Vorheriges" } }
+        {
+          "id": "next",
+          "label": {
+            "en": "Next",
+            "de": "Nächstes",
+            "nl": "Volgende"
+          }
+        },
+        {
+          "id": "prev",
+          "label": {
+            "en": "Previous",
+            "de": "Vorheriges",
+            "nl": "Vorige"
+          }
+        }
       ]
     }
   ]

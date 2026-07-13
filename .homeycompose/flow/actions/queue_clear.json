@@ -1,4 +1,14 @@
 {
-  "title": { "en": "Clear queue / stop", "de": "Warteschlange leeren / stoppen" },
-  "args": [{ "name": "device", "type": "device", "filter": "driver_id=user" }]
+  "title": {
+    "en": "Clear queue / stop",
+    "de": "Warteschlange leeren / stoppen",
+    "nl": "Wachtrij wissen / stoppen"
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ]
 }

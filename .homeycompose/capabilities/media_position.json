@@ -2,11 +2,13 @@
   "type": "number",
   "title": {
     "en": "Position",
-    "de": "Position"
+    "de": "Position",
+    "nl": "Positie"
   },
   "icon": "/assets/capabilities/clock.svg",
   "units": {
-    "en": "s"
+    "en": "s",
+    "nl": "s"
   },
   "getable": true,
   "setable": false,

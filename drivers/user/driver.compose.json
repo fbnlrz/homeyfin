@@ -1,5 +1,9 @@
 {
-  "name": { "en": "Jellyfin User", "de": "Jellyfin-Benutzer" },
+  "name": {
+    "en": "Jellyfin User",
+    "de": "Jellyfin-Benutzer",
+    "nl": "Jellyfin-gebruiker"
+  },
   "class": "tv",
   "capabilities": [
     "speaker_playing",
@@ -20,28 +24,43 @@
     "continue_watching_title",
     "watch_minutes_week"
   ],
-  "platforms": ["local"],
-  "connectivity": ["lan"],
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
   "images": {
     "small": "/drivers/user/assets/images/small.png",
     "large": "/drivers/user/assets/images/large.png",
     "xlarge": "/drivers/user/assets/images/xlarge.png"
   },
   "pair": [
-    { "id": "select_server" }
+    {
+      "id": "select_server"
+    }
   ],
   "settings": [
     {
       "type": "group",
-      "label": { "en": "Behavior", "de": "Verhalten" },
+      "label": {
+        "en": "Behavior",
+        "de": "Verhalten",
+        "nl": "Gedrag"
+      },
       "children": [
         {
           "id": "stoppedDebounceMs",
           "type": "number",
-          "label": { "en": "Stop debounce (ms)", "de": "Stop-Entprellzeit (ms)" },
+          "label": {
+            "en": "Stop debounce (ms)",
+            "de": "Stop-Entprellzeit (ms)",
+            "nl": "Stop-vertraging (ms)"
+          },
           "hint": {
             "en": "Wait this long after the user's session disappears before firing the Stopped trigger.",
-            "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert."
+            "de": "So lange warten, nachdem die Session verschwindet, bevor der Stop-Trigger feuert.",
+            "nl": "Wacht zo lang nadat de sessie van de gebruiker verdwijnt voordat de Gestopt-trigger wordt geactiveerd."
           },
           "value": 4000,
           "min": 0,
@@ -50,7 +69,11 @@
         {
           "id": "unwatchedRefreshMinutes",
           "type": "number",
-          "label": { "en": "Unwatched refresh (min)", "de": "Refresh ungesehen (min)" },
+          "label": {
+            "en": "Unwatched refresh (min)",
+            "de": "Refresh ungesehen (min)",
+            "nl": "Verversing ongekeken (min)"
+          },
           "value": 10,
           "min": 1,
           "max": 120
@@ -58,10 +81,15 @@
         {
           "id": "volumeCapPercent",
           "type": "number",
-          "label": { "en": "Volume cap (%)", "de": "Lautstärke-Limit (%)" },
+          "label": {
+            "en": "Volume cap (%)",
+            "de": "Lautstärke-Limit (%)",
+            "nl": "Volumelimiet (%)"
+          },
           "hint": {
             "en": "Maximum volume that Homey will send to the client (0 = disabled).",
-            "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus)."
+            "de": "Maximale Lautstärke die Homey an den Client sendet (0 = aus).",
+            "nl": "Maximaal volume dat Homey naar de client stuurt (0 = uitgeschakeld)."
           },
           "value": 0,
           "min": 0,
@@ -70,10 +98,15 @@
         {
           "id": "dailySummaryHour",
           "type": "number",
-          "label": { "en": "Daily summary hour", "de": "Tageszusammenfassung (Stunde)" },
+          "label": {
+            "en": "Daily summary hour",
+            "de": "Tageszusammenfassung (Stunde)",
+            "nl": "Uur dagelijkse samenvatting"
+          },
           "hint": {
             "en": "Hour of the day (0-23) when the daily summary trigger fires.",
-            "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert."
+            "de": "Stunde (0–23), zu der der Tageszusammenfassungs-Trigger feuert.",
+            "nl": "Uur van de dag (0-23) waarop de dagelijkse samenvatting wordt geactiveerd."
           },
           "value": 22,
           "min": 0,

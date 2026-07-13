@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Episodes",
-    "de": "Folgen"
+    "de": "Folgen",
+    "nl": "Afleveringen"
   },
   "icon": "/assets/capabilities/episodes.svg",
   "getable": true,

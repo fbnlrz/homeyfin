@@ -1,15 +1,28 @@
 {
-  "title": { "en": "Seek to position", "de": "Spule zu Position" },
+  "title": {
+    "en": "Seek to position",
+    "de": "Spule zu Position",
+    "nl": "Naar positie spoelen"
+  },
   "titleFormatted": {
     "en": "Seek to [[seconds]] s",
-    "de": "Spule zu [[seconds]] s"
+    "de": "Spule zu [[seconds]] s",
+    "nl": "Naar [[seconds]] s spoelen"
   },
   "args": [
-    { "name": "device", "type": "device", "filter": "driver_id=user" },
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
     {
       "name": "seconds",
       "type": "number",
-      "title": { "en": "Position (s)", "de": "Position (s)" },
+      "title": {
+        "en": "Position (s)",
+        "de": "Position (s)",
+        "nl": "Positie (s)"
+      },
       "min": 0,
       "max": 99999,
       "step": 1

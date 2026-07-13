@@ -2,7 +2,8 @@
   "type": "number",
   "title": {
     "en": "Uptime (min)",
-    "de": "Uptime (Min)"
+    "de": "Uptime (Min)",
+    "nl": "Uptime (min)"
   },
   "icon": "/assets/capabilities/clock.svg",
   "getable": true,
