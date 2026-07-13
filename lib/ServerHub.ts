@@ -201,6 +201,12 @@ export class ServerHub extends EventEmitter {
     return this.lastUserSnapshots.get(userId);
   }
 
+  /** Drops the short-lived live-session caches so the next lookup re-fetches. */
+  invalidateSessionCaches(): void {
+    this.liveSessionCache.clear();
+    this.liveClientCache.clear();
+  }
+
   /**
    * Live session lookup used right before sending a remote-control command
    * (play/pause, volume, mute, …). Hits /Sessions directly so the first command
@@ -216,7 +222,7 @@ export class ServerHub extends EventEmitter {
     }
     const sessions = await this.client.getSessions();
     const snaps = sessions
-      .filter((s) => s.UserId === userId && s.DeviceId)
+      .filter((s) => s.UserId === userId && s.DeviceId && s.DeviceId !== this.opts.homeyDeviceId)
       .map((s) => this.toSnapshot(s));
     const active = ServerHub.pickActiveSnapshot(snaps);
     if (active) this.lastUserSnapshots.set(userId, active);
@@ -361,6 +367,9 @@ export class ServerHub extends EventEmitter {
 
     for (const s of sessions) {
       if (!s.DeviceId) continue;
+      // The app itself shows up in /Sessions (client "Homeyfin"); never treat
+      // it as a controllable player or let it win the per-user "active" pick.
+      if (s.DeviceId === this.opts.homeyDeviceId) continue;
       seenDeviceIds.add(s.DeviceId);
 
       const sessionKey = `${s.DeviceId}:${s.UserId ?? 'anon'}`;

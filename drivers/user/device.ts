@@ -413,30 +413,41 @@ export default class JellyfinUserDevice extends Homey.Device {
   // --- Capability listeners (Homey → Jellyfin) ---------------------------
 
   private registerCapabilityHandlers(): void {
-    this.registerCapabilityListener('speaker_playing', async (value: boolean) => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.sendPlaystate(sessionId, value ? 'Unpause' : 'Pause');
-    });
-    this.registerCapabilityListener('speaker_next', async () => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.sendPlaystate(sessionId, 'NextTrack');
-    });
-    this.registerCapabilityListener('speaker_prev', async () => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.sendPlaystate(sessionId, 'PreviousTrack');
-    });
-    this.registerCapabilityListener('volume_set', async (value: number) => {
-      const sessionId = await this.requireSessionId();
-      const settings = this.getSettings() as UserSettings;
-      const cap = Math.min(100, Math.max(0, settings.volumeCapPercent ?? 0));
+    this.registerCapabilityListener('speaker_playing', (value: boolean) =>
+      this.control((sid) => this.hub!.client.sendPlaystate(sid, value ? 'Unpause' : 'Pause')),
+    );
+    this.registerCapabilityListener('speaker_next', () =>
+      this.control((sid) => this.hub!.client.sendPlaystate(sid, 'NextTrack')),
+    );
+    this.registerCapabilityListener('speaker_prev', () =>
+      this.control((sid) => this.hub!.client.sendPlaystate(sid, 'PreviousTrack')),
+    );
+    this.registerCapabilityListener('volume_set', (value: number) => {
+      const cap = Math.min(100, Math.max(0, (this.getSettings() as UserSettings).volumeCapPercent ?? 0));
       let volume = Math.round(Math.max(0, Math.min(1, value)) * 100);
       if (cap > 0 && volume > cap) volume = cap;
-      await this.hub!.client.sendCommand(sessionId, 'SetVolume', { Volume: volume });
+      return this.control((sid) => this.hub!.client.sendCommand(sid, 'SetVolume', { Volume: volume }));
     });
-    this.registerCapabilityListener('volume_mute', async (value: boolean) => {
-      const sessionId = await this.requireSessionId();
-      await this.hub!.client.sendCommand(sessionId, value ? 'Mute' : 'Unmute');
-    });
+    this.registerCapabilityListener('volume_mute', (value: boolean) =>
+      this.control((sid) => this.hub!.client.sendCommand(sid, value ? 'Mute' : 'Unmute')),
+    );
+  }
+
+  /**
+   * Runs a remote-control command against the user's current session. If it
+   * fails (e.g. the session id changed underneath us), it invalidates the live
+   * cache and retries once with a freshly fetched session before surfacing the
+   * error to Homey.
+   */
+  private async control(action: (sessionId: string) => Promise<void>): Promise<void> {
+    try {
+      await action(await this.requireSessionId());
+      return;
+    } catch (first) {
+      this.error('control failed, retrying with fresh session:', (first as Error).message);
+      this.hub?.invalidateSessionCaches();
+    }
+    await action(await this.requireSessionId());
   }
 
   async requireSessionId(): Promise<string> {
