@@ -22,5 +22,10 @@
     "en": "New app ID and a fresh tagline.",
     "de": "Neue App-ID und ein neuer Slogan.",
     "nl": "Nieuwe app-ID en een nieuwe slogan."
+  },
+  "2.0.4": {
+    "en": "Fix: volume, mute and play/pause on a user's stream now work on the first try, by always targeting the current session.",
+    "de": "Fix: Lautstärke, Stummschalten und Play/Pause beim Stream eines Benutzers funktionieren jetzt auf Anhieb, da immer die aktuelle Session angesprochen wird.",
+    "nl": "Fix: volume, dempen en afspelen/pauzeren van de stream van een gebruiker werken nu meteen, doordat altijd de huidige sessie wordt aangesproken."
   }
 }

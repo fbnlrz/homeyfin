@@ -57,6 +57,10 @@ const DEFAULT_LIBRARY_POLL_MS = 5 * 60 * 1000;
 const DEFAULT_FALLBACK_POLL_MS = 30 * 1000;
 const DEFAULT_ACTIVE_POLL_MS = 5 * 1000;
 const MAX_PERSISTED_IDS = 500;
+// Remote-control commands look up the live session right before sending, but a
+// volume slider can fire several times in a row — cache the lookup this long so
+// we don't hammer /Sessions on every tick.
+const LIVE_SESSION_TTL_MS = 1500;
 
 /**
  * Holds a single connection to a Jellyfin server and translates raw events
@@ -79,6 +83,7 @@ export class ServerHub extends EventEmitter {
   private socketOpen = false;
   private lastStreamCount = 0;
   private lastTranscodingCount = 0;
+  private liveSessionCache = new Map<string, { at: number; snap?: ClientSnapshot }>();
 
   private readonly libraryPollMs: number;
   private readonly fallbackPollMs: number;
@@ -193,6 +198,29 @@ export class ServerHub extends EventEmitter {
    */
   getUserSnapshot(userId: string): ClientSnapshot | undefined {
     return this.lastUserSnapshots.get(userId);
+  }
+
+  /**
+   * Live session lookup used right before sending a remote-control command
+   * (play/pause, volume, mute, …). Hits /Sessions directly so the first command
+   * after playback starts or the app restarts targets the *current* session,
+   * not a stale/idle one from the last socket frame. Bounded by a short TTL so
+   * rapid volume changes don't hammer the server; falls back to the cached
+   * per-user snapshot on error.
+   */
+  async getLiveUserSession(userId: string): Promise<ClientSnapshot | undefined> {
+    const cached = this.liveSessionCache.get(userId);
+    if (cached && Date.now() - cached.at < LIVE_SESSION_TTL_MS) {
+      return cached.snap ?? this.getUserSnapshot(userId);
+    }
+    const sessions = await this.client.getSessions();
+    const snaps = sessions
+      .filter((s) => s.UserId === userId && s.DeviceId)
+      .map((s) => this.toSnapshot(s));
+    const active = ServerHub.pickActiveSnapshot(snaps);
+    if (active) this.lastUserSnapshots.set(userId, active);
+    this.liveSessionCache.set(userId, { at: Date.now(), snap: active });
+    return active ?? this.getUserSnapshot(userId);
   }
 
   /** Picks the most active snapshot for a user from a list of candidates. */

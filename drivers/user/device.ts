@@ -440,11 +440,27 @@ export default class JellyfinUserDevice extends Homey.Device {
   }
 
   async requireSessionId(): Promise<string> {
-    const snap = this.hub?.getUserSnapshot(this.store.userId);
+    const snap = await this.liveUserSnapshot();
     if (!snap || !snap.online || !snap.sessionId) {
       throw new Error('User has no active Jellyfin session right now');
     }
     return snap.sessionId;
+  }
+
+  /**
+   * Resolves the user's current session with a live server round-trip so
+   * remote-control commands never target a stale session id; falls back to the
+   * cached snapshot if the lookup fails.
+   */
+  private async liveUserSnapshot(): Promise<ClientSnapshot | undefined> {
+    if (!this.hub) return undefined;
+    try {
+      const live = await this.hub.getLiveUserSession(this.store.userId);
+      if (live) return live;
+    } catch (err) {
+      this.error('live session lookup failed', (err as Error).message);
+    }
+    return this.hub.getUserSnapshot(this.store.userId);
   }
 
   currentSession(): { sessionId: string; snap: ClientSnapshot } | undefined {
