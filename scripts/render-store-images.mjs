@@ -42,6 +42,9 @@ const jobs = [
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/small.png',    w: 75,   h: 75 },
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/large.png',    w: 500,  h: 500 },
   { html: 'driver-tile.html?glyph=user',   out: 'drivers/user/assets/images/xlarge.png',   w: 1000, h: 1000 },
+  { html: 'driver-tile.html?glyph=player', out: 'drivers/player/assets/images/small.png',  w: 75,   h: 75 },
+  { html: 'driver-tile.html?glyph=player', out: 'drivers/player/assets/images/large.png',  w: 500,  h: 500 },
+  { html: 'driver-tile.html?glyph=player', out: 'drivers/player/assets/images/xlarge.png', w: 1000, h: 1000 },
   // Widget gallery previews: 1024x1024, transparent background, one distinct
   // mockup per widget (store guideline 1.9).
   { html: 'widget-preview.html?widget=server_overview&theme=light', out: 'widgets/server_overview/preview-light.png', w: 1024, h: 1024, transparent: true },

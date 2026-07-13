@@ -1,6 +1,6 @@
 {
   "id": "com.frlrnzn.jellycontrol",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "compatibility": ">=12.1.0",
   "sdk": 3,
   "platforms": ["local"],
@@ -34,6 +34,7 @@
   "source": "https://github.com/fbnlrz/homeyfin",
   "homepage": "https://github.com/fbnlrz/homeyfin",
   "support": "https://github.com/fbnlrz/homeyfin/issues",
+  "homeyCommunityTopicId": 157159,
   "bugs": {
     "url": "https://github.com/fbnlrz/homeyfin/issues"
   },

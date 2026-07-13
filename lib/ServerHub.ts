@@ -84,6 +84,7 @@ export class ServerHub extends EventEmitter {
   private lastStreamCount = 0;
   private lastTranscodingCount = 0;
   private liveSessionCache = new Map<string, { at: number; snap?: ClientSnapshot }>();
+  private liveClientCache = new Map<string, { at: number; snap?: ClientSnapshot }>();
 
   private readonly libraryPollMs: number;
   private readonly fallbackPollMs: number;
@@ -221,6 +222,33 @@ export class ServerHub extends EventEmitter {
     if (active) this.lastUserSnapshots.set(userId, active);
     this.liveSessionCache.set(userId, { at: Date.now(), snap: active });
     return active ?? this.getUserSnapshot(userId);
+  }
+
+  /**
+   * Live session lookup for a specific client (Jellyfin DeviceId), optionally
+   * pinned to a user. Used by the Player driver so a remote-control command
+   * targets that client's current session instead of a stale cached one.
+   * TTL-cached like getLiveUserSession; the fallback only returns the cached
+   * snapshot when it still belongs to the requested user.
+   */
+  async getLiveClientSession(deviceId: string, userId?: string): Promise<ClientSnapshot | undefined> {
+    const cachedByUser = (): ClientSnapshot | undefined => {
+      const c = this.getClientSnapshot(deviceId);
+      return c && (!userId || c.userId === userId) ? c : undefined;
+    };
+    const key = `${deviceId}:${userId ?? ''}`;
+    const cached = this.liveClientCache.get(key);
+    if (cached && Date.now() - cached.at < LIVE_SESSION_TTL_MS) {
+      return cached.snap ?? cachedByUser();
+    }
+    const sessions = await this.client.getSessions();
+    const match = sessions.find(
+      (s) => s.DeviceId === deviceId && (!userId || s.UserId === userId),
+    );
+    const snap = match ? this.toSnapshot(match) : undefined;
+    if (snap) this.lastSnapshots.set(deviceId, snap);
+    this.liveClientCache.set(key, { at: Date.now(), snap });
+    return snap ?? cachedByUser();
   }
 
   /** Picks the most active snapshot for a user from a list of candidates. */
