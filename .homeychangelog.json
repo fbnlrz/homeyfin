@@ -37,5 +37,10 @@
     "en": "Fix: remote control could occasionally target the wrong session (the app's own connection); commands now always hit the real player and retry once on failure.",
     "de": "Fix: Die Steuerung konnte gelegentlich die falsche Session treffen (die eigene App-Verbindung); Befehle zielen jetzt immer auf den echten Player und werden bei Fehler einmal wiederholt.",
     "nl": "Fix: de bediening kon soms de verkeerde sessie raken (de eigen verbinding van de app); opdrachten treffen nu altijd de echte speler en worden bij een fout één keer opnieuw geprobeerd."
+  },
+  "2.2.0": {
+    "en": "New: Jellyfin Player devices — add individual Jellyfin clients per user and place them in Homey rooms. Plus a fix so remote control always targets the real player.",
+    "de": "Neu: Jellyfin-Player-Geräte — einzelne Jellyfin-Clients pro Benutzer hinzufügen und Homey-Räumen zuweisen. Zudem ein Fix, damit die Steuerung immer den echten Player trifft.",
+    "nl": "Nieuw: Jellyfin-speler-apparaten — voeg losse Jellyfin-clients per gebruiker toe en plaats ze in Homey-kamers. Plus een fix zodat de bediening altijd de echte speler aanstuurt."
   }
 }
