@@ -42,5 +42,10 @@
     "en": "New: Jellyfin Player devices — add individual Jellyfin clients per user and place them in Homey rooms. Plus a fix so remote control always targets the real player.",
     "de": "Neu: Jellyfin-Player-Geräte — einzelne Jellyfin-Clients pro Benutzer hinzufügen und Homey-Räumen zuweisen. Zudem ein Fix, damit die Steuerung immer den echten Player trifft.",
     "nl": "Nieuw: Jellyfin-speler-apparaten — voeg losse Jellyfin-clients per gebruiker toe en plaats ze in Homey-kamers. Plus een fix zodat de bediening altijd de echte speler aanstuurt."
+  },
+  "2.2.1": {
+    "en": "Fix: high CPU / crash loop when several people were streaming at once. The per-second position is no longer logged to Insights and unchanged values are no longer re-written.",
+    "de": "Fix: hohe CPU-Last / Crash-Schleife, wenn mehrere gleichzeitig gestreamt haben. Die sekündliche Position wird nicht mehr in Insights geloggt und unveränderte Werte nicht mehr neu geschrieben.",
+    "nl": "Fix: hoge CPU / crash-lus wanneer meerdere mensen tegelijk streamden. De positie per seconde wordt niet meer in Insights gelogd en ongewijzigde waarden worden niet opnieuw geschreven."
   }
 }
