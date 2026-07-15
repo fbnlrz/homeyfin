@@ -37,5 +37,20 @@
     "en": "Fix: remote control could occasionally target the wrong session (the app's own connection); commands now always hit the real player and retry once on failure.",
     "de": "Fix: Die Steuerung konnte gelegentlich die falsche Session treffen (die eigene App-Verbindung); Befehle zielen jetzt immer auf den echten Player und werden bei Fehler einmal wiederholt.",
     "nl": "Fix: de bediening kon soms de verkeerde sessie raken (de eigen verbinding van de app); opdrachten treffen nu altijd de echte speler en worden bij een fout één keer opnieuw geprobeerd."
+  },
+  "2.2.0": {
+    "en": "New: Jellyfin Player devices — add individual Jellyfin clients per user and place them in Homey rooms. Plus a fix so remote control always targets the real player.",
+    "de": "Neu: Jellyfin-Player-Geräte — einzelne Jellyfin-Clients pro Benutzer hinzufügen und Homey-Räumen zuweisen. Zudem ein Fix, damit die Steuerung immer den echten Player trifft.",
+    "nl": "Nieuw: Jellyfin-speler-apparaten — voeg losse Jellyfin-clients per gebruiker toe en plaats ze in Homey-kamers. Plus een fix zodat de bediening altijd de echte speler aanstuurt."
+  },
+  "2.2.1": {
+    "en": "Fix: high CPU / crash loop when several people were streaming at once. The per-second position is no longer logged to Insights and unchanged values are no longer re-written.",
+    "de": "Fix: hohe CPU-Last / Crash-Schleife, wenn mehrere gleichzeitig gestreamt haben. Die sekündliche Position wird nicht mehr in Insights geloggt und unveränderte Werte nicht mehr neu geschrieben.",
+    "nl": "Fix: hoge CPU / crash-lus wanneer meerdere mensen tegelijk streamden. De positie per seconde wordt niet meer in Insights gelogd en ongewijzigde waarden worden niet opnieuw geschreven."
+  },
+  "3.0.1": {
+    "en": "Critical stability fix: the app could hit the CPU limit and crash-loop when several people were streaming at once. The per-second position is no longer logged to Insights and unchanged capability values are no longer re-written.",
+    "de": "Wichtiger Stabilitäts-Fix: Die App konnte bei mehreren gleichzeitigen Streams das CPU-Limit erreichen und in einer Crash-Schleife landen. Die sekündliche Position wird nicht mehr in Insights geloggt und unveränderte Werte nicht mehr neu geschrieben.",
+    "nl": "Belangrijke stabiliteitsfix: de app kon bij meerdere gelijktijdige streams het CPU-limiet raken en in een crash-lus komen. De positie per seconde wordt niet meer in Insights gelogd en ongewijzigde waarden worden niet opnieuw geschreven."
   }
 }

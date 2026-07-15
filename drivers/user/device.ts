@@ -586,6 +586,11 @@ export default class JellyfinUserDevice extends Homey.Device {
   private async safeSet(capability: string, value: unknown): Promise<void> {
     try {
       if (!this.hasCapability(capability)) return;
+      // Skip redundant writes: on a steady stream only the position changes, so
+      // this avoids ~14 needless setCapabilityValue calls per socket frame per
+      // device (each of which also hits Insights/Flow) — the difference between
+      // "fine" and "CPU limit" once many users are streaming.
+      if (this.getCapabilityValue(capability) === value) return;
       await this.setCapabilityValue(capability, value as never);
     } catch (err) {
       this.error(`setCapabilityValue ${capability} failed`, (err as Error).message);

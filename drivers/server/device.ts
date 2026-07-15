@@ -365,6 +365,7 @@ export default class JellyfinServerDevice extends Homey.Device {
   private async safeSet(capability: string, value: unknown): Promise<void> {
     try {
       if (!this.hasCapability(capability)) return;
+      if (this.getCapabilityValue(capability) === value) return; // skip redundant writes (CPU/Insights)
       await this.setCapabilityValue(capability, value as never);
     } catch (err) {
       this.error(`setCapabilityValue ${capability} failed`, (err as Error).message);
