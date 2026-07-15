@@ -1,0 +1,47 @@
+# Bumps the app version in app.json / .homeycompose and writes the changelog,
+# then commits and tags the result. Run manually from the Actions tab.
+# The pushed tag (v*) triggers the Publish workflow.
+name: Update Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: choice
+        description: Version bump
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      changelog:
+        type: string
+        description: Changelog (English)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    name: Update Homey App Version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Homey App Version
+        uses: athombv/github-action-homey-app-version@master
+        id: update_version
+        with:
+          version: ${{ inputs.version }}
+          changelog: ${{ inputs.changelog }}
+
+      - name: Commit & Push
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update Homey App Version to v${{ steps.update_version.outputs.version }}"
+          git tag "v${{ steps.update_version.outputs.version }}"
+          git push origin HEAD --tags
