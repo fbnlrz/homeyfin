@@ -38,6 +38,13 @@
   "bugs": {
     "url": "https://github.com/fbnlrz/homeyfin/issues"
   },
+  "contributing": {
+    "donate": {
+      "githubSponsors": {
+        "username": "fbnlrz"
+      }
+    }
+  },
   "tags": {
     "en": ["jellyfin", "media", "video", "movies", "tv", "stream"],
     "de": ["jellyfin", "medien", "video", "filme", "tv", "stream"],
