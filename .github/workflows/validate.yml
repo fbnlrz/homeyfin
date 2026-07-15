@@ -1,0 +1,21 @@
+# Validates the Homey app on every push and pull request.
+# Uses the official Athom action. No secrets required.
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Homey App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate (publish level)
+        uses: athombv/github-action-homey-app-validate@master
+        with:
+          # debug | publish | verified
+          level: publish

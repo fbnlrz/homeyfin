@@ -1,64 +1,27 @@
+# Validates and then publishes the app to the Homey App Store.
+# Runs automatically when a version tag (v*) is pushed by the Update Version
+# workflow, and can also be started manually.
+# Requires the HOMEY_PAT repository secret (Settings > Secrets and variables >
+# Actions). Create a Personal Access Token at https://tools.developer.homey.app/me
 name: Publish
 
-# One-click publish to the Homey App Store. Run it from the Actions tab
-# (Run workflow) on the branch you want to publish.
-#
-# - Leave "version" empty to publish the version currently committed.
-# - Or pick patch/minor/major AND fill in "changelog" to bump the version
-#   (committed back to the branch) before publishing.
-#
-# Requires a repository secret HOMEY_PAT — a Personal Access Token from
-# https://tools.developer.homey.app/me (Settings → Secrets and variables →
-# Actions → New repository secret).
-
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version bump before publishing (empty = publish committed version)"
-        required: false
-        default: ""
-        type: choice
-        options:
-          - ""
-          - patch
-          - minor
-          - major
-      changelog:
-        description: "Changelog for the new version (required if you pick a bump)"
-        required: false
-        default: ""
-        type: string
 
 jobs:
   publish:
-    name: Publish to the Homey App Store
+    name: Publish Homey App
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # allow committing the version bump back to the branch
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Bump version
-        if: ${{ inputs.version != '' }}
-        id: bump
-        uses: athombv/github-action-homey-app-version@master
+      - name: Validate (publish level)
+        uses: athombv/github-action-homey-app-validate@master
         with:
-          version: ${{ inputs.version }}
-          changelog: ${{ inputs.changelog }}
-
-      - name: Rebuild manifest & commit version bump
-        if: ${{ inputs.version != '' }}
-        run: |
-          node scripts/build-app-json.mjs
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Bump Homey app version to v${{ steps.bump.outputs.version }}"
-          git push
+          level: publish
 
       - name: Publish
         id: publish
@@ -67,4 +30,4 @@ jobs:
           personal_access_token: ${{ secrets.HOMEY_PAT }}
 
       - name: Summary
-        run: echo "✅ Published. Manage the build at ${{ steps.publish.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Manage your app at ${{ steps.publish.outputs.url }}" >> $GITHUB_STEP_SUMMARY
