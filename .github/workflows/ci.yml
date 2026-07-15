@@ -21,7 +21,7 @@ jobs:
         run: npx tsc -p tsconfig.test.json && node --import tsx --test test/*.test.ts
       - name: Build manifest
         run: node scripts/build-app-json.mjs
-      - name: Install Homey CLI
-        run: npm install -g homey
-      - name: Validate app at publish level
-        run: homey app validate --level publish
+      - name: Validate app (publish level)
+        uses: athombv/github-action-homey-app-validate@master
+        with:
+          level: publish
