@@ -276,3 +276,7 @@ Runs on every push and PR.
 MIT — free to use, fork, modify. Jellyfin is a trademark of the
 Jellyfin Foundation; this app is an unofficial third-party client and
 is not affiliated with or endorsed by the Foundation.
+
+---
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-FF00FF?logo=kofi&logoColor=white)](https://ko-fi.com/fbnlrz) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-Japan%202027-00FFFF?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/fbnlrz)
