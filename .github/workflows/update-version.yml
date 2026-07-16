@@ -1,6 +1,7 @@
-# Bumps the app version in app.json / .homeycompose and writes the changelog,
-# then commits and tags the result. Run manually from the Actions tab.
-# The pushed tag (v*) triggers the Publish workflow.
+# Bumps the app version (.homeycompose/app.json + .homeychangelog.json),
+# rebuilds the generated app.json and commits the result to the branch.
+# Run manually from the Actions tab, then run "Publish" when you're ready to
+# ship the new version to the App Store.
 name: Update Version
 
 on:
@@ -30,6 +31,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Update Homey App Version
         uses: athombv/github-action-homey-app-version@master
         id: update_version
@@ -37,11 +45,13 @@ jobs:
           version: ${{ inputs.version }}
           changelog: ${{ inputs.changelog }}
 
+      - name: Rebuild manifest (.homeycompose -> app.json)
+        run: npm run build:manifest
+
       - name: Commit & Push
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Update Homey App Version to v${{ steps.update_version.outputs.version }}"
-          git tag "v${{ steps.update_version.outputs.version }}"
-          git push origin HEAD --tags
+          git push origin HEAD

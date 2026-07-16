@@ -1,5 +1,5 @@
-# Validates the Homey app on every push and pull request.
-# Uses the official Athom action. No secrets required.
+# Type-checks, unit-tests and validates the app on every push and pull request.
+# No secrets required.
 name: Validate
 
 on:
@@ -13,6 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build manifest (.homeycompose -> app.json)
+        run: npm run build:manifest
 
       - name: Validate (publish level)
         uses: athombv/github-action-homey-app-validate@master
