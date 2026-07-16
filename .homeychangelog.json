@@ -52,5 +52,8 @@
     "en": "Critical stability fix: the app could hit the CPU limit and crash-loop when several people were streaming at once. The per-second position is no longer logged to Insights and unchanged capability values are no longer re-written.",
     "de": "Wichtiger Stabilitäts-Fix: Die App konnte bei mehreren gleichzeitigen Streams das CPU-Limit erreichen und in einer Crash-Schleife landen. Die sekündliche Position wird nicht mehr in Insights geloggt und unveränderte Werte nicht mehr neu geschrieben.",
     "nl": "Belangrijke stabiliteitsfix: de app kon bij meerdere gelijktijdige streams het CPU-limiet raken en in een crash-lus komen. De positie per seconde wordt niet meer in Insights gelogd en ongewijzigde waarden worden niet opnieuw geschreven."
+  },
+  "3.0.2": {
+    "en": "test worflows "
   }
 }
