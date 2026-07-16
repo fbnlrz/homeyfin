@@ -1,14 +1,11 @@
 # Validates and then publishes the app to the Homey App Store.
-# Runs automatically when a version tag (v*) is pushed by the Update Version
-# workflow, and can also be started manually.
+# Started manually from the Actions tab (Run workflow), so nothing is ever
+# published automatically on a push to main.
 # Requires the HOMEY_PAT repository secret (Settings > Secrets and variables >
 # Actions). Create a Personal Access Token at https://tools.developer.homey.app/me
 name: Publish
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -17,6 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build manifest (.homeycompose -> app.json)
+        run: npm run build:manifest
 
       - name: Validate (publish level)
         uses: athombv/github-action-homey-app-validate@master
