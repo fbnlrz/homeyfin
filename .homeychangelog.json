@@ -55,5 +55,8 @@
   },
   "3.0.2": {
     "en": "test worflows "
+  },
+  "3.1.0": {
+    "en": "Players now have dedicated pause/resume/stop Flow triggers, plus a new \"follows app\" player that tracks whichever browser/device a user is on instead of piling up one player per browser — fully controllable from the dashboard and the Now Playing widget. User triggers gained client/device tokens and an \"is playing on client\" condition. Also fixes the stopped trigger not firing on tab close, self-signed TLS not being applied, a memory leak from churned browser sessions, and several watch-time and session-timing edge cases."
   }
 }
