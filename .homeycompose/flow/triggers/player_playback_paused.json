@@ -1,0 +1,46 @@
+{
+  "title": {
+    "en": "Playback paused",
+    "de": "Wiedergabe pausiert",
+    "nl": "Afspelen gepauzeerd"
+  },
+  "hint": {
+    "en": "Fires when playback on this player is paused.",
+    "de": "Wird ausgelöst, wenn die Wiedergabe auf diesem Player pausiert wird.",
+    "nl": "Wordt geactiveerd wanneer het afspelen op deze speler wordt gepauzeerd."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=player"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "title",
+      "type": "string",
+      "title": { "en": "Title", "de": "Titel", "nl": "Titel" }
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "title": { "en": "Type", "de": "Typ", "nl": "Type" }
+    },
+    {
+      "name": "series",
+      "type": "string",
+      "title": { "en": "Series", "de": "Serie", "nl": "Serie" }
+    },
+    {
+      "name": "season",
+      "type": "number",
+      "title": { "en": "Season", "de": "Staffel", "nl": "Seizoen" }
+    },
+    {
+      "name": "episode",
+      "type": "number",
+      "title": { "en": "Episode", "de": "Folge", "nl": "Aflevering" }
+    }
+  ]
+}

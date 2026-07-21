@@ -1,0 +1,34 @@
+{
+  "title": {
+    "en": "Is !{{|not}} playing on client",
+    "de": "Spielt !{{|nicht}} auf Client",
+    "nl": "Speelt !{{|niet}} af op client"
+  },
+  "titleFormatted": {
+    "en": "Is !{{|not}} playing on [[client]]",
+    "de": "Spielt !{{|nicht}} auf [[client]]",
+    "nl": "Speelt !{{|niet}} af op [[client]]"
+  },
+  "hint": {
+    "en": "True when the user's current session runs on a client whose name or device contains this text (e.g. 'Web', 'Android TV', 'Chrome'). Case-insensitive.",
+    "de": "Wahr, wenn die aktuelle Sitzung des Benutzers auf einem Client läuft, dessen Name oder Gerät diesen Text enthält (z. B. 'Web', 'Android TV', 'Chrome'). Groß-/Kleinschreibung egal.",
+    "nl": "Waar wanneer de huidige sessie van de gebruiker draait op een client waarvan de naam of het apparaat deze tekst bevat (bijv. 'Web', 'Android TV', 'Chrome'). Niet hoofdlettergevoelig."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
+    {
+      "name": "client",
+      "type": "text",
+      "title": { "en": "Client", "de": "Client", "nl": "Client" },
+      "placeholder": {
+        "en": "e.g. Web, Android TV, Chrome",
+        "de": "z. B. Web, Android TV, Chrome",
+        "nl": "bijv. Web, Android TV, Chrome"
+      }
+    }
+  ]
+}

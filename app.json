@@ -740,6 +740,24 @@
               "de": "Folge",
               "nl": "Aflevering"
             }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
+            }
           }
         ]
       },
@@ -811,6 +829,24 @@
               "de": "Benutzer",
               "nl": "Gebruiker"
             }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
+            }
           }
         ]
       },
@@ -881,6 +917,24 @@
               "en": "User",
               "de": "Benutzer",
               "nl": "Gebruiker"
+            }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
             }
           }
         ]
@@ -971,6 +1025,24 @@
               "de": "Poster",
               "nl": "Poster"
             }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
+            }
           }
         ]
       },
@@ -1041,6 +1113,292 @@
               "en": "User",
               "de": "Benutzer",
               "nl": "Gebruiker"
+            }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
+            }
+          }
+        ]
+      },
+      {
+        "id": "player_playback_paused",
+        "title": {
+          "en": "Playback paused",
+          "de": "Wiedergabe pausiert",
+          "nl": "Afspelen gepauzeerd"
+        },
+        "hint": {
+          "en": "Fires when playback on this player is paused.",
+          "de": "Wird ausgelöst, wenn die Wiedergabe auf diesem Player pausiert wird.",
+          "nl": "Wordt geactiveerd wanneer het afspelen op deze speler wordt gepauzeerd."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=player"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
+            }
+          }
+        ]
+      },
+      {
+        "id": "player_playback_resumed",
+        "title": {
+          "en": "Playback resumed",
+          "de": "Wiedergabe fortgesetzt",
+          "nl": "Afspelen hervat"
+        },
+        "hint": {
+          "en": "Fires when playback on this player is resumed after a pause.",
+          "de": "Wird ausgelöst, wenn die Wiedergabe auf diesem Player nach einer Pause fortgesetzt wird.",
+          "nl": "Wordt geactiveerd wanneer het afspelen op deze speler na een pauze wordt hervat."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=player"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
+            }
+          }
+        ]
+      },
+      {
+        "id": "player_playback_started",
+        "title": {
+          "en": "Playback started",
+          "de": "Wiedergabe gestartet",
+          "nl": "Afspelen gestart"
+        },
+        "hint": {
+          "en": "Fires when this player starts playing something.",
+          "de": "Wird ausgelöst, wenn dieser Player etwas abzuspielen beginnt.",
+          "nl": "Wordt geactiveerd wanneer deze speler iets begint af te spelen."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=player"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
+            }
+          }
+        ]
+      },
+      {
+        "id": "player_playback_stopped",
+        "title": {
+          "en": "Playback stopped",
+          "de": "Wiedergabe gestoppt",
+          "nl": "Afspelen gestopt"
+        },
+        "hint": {
+          "en": "Fires when this player stops playing (not the same as pausing).",
+          "de": "Wird ausgelöst, wenn dieser Player die Wiedergabe stoppt (nicht dasselbe wie Pausieren).",
+          "nl": "Wordt geactiveerd wanneer deze speler stopt met afspelen (niet hetzelfde als pauzeren)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=player"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           }
         ]
@@ -1401,6 +1759,45 @@
                 }
               }
             ]
+          }
+        ]
+      },
+      {
+        "id": "playing_on_client",
+        "title": {
+          "en": "Is !{{|not}} playing on client",
+          "de": "Spielt !{{|nicht}} auf Client",
+          "nl": "Speelt !{{|niet}} af op client"
+        },
+        "titleFormatted": {
+          "en": "Is !{{|not}} playing on [[client]]",
+          "de": "Spielt !{{|nicht}} auf [[client]]",
+          "nl": "Speelt !{{|niet}} af op [[client]]"
+        },
+        "hint": {
+          "en": "True when the user's current session runs on a client whose name or device contains this text (e.g. 'Web', 'Android TV', 'Chrome'). Case-insensitive.",
+          "de": "Wahr, wenn die aktuelle Sitzung des Benutzers auf einem Client läuft, dessen Name oder Gerät diesen Text enthält (z. B. 'Web', 'Android TV', 'Chrome'). Groß-/Kleinschreibung egal.",
+          "nl": "Waar wanneer de huidige sessie van de gebruiker draait op een client waarvan de naam of het apparaat deze tekst bevat (bijv. 'Web', 'Android TV', 'Chrome'). Niet hoofdlettergevoelig."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "client",
+            "type": "text",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            },
+            "placeholder": {
+              "en": "e.g. Web, Android TV, Chrome",
+              "de": "z. B. Web, Android TV, Chrome",
+              "nl": "bijv. Web, Android TV, Chrome"
+            }
           }
         ]
       },

@@ -10,6 +10,9 @@ interface PlayerStore {
   userName: string;
   deviceName: string;
   clientName: string;
+  // 'app' = Follow-App player: tracks whichever session of `clientName` the user
+  // is on (survives new browser DeviceIds). Absent/'device' = fixed DeviceId.
+  matchBy?: 'device' | 'app';
 }
 
 interface PlayerSettings {
@@ -48,11 +51,31 @@ export default class JellyfinPlayerDevice extends Homey.Device {
     this.registerHubHandlers();
     this.startPositionTicker();
 
-    const snap = this.hub.getClientSnapshot(this.store.deviceId);
+    const snap = this.currentSnapshot();
     if (snap) await this.applyClientSnapshot(snap);
     else await this.applyOffline();
 
     this.setAvailable().catch(() => undefined);
+  }
+
+  /** True when this device follows a client app rather than a fixed DeviceId. */
+  private get followApp(): boolean {
+    return this.store.matchBy === 'app';
+  }
+
+  /** Hub event prefix for this device's update/playback_* events. */
+  private eventPrefix(): string {
+    return this.followApp
+      ? `clientapp:${ServerHub.appKey(this.store.clientName, this.store.userId)}`
+      : `client:${this.store.deviceId}`;
+  }
+
+  /** Most recent cached snapshot for this device, resolved by app or DeviceId. */
+  private currentSnapshot(): ClientSnapshot | undefined {
+    if (!this.hub) return undefined;
+    return this.followApp
+      ? this.hub.getAppSnapshot(this.store.clientName, this.store.userId)
+      : this.hub.getClientSnapshot(this.store.deviceId);
   }
 
   async onDeleted(): Promise<void> {
@@ -92,17 +115,69 @@ export default class JellyfinPlayerDevice extends Homey.Device {
 
   private registerHubHandlers(): void {
     if (!this.hub) return;
+    const prefix = this.eventPrefix();
+
+    // The device is bound to one user on this client; a different user's session
+    // on the same client must not fire this player's Flow triggers. (Follow-App
+    // snapshots are already user-scoped, so this only bites the fixed-DeviceId
+    // case where two users share one browser.)
+    const belongsToUser = (snap: ClientSnapshot): boolean =>
+      !snap.userId || snap.userId === this.store.userId;
+
     const onUpdate = (snap: ClientSnapshot) =>
       this.applyClientSnapshot(snap).catch((e) => this.error(e));
-    const ev = `client:${this.store.deviceId}:update`;
-    this.hub.on(ev, onUpdate);
-    this.offCallbacks.push(() => this.hub?.off(ev, onUpdate));
+    const onStarted = (snap: ClientSnapshot, item: NowPlayingItem) => {
+      if (belongsToUser(snap)) this.fireMediaTrigger('player_playback_started', item, snap);
+    };
+    const onPaused = (snap: ClientSnapshot, item: NowPlayingItem) => {
+      if (belongsToUser(snap)) this.fireMediaTrigger('player_playback_paused', item, snap);
+    };
+    const onResumed = (snap: ClientSnapshot, item: NowPlayingItem) => {
+      if (belongsToUser(snap)) this.fireMediaTrigger('player_playback_resumed', item, snap);
+    };
+    const onStopped = (snap: ClientSnapshot, item: NowPlayingItem | undefined) => {
+      if (belongsToUser(snap)) this.fireMediaTrigger('player_playback_stopped', item, snap);
+    };
+
+    const ev = (suffix: string) => `${prefix}:${suffix}`;
+    this.hub.on(ev('update'), onUpdate);
+    this.hub.on(ev('playback_started'), onStarted);
+    this.hub.on(ev('playback_paused'), onPaused);
+    this.hub.on(ev('playback_resumed'), onResumed);
+    this.hub.on(ev('playback_stopped'), onStopped);
+
+    this.offCallbacks.push(
+      () => this.hub?.off(ev('update'), onUpdate),
+      () => this.hub?.off(ev('playback_started'), onStarted),
+      () => this.hub?.off(ev('playback_paused'), onPaused),
+      () => this.hub?.off(ev('playback_resumed'), onResumed),
+      () => this.hub?.off(ev('playback_stopped'), onStopped),
+    );
+  }
+
+  private async fireMediaTrigger(
+    cardId: string,
+    item: NowPlayingItem | undefined,
+    _snap: ClientSnapshot,
+  ): Promise<void> {
+    const tokens: Record<string, unknown> = {
+      title: item?.Name ?? '',
+      type: item?.Type ?? '',
+      series: item?.SeriesName ?? '',
+      season: typeof item?.ParentIndexNumber === 'number' ? item.ParentIndexNumber : 0,
+      episode: typeof item?.IndexNumber === 'number' ? item.IndexNumber : 0,
+    };
+    try {
+      await this.homey.flow.getDeviceTriggerCard(cardId).trigger(this, tokens as never, undefined);
+    } catch (err) {
+      this.error(`${cardId} trigger failed`, (err as Error).message);
+    }
   }
 
   private startPositionTicker(): void {
     if (this.positionTimer) return;
     this.positionTimer = this.homey.setInterval(() => {
-      const snap = this.hub?.getClientSnapshot(this.store.deviceId);
+      const snap = this.currentSnapshot();
       if (
         !snap ||
         snap.userId !== this.store.userId ||
@@ -169,12 +244,14 @@ export default class JellyfinPlayerDevice extends Homey.Device {
   private async liveClientSnapshot(): Promise<ClientSnapshot | undefined> {
     if (!this.hub) return undefined;
     try {
-      const live = await this.hub.getLiveClientSession(this.store.deviceId, this.store.userId);
+      const live = this.followApp
+        ? await this.hub.getLiveClientSessionByApp(this.store.clientName, this.store.userId)
+        : await this.hub.getLiveClientSession(this.store.deviceId, this.store.userId);
       if (live) return live;
     } catch (err) {
       this.error('live session lookup failed', (err as Error).message);
     }
-    const cached = this.hub.getClientSnapshot(this.store.deviceId);
+    const cached = this.currentSnapshot();
     return cached && cached.userId === this.store.userId ? cached : undefined;
   }
 

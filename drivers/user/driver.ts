@@ -21,6 +21,7 @@ type JellyfinUserDevice = Homey.Device & {
   getSnapshot(): ClientSnapshot | undefined;
   requireSessionId(): Promise<string>;
   currentSession(): { sessionId: string; snap: ClientSnapshot } | undefined;
+  liveSession(): Promise<{ sessionId: string; snap: ClientSnapshot } | undefined>;
   listStreams(kind: 'Audio' | 'Subtitle'): Array<{ name: string; id: string }>;
   getVolumeCap(): number;
 };
@@ -72,6 +73,17 @@ export default class JellyfinUserDriver extends Homey.Driver {
       );
 
     this.homey.flow
+      .getConditionCard('playing_on_client')
+      .registerRunListener(async (args: { device: JellyfinUserDevice; client: string }) => {
+        const query = (args.client ?? '').trim().toLowerCase();
+        if (!query) return false;
+        const snap = args.device.getSnapshot();
+        if (!snap?.online) return false;
+        const haystack = `${snap.clientName ?? ''} ${snap.deviceName ?? ''}`.toLowerCase();
+        return haystack.includes(query);
+      });
+
+    this.homey.flow
       .getConditionCard('is_transcoding')
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
         return Boolean(args.device.getSnapshot()?.isTranscoding);
@@ -106,7 +118,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
     this.homey.flow
       .getActionCard('seek_relative')
       .registerRunListener(async (args: { device: JellyfinUserDevice; seconds: number }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const current = session.snap.positionSeconds ?? 0;
         const duration = session.snap.durationSeconds ?? 0;
@@ -122,7 +134,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
     const playItem = this.homey.flow.getActionCard('play_item');
     playItem.registerRunListener(
       async (args: { device: JellyfinUserDevice; item: { id?: string } }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         if (!args.item?.id) throw new Error('No item picked');
         await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(session.sessionId, [args.item.id]);
@@ -159,7 +171,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         item_type: 'Movie' | 'Episode';
         genre?: { id?: string; name?: string };
       }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const res = await JellyfinUserDriver.requireHub(args.device).client.getRandomItems({
           userId: args.device.getUserId(),
@@ -195,7 +207,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
     this.homey.flow
       .getActionCard('continue_watching')
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const res = await JellyfinUserDriver.requireHub(args.device).client.getResumeItems({
           userId: args.device.getUserId(),
@@ -220,7 +232,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         item: { id?: string };
         where: 'PlayNext' | 'PlayLast';
       }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         if (!args.item?.id) throw new Error('No item picked');
         await JellyfinUserDriver.requireHub(args.device).client.playItemsOnSession(
@@ -263,7 +275,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
 
     this.homey.flow.getActionCard('skip_chapter').registerRunListener(
       async (args: { device: JellyfinUserDevice; direction: 'next' | 'prev' }) => {
-        const session = args.device.currentSession();
+        const session = await args.device.liveSession();
         if (!session) throw new Error('User has no active Jellyfin session right now');
         const item = session.snap.nowPlaying;
         if (!item?.Id) throw new Error('Nothing is currently playing');
