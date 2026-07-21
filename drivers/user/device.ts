@@ -37,6 +37,7 @@ export default class JellyfinUserDevice extends Homey.Device {
   private watchSecondsToday = 0;
   private lastWatchTickDay = -1;
   private lastWatchTickWeek = -1;
+  private watchHydrated = false;
   private summaryTimer?: NodeJS.Timeout;
 
   async onInit(): Promise<void> {
@@ -106,6 +107,10 @@ export default class JellyfinUserDevice extends Homey.Device {
     if (this.unwatchedTimer) this.homey.clearInterval(this.unwatchedTimer);
     if (this.stoppedDebounceTimer) this.homey.clearTimeout(this.stoppedDebounceTimer);
     if (this.summaryTimer) this.homey.clearTimeout(this.summaryTimer);
+    // Flush the partial interval since the last 30 s persist so an app reload
+    // doesn't discard up to ~30 s of counted watch time. Guarded on hydration so
+    // an early teardown (hub not ready) can't clobber a good stored value.
+    if (this.watchHydrated) this.persistWatch();
     this.initRetryTimer = undefined;
     this.positionTimer = undefined;
     this.unwatchedTimer = undefined;
@@ -209,6 +214,10 @@ export default class JellyfinUserDevice extends Homey.Device {
       this.lastWatchTickWeek = stored.weekIdx ?? -1;
       this.lastWatchTickDay = stored.dayIdx ?? -1;
     }
+    this.watchHydrated = true;
+    // A restart days into a new day/week must not re-publish last period's total:
+    // roll the counters forward against the current clock before publishing.
+    this.applyWatchRollover(new Date());
     this.safeSet('watch_minutes_week', Math.floor(this.watchSecondsThisWeek / 60)).catch(() => undefined);
 
     this.positionTimer = this.homey.setInterval(() => {
@@ -224,35 +233,59 @@ export default class JellyfinUserDevice extends Homey.Device {
   }
 
   private tickWatchTime(): void {
-    const now = new Date();
-    const dayIdx = Math.floor(now.getTime() / 86_400_000);
-    const weekStart = new Date(now);
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // ISO: Monday=0
-    const weekIdx = Math.floor(weekStart.getTime() / 604_800_000);
-
-    if (this.lastWatchTickDay !== -1 && this.lastWatchTickDay !== dayIdx) {
-      this.watchSecondsToday = 0;
-    }
-    if (this.lastWatchTickWeek !== -1 && this.lastWatchTickWeek !== weekIdx) {
-      this.watchSecondsThisWeek = 0;
-    }
-    this.lastWatchTickDay = dayIdx;
-    this.lastWatchTickWeek = weekIdx;
-
+    this.applyWatchRollover(new Date());
     this.watchSecondsToday++;
     this.watchSecondsThisWeek++;
 
     // Persist + capability update every 30 s to keep settings writes cheap.
     if (this.watchSecondsThisWeek % 30 === 0) {
       this.safeSet('watch_minutes_week', Math.floor(this.watchSecondsThisWeek / 60)).catch(() => undefined);
-      this.homey.settings.set('watch:' + this.store.userId, {
-        week: this.watchSecondsThisWeek,
-        day: this.watchSecondsToday,
-        weekIdx,
-        dayIdx,
-      });
+      this.persistWatch();
     }
+  }
+
+  /**
+   * Resets the day/week counters when the local day/week has rolled over since
+   * the last tick — including rollovers that happen with no playback at all (the
+   * ticker only runs while playing, so this must also be called from init and
+   * before the daily summary fires). Day index is derived from LOCAL midnight so
+   * it matches the local wall-clock hour the summary fires on.
+   */
+  private applyWatchRollover(now: Date): void {
+    // Encode day/week from the LOCAL calendar date, not by flooring a UTC
+    // timestamp: on a DST spring-forward in UTC+0 zones (UK/IE/PT) two adjacent
+    // local midnights fall in the same UTC 24h bucket, which would collide and
+    // skip the reset. Y*10000+M*100+D is unique per local day (equality is all we
+    // need), and the Monday date is unique per week.
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayIdx =
+      dayStart.getFullYear() * 10000 + dayStart.getMonth() * 100 + dayStart.getDate();
+
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // ISO: Monday=0
+    const weekIdx =
+      weekStart.getFullYear() * 10000 + weekStart.getMonth() * 100 + weekStart.getDate();
+
+    if (this.lastWatchTickDay !== -1 && this.lastWatchTickDay !== dayIdx) {
+      this.watchSecondsToday = 0;
+    }
+    if (this.lastWatchTickWeek !== -1 && this.lastWatchTickWeek !== weekIdx) {
+      this.watchSecondsThisWeek = 0;
+      this.safeSet('watch_minutes_week', 0).catch(() => undefined);
+    }
+    this.lastWatchTickDay = dayIdx;
+    this.lastWatchTickWeek = weekIdx;
+  }
+
+  private persistWatch(): void {
+    this.homey.settings.set('watch:' + this.store.userId, {
+      week: this.watchSecondsThisWeek,
+      day: this.watchSecondsToday,
+      weekIdx: this.lastWatchTickWeek,
+      dayIdx: this.lastWatchTickDay,
+    });
   }
 
   private scheduleSummary(hourOverride?: number): void {
@@ -271,6 +304,9 @@ export default class JellyfinUserDevice extends Homey.Device {
   }
 
   private async fireDailySummary(): Promise<void> {
+    // The counters only advance while playing, so a zero-playback day would
+    // otherwise report yesterday's total. Roll them over against the clock first.
+    this.applyWatchRollover(new Date());
     try {
       await this.homey.flow
         .getDeviceTriggerCard('daily_summary')
@@ -480,6 +516,17 @@ export default class JellyfinUserDevice extends Homey.Device {
     return { sessionId: snap.sessionId, snap };
   }
 
+  /**
+   * Like currentSession() but forces a live /Sessions lookup, so Flow actions
+   * don't misfire against a cold cache right after an app restart (before the
+   * first socket frame) or a stale session id after the browser reconnected.
+   */
+  async liveSession(): Promise<{ sessionId: string; snap: ClientSnapshot } | undefined> {
+    const snap = await this.liveUserSnapshot();
+    if (!snap || !snap.online || !snap.sessionId) return undefined;
+    return { sessionId: snap.sessionId, snap };
+  }
+
 
   listStreams(kind: 'Audio' | 'Subtitle'): Array<{ name: string; id: string }> {
     const snap = this.hub?.getUserSnapshot(this.store.userId);
@@ -569,6 +616,8 @@ export default class JellyfinUserDevice extends Homey.Device {
       episode: typeof item.IndexNumber === 'number' ? item.IndexNumber : 0,
       runtime: snap.durationSeconds ?? 0,
       user: snap.userName ?? this.store.userName,
+      client: snap.clientName ?? '',
+      device: snap.deviceName ?? '',
     };
     if (cardId === 'playback_started') {
       // The token is declared `image` in the manifest, which Homey requires.

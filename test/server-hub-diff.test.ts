@@ -109,7 +109,7 @@ test('handles multiple devices independently', () => {
   assert.deepEqual(byDevice.d2, ['started', 'changed']);
 });
 
-test('does not emit stopped while device is offline (kept-as-last)', () => {
+test('emits stopped when a playing device goes offline (kept-as-last)', () => {
   const item = makeItem('item-1');
   const prev = new Map<string, ClientSnapshot>([
     ['d1', snap('d1', { nowPlaying: item, online: true })],
@@ -117,13 +117,56 @@ test('does not emit stopped while device is offline (kept-as-last)', () => {
   const next = new Map<string, ClientSnapshot>([
     ['d1', snap('d1', { nowPlaying: undefined, online: false })],
   ]);
-  // Per the spec, an offline (no longer in /Sessions but kept by us) device
-  // still surfaces a stopped event via the "device disappeared" path. Here
-  // both maps still contain the device, so the "stay-online" branch fires.
+  // Closing a browser tab / killing the app drops the session, and we retain it
+  // as an offline snapshot (still present in `next`, online:false, no item).
+  // That transition — was playing, now nothing — must surface as a single stop;
+  // it is the most common way browser playback ends.
   const events = ServerHub.diffSessions(prev, next);
-  // With online:false, the "started" branch skips because nx.online is false,
-  // and the "stopped" branch fires only when nx.online is true. So we expect
-  // exactly one event from the disappeared-prev branch... but it's still in
-  // next, so 0 events.
-  assert.deepEqual(events, []);
+  assert.deepEqual(events, [{ deviceId: 'd1', type: 'stopped' }]);
+});
+
+test('does not emit stopped for an idle device that goes offline', () => {
+  // Not playing before, goes offline: no phantom stop.
+  const prev = new Map<string, ClientSnapshot>([
+    ['d1', snap('d1', { nowPlaying: undefined, online: true })],
+  ]);
+  const next = new Map<string, ClientSnapshot>([
+    ['d1', snap('d1', { nowPlaying: undefined, online: false })],
+  ]);
+  assert.deepEqual(ServerHub.diffSessions(prev, next), []);
+});
+
+test('pickActiveSnapshot stays pinned to the previously-followed session', () => {
+  const a = snap('a', { sessionId: 'sess-a', nowPlaying: makeItem('x'), lastActivityMs: 100 });
+  const b = snap('b', { sessionId: 'sess-b', nowPlaying: makeItem('y'), lastActivityMs: 200 });
+  // Without a pin, b wins on lastActivityMs; with the pin, a stays selected so
+  // two concurrent same-app sessions don't make the Follow-App device flap.
+  assert.equal(ServerHub.pickActiveSnapshot([a, b])?.sessionId, 'sess-b');
+  assert.equal(ServerHub.pickActiveSnapshot([a, b], 'sess-a')?.sessionId, 'sess-a');
+});
+
+test('pickActiveSnapshot yields the pin when it is paused and another is playing', () => {
+  const pinnedPaused = snap('a', {
+    sessionId: 'sess-a',
+    nowPlaying: makeItem('x'),
+    isPaused: true,
+    lastActivityMs: 100,
+  });
+  const otherPlaying = snap('b', {
+    sessionId: 'sess-b',
+    nowPlaying: makeItem('y'),
+    isPaused: false,
+    lastActivityMs: 50,
+  });
+  // Pinned-but-paused must not wedge the device while another session plays.
+  assert.equal(
+    ServerHub.pickActiveSnapshot([pinnedPaused, otherPlaying], 'sess-a')?.sessionId,
+    'sess-b',
+  );
+  // But if nobody else is actively playing, keep the (paused) pin.
+  const otherPaused = snap('b', { sessionId: 'sess-b', nowPlaying: makeItem('y'), isPaused: true });
+  assert.equal(
+    ServerHub.pickActiveSnapshot([pinnedPaused, otherPaused], 'sess-a')?.sessionId,
+    'sess-a',
+  );
 });

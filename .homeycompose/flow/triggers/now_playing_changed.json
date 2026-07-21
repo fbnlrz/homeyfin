@@ -56,6 +56,16 @@
         "de": "Folge",
         "nl": "Aflevering"
       }
+    },
+    {
+      "name": "client",
+      "type": "string",
+      "title": { "en": "Client", "de": "Client", "nl": "Client" }
+    },
+    {
+      "name": "device",
+      "type": "string",
+      "title": { "en": "Device", "de": "Gerät", "nl": "Apparaat" }
     }
   ]
 }

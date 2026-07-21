@@ -83,6 +83,16 @@
         "de": "Poster",
         "nl": "Poster"
       }
+    },
+    {
+      "name": "client",
+      "type": "string",
+      "title": { "en": "Client", "de": "Client", "nl": "Client" }
+    },
+    {
+      "name": "device",
+      "type": "string",
+      "title": { "en": "Device", "de": "Gerät", "nl": "Apparaat" }
     }
   ]
 }

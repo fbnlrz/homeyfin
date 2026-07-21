@@ -173,6 +173,13 @@ interface CachedImage {
   fetchedAt: number;
 }
 
+interface RawResponse {
+  status: number;
+  statusText: string;
+  contentType: string;
+  body: Buffer;
+}
+
 export class JellyfinClient {
   private baseUrl: string;
   private apiKey: string;
@@ -184,6 +191,7 @@ export class JellyfinClient {
   private imageCache = new Map<string, CachedImage>();
   private static readonly IMAGE_CACHE_MAX = 64;
   private static readonly IMAGE_CACHE_TTL_MS = 30 * 60 * 1000;
+  private static readonly REQUEST_TIMEOUT_MS = 12_000;
 
   constructor(opts: JellyfinClientOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
@@ -238,35 +246,120 @@ export class JellyfinClient {
     };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
-    const init: RequestInit & { dispatcher?: unknown } = {
+    const raw = await this.fetchRaw(url, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    };
-    // Node's global fetch (undici) uses dispatcher, not agent — best-effort fallback.
-    if (this.insecureAgent && url.protocol === 'https:') {
-      (init as any).agent = this.insecureAgent;
-    }
+    });
 
-    const res = await fetch(url.toString(), init);
-
-    if (!res.ok) {
-      let text = '';
-      try {
-        text = await res.text();
-      } catch {
-        // ignore
-      }
+    if (raw.status < 200 || raw.status >= 300) {
+      const text = raw.body.toString('utf8');
       throw new JellyfinError(
-        `Jellyfin ${method} ${path} failed: ${res.status} ${res.statusText}${text ? ` – ${text}` : ''}`,
-        res.status,
+        `Jellyfin ${method} ${path} failed: ${raw.status} ${raw.statusText}${text ? ` – ${text}` : ''}`,
+        raw.status,
       );
     }
 
-    if (res.status === 204) return undefined as unknown as T;
-    const ct = res.headers.get('content-type') ?? '';
-    if (ct.includes('application/json')) return (await res.json()) as T;
-    return (await res.text()) as unknown as T;
+    if (raw.status === 204 || raw.body.length === 0) return undefined as unknown as T;
+    if (raw.contentType.includes('application/json')) {
+      return JSON.parse(raw.body.toString('utf8')) as T;
+    }
+    return raw.body.toString('utf8') as unknown as T;
+  }
+
+  /**
+   * Single low-level fetch used by every request. Applies a hard timeout via
+   * AbortController (undici's default header timeout is ~5 min, long enough to
+   * wedge polling behind a black-holed connection), and — crucially — routes
+   * self-signed HTTPS through Node's `https` with the insecure agent, because
+   * the global `fetch` (undici) silently ignores the `agent` option and only
+   * honours a `dispatcher`, which the bundled runtime doesn't expose.
+   */
+  private async fetchRaw(
+    url: URL,
+    init: { method?: string; headers?: Record<string, string>; body?: string },
+    timeoutMs: number = JellyfinClient.REQUEST_TIMEOUT_MS,
+  ): Promise<RawResponse> {
+    if (this.insecureAgent && url.protocol === 'https:') {
+      return this.nodeRequest(url, init, timeoutMs);
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url.toString(), {
+        method: init.method,
+        headers: init.headers,
+        body: init.body,
+        signal: controller.signal,
+      });
+      const arrayBuf = await res.arrayBuffer();
+      return {
+        status: res.status,
+        statusText: res.statusText,
+        contentType: res.headers.get('content-type') ?? '',
+        body: Buffer.from(arrayBuf),
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Node http(s) fallback so a self-signed cert (insecureTls) actually works. */
+  private nodeRequest(
+    url: URL,
+    init: { method?: string; headers?: Record<string, string>; body?: string },
+    timeoutMs: number,
+    redirectsLeft = 5,
+  ): Promise<RawResponse> {
+    return new Promise((resolve, reject) => {
+      const lib = url.protocol === 'https:' ? https : http;
+      const headers: Record<string, string> = { ...(init.headers ?? {}) };
+      const bodyBuf = init.body !== undefined ? Buffer.from(init.body, 'utf8') : undefined;
+      // Set Content-Length explicitly (Node would otherwise chunk the body).
+      if (bodyBuf) headers['Content-Length'] = String(bodyBuf.length);
+
+      const req = lib.request(
+        url,
+        {
+          method: init.method ?? 'GET',
+          headers,
+          agent: url.protocol === 'https:' ? this.insecureAgent : undefined,
+          timeout: timeoutMs,
+        },
+        (res) => {
+          const status = res.statusCode ?? 0;
+          const location = res.headers.location;
+          // undici (the global fetch) follows redirects; match that on this path.
+          if (status >= 300 && status < 400 && location && redirectsLeft > 0) {
+            res.resume(); // drain so the socket can be reused
+            let next: URL;
+            try {
+              next = new URL(location, url);
+            } catch (err) {
+              reject(err);
+              return;
+            }
+            this.nodeRequest(next, init, timeoutMs, redirectsLeft - 1).then(resolve, reject);
+            return;
+          }
+          const chunks: Buffer[] = [];
+          res.on('data', (c: Buffer) => chunks.push(c));
+          res.on('error', reject); // a mid-body reset must reject, not hang/throw
+          res.on('end', () =>
+            resolve({
+              status,
+              statusText: res.statusMessage ?? '',
+              contentType: (res.headers['content-type'] as string) ?? '',
+              body: Buffer.concat(chunks),
+            }),
+          );
+        },
+      );
+      req.on('timeout', () => req.destroy(new Error(`Request timed out after ${timeoutMs}ms`)));
+      req.on('error', reject);
+      if (bodyBuf) req.write(bodyBuf);
+      req.end();
+    });
   }
 
   // --- Discovery / auth ---
@@ -286,7 +379,15 @@ export class JellyfinClient {
   }
 
   /** Devices known to the server. Requires admin token. */
-  getDevices(): Promise<{ Items: Array<{ Id: string; Name: string; AppName?: string; LastUserName?: string }> }> {
+  getDevices(): Promise<{
+    Items: Array<{
+      Id: string;
+      Name: string;
+      AppName?: string;
+      LastUserName?: string;
+      DateLastActivity?: string;
+    }>;
+  }> {
     return this.request('GET', '/Devices');
   }
 
@@ -552,11 +653,13 @@ export class JellyfinClient {
       return hit;
     }
     try {
-      const res = await fetch(url);
-      if (!res.ok) return undefined;
-      const ct = res.headers.get('content-type') ?? 'image/jpeg';
-      const buf = Buffer.from(await res.arrayBuffer());
-      const entry: CachedImage = { buffer: buf, contentType: ct, fetchedAt: now };
+      const raw = await this.fetchRaw(new URL(url), { method: 'GET' }, 15_000);
+      if (raw.status < 200 || raw.status >= 300) return undefined;
+      const entry: CachedImage = {
+        buffer: raw.body,
+        contentType: raw.contentType || 'image/jpeg',
+        fetchedAt: now,
+      };
       this.imageCache.set(url, entry);
       while (this.imageCache.size > JellyfinClient.IMAGE_CACHE_MAX) {
         const firstKey = this.imageCache.keys().next().value;
