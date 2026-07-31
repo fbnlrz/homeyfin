@@ -1,7 +1,7 @@
 {
   "id": "com.frlrnzn.jellycontrol",
   "version": "3.1.0",
-  "compatibility": ">=12.1.0",
+  "compatibility": ">=12.3.0",
   "sdk": 3,
   "platforms": [
     "local"
