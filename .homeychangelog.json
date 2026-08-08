@@ -61,5 +61,8 @@
   },
   "3.1.1": {
     "en": "Fixed the \"Transcoding started/stopped\" Flow triggers, which never fired before. Fixed the user \"Playback stopped\" trigger, which never fired before. The player \"Playback stopped\" trigger now includes the title that was playing. More reliable playback state: no spurious stop/start from delayed polling. No more false \"User logged in\" triggers when the app restarts. Widgets now correctly require Homey 12.3.0 or newer."
+  },
+  "4.0.0": {
+    "en": "`Quick Connect pairing, playlist playback, intro/outro skip, parental controls, server maintenance cards, new Recently Added widget, plus major reliability, security and performance fixes.`"
   }
 }
