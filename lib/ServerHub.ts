@@ -5,6 +5,7 @@ import {
   JellyfinClient,
   JellyfinSession,
   LatestItem,
+  MediaFolder,
   MediaSegment,
   NowPlayingItem,
 } from './JellyfinClient';
@@ -26,6 +27,12 @@ export interface ServerHubOptions {
   activePollMs?: number;
   /** How often to check /System/Info for an available server update (min 1 h). */
   updateCheckMs?: number;
+  /**
+   * Persisted seed for the update-available edge detector: when true, the hub
+   * starts as if the last check already saw an update, so an app restart does
+   * not re-fire 'server:update_available' for the same update.
+   */
+  initialUpdateAvailable?: boolean;
   /** Injectable timer functions (Homey-bound in app code); defaults to the globals. */
   timers?: TimerProvider;
 }
@@ -112,6 +119,14 @@ const MIN_UPDATE_CHECK_MS = 60 * 60 * 1000;
 // runScheduledTask monitoring: poll cadence and give-up horizon.
 const TASK_MONITOR_POLL_MS = 10 * 1000;
 const TASK_MONITOR_TIMEOUT_MS = 30 * 60 * 1000;
+// refreshLibrary fan-out caps: socket-triggered refreshes coalesce through a
+// short trailing debounce, folders are queried sequentially, and at most this
+// many libraries are scanned per run (a large server must not overload Homey).
+const LIBRARY_REFRESH_DEBOUNCE_MS = 5 * 1000;
+const MAX_LIBRARY_FOLDERS_PER_REFRESH = 12;
+// Content types allowed into widget data-URIs — anything else could smuggle
+// active content into the CSS url() the widgets embed the poster in.
+const POSTER_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 // Compact list caps + TTLs (resource rules: no raw items, everything bounded).
 const LATEST_LIST_MAX = 20;
 const RESUME_LIST_MAX = 12;
@@ -170,6 +185,15 @@ export class ServerHub extends EventEmitter {
   private lastUpdateAvailable = false;
   // Pending task-monitor timers (cleared on stop()).
   private taskMonitorTimers = new Set<NodeJS.Timeout>();
+  // Task ids with a live completion monitor — repeated Flow runs of the same
+  // task must not stack a second poll loop (see runScheduledTask).
+  private activeTaskMonitors = new Set<string>();
+  // refreshLibrary overlap control: one run at a time; a request arriving
+  // mid-run is remembered and executed once after the current run finishes.
+  private refreshInFlight = false;
+  private refreshPending = false;
+  private libraryRefreshDebounceTimer?: NodeJS.Timeout;
+  private folderCapLogged = false;
   // Compact projection of the newest library items, refreshed by refreshLibrary.
   private latestList: LatestListEntry[] = [];
   private resumeCache?: { at: number; items: ResumeListEntry[] };
@@ -192,6 +216,9 @@ export class ServerHub extends EventEmitter {
     this.updateCheckMs = Math.max(opts.updateCheckMs ?? DEFAULT_UPDATE_CHECK_MS, MIN_UPDATE_CHECK_MS);
     this.saveItemIds = opts.saveItemIds;
     this.timers = opts.timers ?? defaultTimers;
+    // Seed the update edge so a restart doesn't re-announce a known update
+    // (the app persists the flag and passes it back in).
+    this.lastUpdateAvailable = opts.initialUpdateAvailable === true;
 
     if (opts.persistedItemIds && opts.persistedItemIds.length > 0) {
       this.lastItemIds = new Set(opts.persistedItemIds);
@@ -234,7 +261,9 @@ export class ServerHub extends EventEmitter {
     this.socket.on('sessions', (data) => this.handleSessions(data as JellyfinSession[]));
     this.socket.on('libraryChanged', () => {
       if (this.stopped) return;
-      this.refreshLibrary().catch((err) => this.emit('error', err));
+      // A long scan spews LibraryChanged frames in batches — coalesce them
+      // instead of fanning out one refresh per frame.
+      this.scheduleSocketRefresh();
     });
     this.socket.on('scheduledTaskEnded', (data) => {
       if (this.stopped) return;
@@ -292,8 +321,13 @@ export class ServerHub extends EventEmitter {
       this.libraryPollTimer = undefined;
     }
     this.stopSessionPoll();
+    if (this.libraryRefreshDebounceTimer) {
+      this.timers.clearTimeout(this.libraryRefreshDebounceTimer);
+      this.libraryRefreshDebounceTimer = undefined;
+    }
     for (const timer of this.taskMonitorTimers) this.timers.clearTimeout(timer);
     this.taskMonitorTimers.clear();
+    this.activeTaskMonitors.clear();
     this.socket.stop();
     this.removeAllListeners();
   }
@@ -877,7 +911,47 @@ export class ServerHub extends EventEmitter {
 
   // --- Library handling --------------------------------------------------
 
+  /**
+   * Coalesces socket-triggered refreshes: a burst of LibraryChanged frames
+   * (batched during a long scan) arms a single trailing timer, so the whole
+   * burst collapses into one refresh ~5 s after its first frame. Firing off
+   * the first frame (instead of re-arming per frame) guarantees a recurring
+   * stream of frames can never starve the refresh.
+   */
+  private scheduleSocketRefresh(): void {
+    if (this.stopped || this.libraryRefreshDebounceTimer) return;
+    this.libraryRefreshDebounceTimer = this.timers.setTimeout(() => {
+      this.libraryRefreshDebounceTimer = undefined;
+      if (this.stopped) return;
+      this.refreshLibrary().catch((err) => this.emit('error', err));
+    }, LIBRARY_REFRESH_DEBOUNCE_MS);
+  }
+
+  /**
+   * Overlap guard around doRefreshLibrary: only one run at a time. A request
+   * arriving mid-run (socket frame, scan-end, poll) is remembered and executed
+   * exactly once after the current run finishes — parallel runs both read the
+   * same lastItemIds baseline and would emit every new_item twice.
+   */
   private async refreshLibrary(): Promise<void> {
+    if (this.stopped) return;
+    if (this.refreshInFlight) {
+      this.refreshPending = true;
+      return;
+    }
+    this.refreshInFlight = true;
+    try {
+      await this.doRefreshLibrary();
+    } finally {
+      this.refreshInFlight = false;
+    }
+    if (this.refreshPending && !this.stopped) {
+      this.refreshPending = false;
+      await this.refreshLibrary();
+    }
+  }
+
+  private async doRefreshLibrary(): Promise<void> {
     if (this.stopped) return;
     try {
       const counts = await this.client.getItemCounts(this.opts.userId).catch(() => undefined);
@@ -896,24 +970,31 @@ export class ServerHub extends EventEmitter {
       // Query each CollectionFolder separately: a global getLatestItems returns
       // episodes with their *Season* as ParentId, which can't be mapped back to
       // a library folder — per-folder queries give every item its correct
-      // libraryId/libraryName.
+      // libraryId/libraryName. Sequential (not Promise.all) and capped so a
+      // server with many libraries can't fan out an unbounded request burst.
+      const cappedFolders = folders.Items.slice(0, MAX_LIBRARY_FOLDERS_PER_REFRESH);
+      if (folders.Items.length > cappedFolders.length && !this.folderCapLogged) {
+        this.folderCapLogged = true;
+        console.log(
+          `[ServerHub] ${folders.Items.length} libraries found — only the first ${MAX_LIBRARY_FOLDERS_PER_REFRESH} are watched for new items`,
+        );
+      }
       let anyFailed = false;
-      const perFolder = await Promise.all(
-        folders.Items.map(async (folder) => {
-          try {
-            const items = await this.client.getLatestItems({
-              userId: this.opts.userId,
-              limit: MAX_LATEST_ITEMS,
-              parentId: folder.Id,
-            });
-            return { folder, items };
-          } catch {
-            anyFailed = true;
-            return { folder, items: [] as LatestItem[] };
-          }
-        }),
-      );
-      if (this.stopped) return;
+      const perFolder: Array<{ folder: MediaFolder; items: LatestItem[] }> = [];
+      for (const folder of cappedFolders) {
+        try {
+          const items = await this.client.getLatestItems({
+            userId: this.opts.userId,
+            limit: MAX_LATEST_ITEMS,
+            parentId: folder.Id,
+          });
+          perFolder.push({ folder, items });
+        } catch {
+          anyFailed = true;
+          perFolder.push({ folder, items: [] });
+        }
+        if (this.stopped) return;
+      }
 
       // A failed fetch must not be mistaken for an empty library: bootstrapping
       // (or persisting) an empty baseline on failure would replay up to
@@ -1122,6 +1203,11 @@ export class ServerHub extends EventEmitter {
       if (this.stopped) return;
       if (available && !this.lastUpdateAvailable) {
         this.emit('server:update_available', {});
+      } else if (!available && this.lastUpdateAvailable) {
+        // The app persists the flag (see initialUpdateAvailable); tell it the
+        // server no longer reports an update so a stale seed can't suppress
+        // the next real edge after a restart.
+        this.emit('server:update_cleared', {});
       }
       this.lastUpdateAvailable = available;
     } catch {
@@ -1131,12 +1217,18 @@ export class ServerHub extends EventEmitter {
 
   /**
    * Starts a scheduled task and monitors it (poll every 10 s over the injected
-   * timers, 30 min give-up horizon, aborted by stop()). When the task returns
-   * to Idle, emits 'task:completed' { taskId, taskName, status }.
+   * timers, 30 min horizon, aborted by stop()). When the task returns to Idle,
+   * emits 'task:completed' { taskId, taskName, status }; when the horizon
+   * expires first, the same event fires with status 'TimedOut'.
    */
   async runScheduledTask(taskId: string): Promise<void> {
     await this.client.startScheduledTask(taskId);
     if (this.stopped) return;
+    // Re-starting an already-running task is harmless server-side, but a
+    // second monitor would double the polling and fire task:completed once
+    // per invocation — keep exactly one monitor per task id.
+    if (this.activeTaskMonitors.has(taskId)) return;
+    this.activeTaskMonitors.add(taskId);
     this.scheduleTaskPoll(taskId, Date.now());
   }
 
@@ -1152,13 +1244,23 @@ export class ServerHub extends EventEmitter {
     if (this.stopped) return;
     if (Date.now() - startedAt > TASK_MONITOR_TIMEOUT_MS) {
       if (this.opts.debug) console.log('[ServerHub] task monitor timed out', taskId);
+      this.activeTaskMonitors.delete(taskId);
+      // Don't give up silently — Flows waiting on the task learn the outcome
+      // (task name looked up best-effort, '' when the lookup fails too).
+      const task = await this.client.getScheduledTask(taskId).catch(() => null);
+      if (this.stopped) return;
+      this.emit('task:completed', { taskId, taskName: task?.name ?? '', status: 'TimedOut' });
       return;
     }
     try {
       const task = await this.client.getScheduledTask(taskId);
       if (this.stopped) return;
-      if (!task) return; // task vanished — nothing to report
+      if (!task) {
+        this.activeTaskMonitors.delete(taskId);
+        return; // task vanished — nothing to report
+      }
       if (task.state === 'Idle') {
+        this.activeTaskMonitors.delete(taskId);
         this.emit('task:completed', {
           taskId,
           taskName: task.name,
@@ -1169,6 +1271,9 @@ export class ServerHub extends EventEmitter {
     } catch {
       // Transient error — keep polling until the timeout.
     }
+    // stop() may have run while the poll was in flight; re-arming now would
+    // put a timer into a set stop() has already cleared.
+    if (this.stopped) return;
     this.scheduleTaskPoll(taskId, startedAt);
   }
 
@@ -1245,7 +1350,11 @@ export class ServerHub extends EventEmitter {
       url.searchParams.set('api_key', this.client.getApiKey());
       const img = await this.client.getCachedImage(url.toString());
       if (!img) return null;
-      return `data:${img.contentType};base64,${img.buffer.toString('base64')}`;
+      // The content type ends up inside a CSS url() in the widgets — only pass
+      // through known-safe image types, anything else is rejected outright.
+      const contentType = img.contentType.split(';')[0].trim().toLowerCase();
+      if (!POSTER_CONTENT_TYPES.has(contentType)) return null;
+      return `data:${contentType};base64,${img.buffer.toString('base64')}`;
     } catch {
       return null;
     }

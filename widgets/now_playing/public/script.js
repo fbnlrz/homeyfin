@@ -22,11 +22,20 @@ function onHomeyReady(Homey) {
   let localTick = null;
   let pollTimer = null;
   let announcedReady = false;
+  let refreshing = false;
+  // Key (`itemId:imageTag`) of the poster currently on screen — sent as `have`
+  // so the API only re-ships the data URI when the artwork actually changes.
+  let shownPosterKey = null;
   let serverId = null;
   try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
 
-  function serverQuery() {
-    return serverId ? `?serverId=${encodeURIComponent(serverId)}` : '';
+  function serverQuery(extra) {
+    const params = [];
+    if (serverId) params.push(`serverId=${encodeURIComponent(serverId)}`);
+    for (const [k, v] of Object.entries(extra || {})) {
+      if (v) params.push(`${k}=${encodeURIComponent(v)}`);
+    }
+    return params.length ? '?' + params.join('&') : '';
   }
 
   function fmtTime(sec, sign = '') {
@@ -76,12 +85,18 @@ function onHomeyReady(Homey) {
     $('meta').textContent = metaParts.join(' · ');
 
     const poster = $('poster');
-    if (s.posterDataUri) {
+    if (s.posterDataUri === undefined) {
+      // Poster unchanged (matched our `have` key) — keep the current image.
+    } else if (s.posterDataUri) {
       poster.style.backgroundImage = `url("${s.posterDataUri}")`;
       poster.classList.add('has-image');
       $('backdrop').style.backgroundImage = `url("${s.posterDataUri}")`;
+      shownPosterKey = s.posterKey || null;
     } else {
       poster.classList.remove('has-image');
+      poster.style.backgroundImage = '';
+      $('backdrop').style.backgroundImage = '';
+      shownPosterKey = null;
     }
 
     if (!dragging) setProgress(s.positionSeconds, s.durationSeconds);
@@ -108,18 +123,33 @@ function onHomeyReady(Homey) {
   }
 
   async function refresh() {
+    // In-flight guard: a slow response must not stack overlapping polls.
+    if (refreshing) return;
+    refreshing = true;
+    let retry = false;
     try {
-      const data = await Homey.api('GET', '/now_playing' + serverQuery());
+      const data = await Homey.api('GET', '/now_playing' + serverQuery({ have: shownPosterKey }));
       render(data);
     } catch (err) {
-      root.classList.add('empty');
-      $('empty-msg').textContent = err && err.message ? err.message : 'Error';
+      const msg = err && err.message ? err.message : 'Error';
+      if (serverId && msg.indexOf('Unknown server') !== -1) {
+        // Stored selection points at an unpaired server — fall back to default.
+        serverId = null;
+        try { localStorage.removeItem(LS_KEY); } catch (e) { /* storage unavailable */ }
+        shownPosterKey = null;
+        retry = true;
+      } else {
+        root.classList.add('empty');
+        $('empty-msg').textContent = msg;
+      }
     } finally {
+      refreshing = false;
       if (!announcedReady) {
         announcedReady = true;
         Homey.ready();
       }
     }
+    if (retry) refresh();
   }
 
   function startPolling() {
@@ -153,6 +183,7 @@ function onHomeyReady(Homey) {
   serverSelect.addEventListener('change', () => {
     serverId = serverSelect.value;
     try { localStorage.setItem(LS_KEY, serverId); } catch (e) { /* storage unavailable */ }
+    shownPosterKey = null;
     refresh();
   });
 

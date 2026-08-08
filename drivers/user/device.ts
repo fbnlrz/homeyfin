@@ -33,6 +33,9 @@ export default class JellyfinUserDevice extends Homey.Device {
   private lastArtworkUrl = '';
   private lastProgressFloor?: number;
   private lastRemainingFloor?: number;
+  private firedProgressPercents = new Set<number>();
+  private firedRemainingMinutes = new Set<number>();
+  private lastTickPosition?: number;
   private trackedItemId?: string;
   private segmentItemId?: string;
   private currentSegments: MediaSegment[] = [];
@@ -298,6 +301,24 @@ export default class JellyfinUserDevice extends Homey.Device {
     }
   }
 
+  // Encode day/week from the LOCAL calendar date, not by flooring a UTC
+  // timestamp: on a DST spring-forward in UTC+0 zones (UK/IE/PT) two adjacent
+  // local midnights fall in the same UTC 24h bucket, which would collide and
+  // skip the reset. Y*10000+M*100+D is unique per local day (equality is all we
+  // need), and the Monday date is unique per week.
+  private static dayIndexOf(now: Date): number {
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    return dayStart.getFullYear() * 10000 + dayStart.getMonth() * 100 + dayStart.getDate();
+  }
+
+  private static weekIndexOf(now: Date): number {
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // ISO: Monday=0
+    return weekStart.getFullYear() * 10000 + weekStart.getMonth() * 100 + weekStart.getDate();
+  }
+
   /**
    * Resets the day/week counters when the local day/week has rolled over since
    * the last tick — including rollovers that happen with no playback at all (the
@@ -306,21 +327,8 @@ export default class JellyfinUserDevice extends Homey.Device {
    * it matches the local wall-clock hour the summary fires on.
    */
   private applyWatchRollover(now: Date): void {
-    // Encode day/week from the LOCAL calendar date, not by flooring a UTC
-    // timestamp: on a DST spring-forward in UTC+0 zones (UK/IE/PT) two adjacent
-    // local midnights fall in the same UTC 24h bucket, which would collide and
-    // skip the reset. Y*10000+M*100+D is unique per local day (equality is all we
-    // need), and the Monday date is unique per week.
-    const dayStart = new Date(now);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayIdx =
-      dayStart.getFullYear() * 10000 + dayStart.getMonth() * 100 + dayStart.getDate();
-
-    const weekStart = new Date(now);
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // ISO: Monday=0
-    const weekIdx =
-      weekStart.getFullYear() * 10000 + weekStart.getMonth() * 100 + weekStart.getDate();
+    const dayIdx = JellyfinUserDevice.dayIndexOf(now);
+    const weekIdx = JellyfinUserDevice.weekIndexOf(now);
 
     if (this.lastWatchTickDay !== -1 && this.lastWatchTickDay !== dayIdx) {
       this.watchSecondsToday = 0;
@@ -359,16 +367,36 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   private async fireDailySummary(): Promise<void> {
     // The counters only advance while playing, so a zero-playback day would
-    // otherwise report yesterday's total. Roll them over against the clock first.
-    this.applyWatchRollover(new Date());
+    // otherwise report yesterday's total — roll them over against the clock
+    // first. But with dailySummaryHour=0 the summary fires ON the boundary and
+    // the rollover would zero the very totals it is about to report: snapshot
+    // the counters first and use them when the boundary this call crossed lies
+    // at most 5 minutes in the past (the summary firing at midnight/Monday
+    // reports the period that just ended; a rollover after an idle day must
+    // still report the fresh, reset counters).
+    const now = new Date();
+    const dayBefore = this.lastWatchTickDay;
+    const weekBefore = this.lastWatchTickWeek;
+    const secondsDayBefore = this.watchSecondsToday;
+    const secondsWeekBefore = this.watchSecondsThisWeek;
+    this.applyWatchRollover(now);
+    const justBefore = new Date(now.getTime() - 5 * 60_000);
+    const summarizeEndedDay =
+      dayBefore !== this.lastWatchTickDay && dayBefore === JellyfinUserDevice.dayIndexOf(justBefore);
+    const summarizeEndedWeek =
+      weekBefore !== this.lastWatchTickWeek && weekBefore === JellyfinUserDevice.weekIndexOf(justBefore);
     try {
       await this.homey.flow
         .getDeviceTriggerCard('daily_summary')
         .trigger(
           this,
           {
-            minutes_today: Math.floor(this.watchSecondsToday / 60),
-            minutes_week: Math.floor(this.watchSecondsThisWeek / 60),
+            minutes_today: Math.floor(
+              (summarizeEndedDay ? secondsDayBefore : this.watchSecondsToday) / 60,
+            ),
+            minutes_week: Math.floor(
+              (summarizeEndedWeek ? secondsWeekBefore : this.watchSecondsThisWeek) / 60,
+            ),
           },
           undefined,
         );
@@ -383,13 +411,31 @@ export default class JellyfinUserDevice extends Homey.Device {
       this.trackedItemId = snap.nowPlaying?.Id;
       this.lastProgressFloor = undefined;
       this.lastRemainingFloor = undefined;
+      this.firedProgressPercents.clear();
+      this.firedRemainingMinutes.clear();
+      this.lastTickPosition = undefined;
     }
 
     const percent = Math.floor((position / duration) * 100);
-    this.fireProgressIfNew(percent, snap);
-
     const remaining = Math.max(0, duration - position);
     const remainingMin = Math.floor(remaining / 60);
+
+    // Only a GENUINE backwards seek re-arms already-fired thresholds: a >10 s
+    // jump back is well above the ~2 s sawtooth that applySnapshot's stale
+    // client positions cause against the 1 s ticker. Percent thresholds above
+    // the new position and remaining-minute thresholds below the new remaining
+    // (remaining jumped forward) will be crossed again, so they may fire again.
+    if (this.lastTickPosition !== undefined && position < this.lastTickPosition - 10) {
+      for (const p of this.firedProgressPercents) {
+        if (p > percent) this.firedProgressPercents.delete(p);
+      }
+      for (const m of this.firedRemainingMinutes) {
+        if (m < remainingMin) this.firedRemainingMinutes.delete(m);
+      }
+    }
+    this.lastTickPosition = position;
+
+    this.fireProgressIfNew(percent, snap);
     this.fireRemainingIfNew(remainingMin, remaining, snap);
   }
 
@@ -403,13 +449,23 @@ export default class JellyfinUserDevice extends Homey.Device {
     if (prev === undefined || percent < prev) return;
     const item = snap.nowPlaying;
     if (!item) return;
+    // Each percent fires at most once per item: the snapshot/ticker sawtooth
+    // (~2 s rewinds) silently lowers the crossing baseline, so without this a
+    // threshold inside the oscillation window would re-fire on every wave.
+    // Narrow the range to the not-yet-fired remainder (only a real backwards
+    // seek — see checkProgressTriggers — re-arms fired percents). Bounded at
+    // 99 entries, the flow card's max, and cleared on item change.
+    let firePrev = prev;
+    while (firePrev < percent && this.firedProgressPercents.has(firePrev + 1)) firePrev++;
+    if (firePrev === percent) return;
+    for (let p = firePrev + 1; p <= percent && p <= 99; p++) this.firedProgressPercents.add(p);
     this.homey.flow
       .getDeviceTriggerCard('progress_percent')
       .trigger(
         this,
         { title: item.Name ?? '', type: item.Type ?? '' },
         // Run listener (user/driver.ts) fires args.percent in (prev, percent].
-        { percent, prev },
+        { percent, prev: firePrev },
       )
       .catch((err: Error) => this.error('progress trigger failed', err.message));
   }
@@ -423,6 +479,14 @@ export default class JellyfinUserDevice extends Homey.Device {
     if (prev === undefined || remainingMin > prev) return;
     const item = snap.nowPlaying;
     if (!item) return;
+    // Mirror of fireProgressIfNew's once-per-item guard: skip minute values
+    // that already fired (the fired ones sit at the top of the range, since
+    // larger remaining minutes are crossed first) and narrow the range to the
+    // rest. Bounded at 60 entries, the flow card's max, cleared on item change.
+    let firePrev = prev;
+    while (firePrev > remainingMin && this.firedRemainingMinutes.has(firePrev)) firePrev--;
+    if (firePrev === remainingMin) return;
+    for (let m = remainingMin + 1; m <= firePrev && m <= 60; m++) this.firedRemainingMinutes.add(m);
     this.homey.flow
       .getDeviceTriggerCard('minutes_before_end')
       .trigger(
@@ -433,8 +497,8 @@ export default class JellyfinUserDevice extends Homey.Device {
           series: item.SeriesName ?? '',
           remaining_seconds: remainingSeconds,
         },
-        // Run listener (user/driver.ts) fires args.minutes in [minutes, prev).
-        { minutes: remainingMin, prev },
+        // Run listener (user/driver.ts) fires args.minutes in (minutes, prev].
+        { minutes: remainingMin, prev: firePrev },
       )
       .catch((err: Error) => this.error('minutes_before_end trigger failed', err.message));
   }
@@ -466,7 +530,14 @@ export default class JellyfinUserDevice extends Homey.Device {
             (s) => (s.type === 'Intro' || s.type === 'Outro') && s.endSeconds > s.startSeconds,
           );
         })
-        .catch((err: Error) => this.error('getMediaSegments failed', err.message));
+        .catch((err: Error) => {
+          this.error('getMediaSegments failed', err.message);
+          // A transient failure (network, 5xx) must not leave intro/outro dead
+          // for the whole item: clear the tracked id so the next tick fetches
+          // again. Cheap — the hub's LRU caches negative results, so an item
+          // that genuinely has no segments won't hammer the server.
+          if (this.segmentItemId === itemId) this.segmentItemId = undefined;
+        });
       return;
     }
     for (const seg of this.currentSegments) {

@@ -1776,9 +1776,9 @@
           "nl": "Taak [[task]] voltooid"
         },
         "hint": {
-          "en": "Fires when a scheduled task started via the 'Start a scheduled task' card finishes. Tasks started elsewhere are not monitored.",
-          "de": "Wird ausgelöst, wenn eine über die Karte 'Geplante Aufgabe starten' gestartete Aufgabe endet. Anderweitig gestartete Aufgaben werden nicht überwacht.",
-          "nl": "Wordt geactiveerd wanneer een via de kaart 'Geplande taak starten' gestarte taak eindigt. Elders gestarte taken worden niet gevolgd."
+          "en": "Fires when a scheduled task started via the 'Start a scheduled task' card finishes. Tasks are monitored for up to 30 minutes; if a task runs longer, the card fires with status 'TimedOut'. Tasks started elsewhere are not monitored.",
+          "de": "Wird ausgelöst, wenn eine über die Karte 'Geplante Aufgabe starten' gestartete Aufgabe endet. Aufgaben werden maximal 30 Minuten überwacht; dauert eine Aufgabe länger, wird die Karte mit dem Status 'TimedOut' ausgelöst. Anderweitig gestartete Aufgaben werden nicht überwacht.",
+          "nl": "Wordt geactiveerd wanneer een via de kaart 'Geplande taak starten' gestarte taak eindigt. Taken worden maximaal 30 minuten gevolgd; duurt een taak langer, dan wordt de kaart geactiveerd met status 'TimedOut'. Elders gestarte taken worden niet gevolgd."
         },
         "args": [
           {
@@ -1913,9 +1913,9 @@
           "nl": "Serverupdate beschikbaar"
         },
         "hint": {
-          "en": "Fires when Jellyfin starts reporting an available server update. Checked roughly every 6 hours while connected.",
-          "de": "Wird ausgelöst, wenn Jellyfin ein verfügbares Server-Update meldet. Prüfung etwa alle 6 Stunden bei bestehender Verbindung.",
-          "nl": "Wordt geactiveerd wanneer Jellyfin een beschikbare serverupdate meldt. Controle ongeveer elke 6 uur zolang er verbinding is."
+          "en": "Fires when Jellyfin starts reporting an available server update. Checked roughly every 6 hours while connected. Fires once per detected update, even across app restarts.",
+          "de": "Wird ausgelöst, wenn Jellyfin ein verfügbares Server-Update meldet. Prüfung etwa alle 6 Stunden bei bestehender Verbindung. Wird pro erkanntem Update nur einmal ausgelöst, auch über App-Neustarts hinweg.",
+          "nl": "Wordt geactiveerd wanneer Jellyfin een beschikbare serverupdate meldt. Controle ongeveer elke 6 uur zolang er verbinding is. Wordt per gedetecteerde update slechts één keer geactiveerd, ook na een herstart van de app."
         },
         "args": [
           {
@@ -2704,9 +2704,9 @@
           "nl": "Geplande taak [[task]] starten"
         },
         "hint": {
-          "en": "Starts a Jellyfin scheduled task. The 'Task completed' card fires when it finishes. Requires the API key to belong to an admin user.",
-          "de": "Startet eine geplante Jellyfin-Aufgabe. Die Karte 'Aufgabe abgeschlossen' wird beim Ende ausgelöst. Erfordert einen Admin-API-Key.",
-          "nl": "Start een geplande Jellyfin-taak. De kaart 'Taak voltooid' wordt geactiveerd wanneer deze eindigt. Vereist dat de API-sleutel van een beheerder is."
+          "en": "Starts a Jellyfin scheduled task. The 'Task completed' card fires when it finishes. The task is monitored for up to 30 minutes; if it runs longer, the card fires with status 'TimedOut'. Requires the API key to belong to an admin user.",
+          "de": "Startet eine geplante Jellyfin-Aufgabe. Die Karte 'Aufgabe abgeschlossen' wird beim Ende ausgelöst. Die Aufgabe wird maximal 30 Minuten überwacht; dauert sie länger, wird die Karte mit dem Status 'TimedOut' ausgelöst. Erfordert einen Admin-API-Key.",
+          "nl": "Start een geplande Jellyfin-taak. De kaart 'Taak voltooid' wordt geactiveerd wanneer deze eindigt. De taak wordt maximaal 30 minuten gevolgd; duurt deze langer, dan wordt de kaart geactiveerd met status 'TimedOut'. Vereist dat de API-sleutel van een beheerder is."
         },
         "args": [
           {

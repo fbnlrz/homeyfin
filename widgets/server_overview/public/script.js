@@ -10,11 +10,30 @@ function onHomeyReady(Homey) {
   const LS_KEY = 'homeyfin.server_overview.server';
   let pollTimer = null;
   let announcedReady = false;
+  let refreshing = false;
   let serverId = null;
   try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
 
-  function serverQuery() {
-    return serverId ? `?serverId=${encodeURIComponent(serverId)}` : '';
+  // Posters travel only once per item: the API skips the data URI for keys
+  // (`itemId:imageTag`) we report as already cached. Small FIFO cap keeps
+  // webview memory bounded.
+  const POSTER_CACHE_MAX = 20;
+  const posterCache = new Map();
+  function cachePoster(key, uri) {
+    if (posterCache.has(key)) posterCache.delete(key);
+    posterCache.set(key, uri);
+    while (posterCache.size > POSTER_CACHE_MAX) {
+      posterCache.delete(posterCache.keys().next().value);
+    }
+  }
+
+  function serverQuery(extra) {
+    const params = [];
+    if (serverId) params.push(`serverId=${encodeURIComponent(serverId)}`);
+    for (const [k, v] of Object.entries(extra || {})) {
+      if (v) params.push(`${k}=${encodeURIComponent(v)}`);
+    }
+    return params.length ? '?' + params.join('&') : '';
   }
 
   function fmtTime(sec) {
@@ -114,8 +133,12 @@ function onHomeyReady(Homey) {
 
         const poster = document.createElement('div');
         poster.className = 'poster';
-        if (s.posterDataUri) {
-          poster.style.backgroundImage = `url("${s.posterDataUri}")`;
+        // posterDataUri omitted → we already cache this poster; '' → no art.
+        let uri = s.posterDataUri;
+        if (uri === undefined) uri = posterCache.get(s.posterKey) || '';
+        else if (uri && s.posterKey) cachePoster(s.posterKey, uri);
+        if (uri) {
+          poster.style.backgroundImage = `url("${uri}")`;
           poster.classList.add('has-image');
         } else {
           // Use the title's first letters as the poster glyph when we have no art
@@ -209,17 +232,33 @@ function onHomeyReady(Homey) {
   }
 
   async function refresh() {
+    // In-flight guard: a slow response must not stack overlapping polls.
+    if (refreshing) return;
+    refreshing = true;
+    let retry = false;
     try {
-      const data = await Homey.api('GET', '/overview' + serverQuery());
+      const have = Array.from(posterCache.keys()).join(',');
+      const data = await Homey.api('GET', '/overview' + serverQuery({ have }));
       render(data);
     } catch (err) {
-      showError(err && err.message ? err.message : String(err));
+      const msg = err && err.message ? err.message : String(err);
+      if (serverId && msg.indexOf('Unknown server') !== -1) {
+        // Stored selection points at an unpaired server — fall back to default.
+        serverId = null;
+        try { localStorage.removeItem(LS_KEY); } catch (e) { /* storage unavailable */ }
+        posterCache.clear();
+        retry = true;
+      } else {
+        showError(msg);
+      }
     } finally {
+      refreshing = false;
       if (!announcedReady) {
         announcedReady = true;
         Homey.ready();
       }
     }
+    if (retry) refresh();
   }
 
   function startPolling() {
@@ -237,6 +276,7 @@ function onHomeyReady(Homey) {
   serverSelect.addEventListener('change', () => {
     serverId = serverSelect.value;
     try { localStorage.setItem(LS_KEY, serverId); } catch (e) { /* storage unavailable */ }
+    posterCache.clear();
     refresh();
   });
 

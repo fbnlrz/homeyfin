@@ -29,8 +29,11 @@ export default class JellyfinServerDevice extends Homey.Device {
   private posterImage?: Homey.Image;
   private lastPosterUrl = '';
   private hubSwapUnsub?: () => void;
-  // Connectivity as reported by the hub; gates uptime writes and baseline resets.
-  private connectionOnline = true;
+  // Connectivity as reported by the hub; gates uptime writes and baseline
+  // resets. Starts false so a dead server at app start never accrues uptime —
+  // the FIRST connection:up (or the missed-edge sync in bootstrapHubInner)
+  // flips it and resets the baseline.
+  private connectionOnline = false;
 
   async onInit(): Promise<void> {
     this.serverId = this.getData().id.replace(/^server:/, '');
@@ -112,14 +115,20 @@ export default class JellyfinServerDevice extends Homey.Device {
     );
   }
 
-  private bootstrapInFlight?: Promise<void>;
+  // All bootstrap/rebuild work runs strictly one-after-another on this chain.
+  // Never coalesce: a repair/onSettings call arriving mid-bootstrap carries NEW
+  // credentials that a coalesced (old) promise would silently drop, and
+  // releaseHub must not tear a hub down while a bootstrap is still using it.
+  private bootstrapQueue: Promise<void> = Promise.resolve();
+  private enqueueBootstrapTask(task: () => Promise<void>): Promise<void> {
+    const run = this.bootstrapQueue.then(task);
+    // Keep the chain usable after a failure; the caller still sees the rejection.
+    this.bootstrapQueue = run.catch(() => undefined);
+    return run;
+  }
+
   private async bootstrapHub(settingsOverride?: ServerSettings): Promise<void> {
-    // Serialize concurrent invocations (onInit + onSettings races).
-    if (this.bootstrapInFlight) return this.bootstrapInFlight;
-    this.bootstrapInFlight = this.bootstrapHubInner(settingsOverride).finally(() => {
-      this.bootstrapInFlight = undefined;
-    });
-    return this.bootstrapInFlight;
+    return this.enqueueBootstrapTask(() => this.bootstrapHubInner(settingsOverride));
   }
 
   private async bootstrapHubInner(settingsOverride?: ServerSettings): Promise<void> {
@@ -148,20 +157,39 @@ export default class JellyfinServerDevice extends Homey.Device {
     const persistedRaw = this.homey.settings.get(ITEM_CACHE_KEY_PREFIX + this.serverId);
     const persistedItemIds: string[] = Array.isArray(persistedRaw) ? persistedRaw : [];
 
-    this.hub = await app.getOrCreateHub({
-      serverId: this.serverId,
-      baseUrl,
-      apiKey,
-      userId,
-      insecureTls: settings.insecureTls === true,
-      persistedItemIds,
-      saveItemIds: (ids) => this.homey.settings.set(ITEM_CACHE_KEY_PREFIX + this.serverId, ids),
-      libraryPollMs: (settings.libraryPollMinutes ?? 5) * 60_000,
-      fallbackPollMs: (settings.fallbackPollSeconds ?? 30) * 1_000,
-      activePollMs: (settings.activePollSeconds ?? 5) * 1_000,
-    });
+    try {
+      this.hub = await app.getOrCreateHub({
+        serverId: this.serverId,
+        baseUrl,
+        apiKey,
+        userId,
+        insecureTls: settings.insecureTls === true,
+        persistedItemIds,
+        saveItemIds: (ids) => this.homey.settings.set(ITEM_CACHE_KEY_PREFIX + this.serverId, ids),
+        libraryPollMs: (settings.libraryPollMinutes ?? 5) * 60_000,
+        fallbackPollMs: (settings.fallbackPollSeconds ?? 30) * 1_000,
+        activePollMs: (settings.activePollSeconds ?? 5) * 1_000,
+      });
+    } catch (err) {
+      // The hub was released while it was still starting (e.g. the device got
+      // deleted mid-bootstrap). Don't bind to anything; a later rebuild or the
+      // onHubSwap subscription picks up a replacement hub if one appears.
+      this.error('hub bootstrap failed', (err as Error).message);
+      await this.setUnavailable('Server connection was torn down during startup').catch(
+        () => undefined,
+      );
+      return;
+    }
 
     this.registerHubHandlers();
+
+    // The socket may have opened before our handlers were attached (it starts
+    // inside hub.start()), so sync the missed connection:up edge: flip online
+    // and restart the uptime baseline exactly like the onUp handler would.
+    if (this.hub.isSocketOpen() && !this.connectionOnline) {
+      this.connectionOnline = true;
+      this.homey.settings.set('serverStartTs:' + this.serverId, Date.now());
+    }
 
     const cached = this.hub.getLastCounts();
     if (cached) await this.applyCounts(cached);
@@ -206,13 +234,18 @@ export default class JellyfinServerDevice extends Homey.Device {
   /**
    * Tear down the current hub and build a fresh one. Called from onSettings
    * and from the driver's repair flow — a programmatic setSettings() does NOT
-   * fire onSettings, so repair must invoke this explicitly.
+   * fire onSettings, so repair must invoke this explicitly. Runs on the
+   * bootstrap queue so the release+rebuild waits out any in-flight bootstrap
+   * and then ALWAYS executes with the new settings — after this resolves the
+   * hub built from settingsOverride is the live one.
    */
   async rebuildHub(settingsOverride?: ServerSettings): Promise<void> {
-    this.unregister();
-    const app = this.homey.app as HomeyfinApp;
-    await app.releaseHub(this.serverId);
-    await this.bootstrapHub(settingsOverride);
+    return this.enqueueBootstrapTask(async () => {
+      this.unregister();
+      const app = this.homey.app as HomeyfinApp;
+      await app.releaseHub(this.serverId);
+      await this.bootstrapHubInner(settingsOverride);
+    });
   }
 
   async onUninit(): Promise<void> {
@@ -231,6 +264,7 @@ export default class JellyfinServerDevice extends Homey.Device {
     await app.releaseHub(this.serverId);
     this.homey.settings.unset(ITEM_CACHE_KEY_PREFIX + this.serverId);
     this.homey.settings.unset('serverStartTs:' + this.serverId);
+    this.homey.settings.unset('updateAvailable:' + this.serverId);
   }
 
   private detachHubListeners(): void {
@@ -267,7 +301,8 @@ export default class JellyfinServerDevice extends Homey.Device {
     const onUp = () => {
       if (!this.connectionOnline) {
         this.connectionOnline = true;
-        // Reconnect after an outage: restart the uptime baseline.
+        // First contact or reconnect after an outage: restart the uptime
+        // baseline so the value means 'minutes since last reconnect'.
         this.homey.settings.set('serverStartTs:' + this.serverId, Date.now());
         this.refreshUptime().catch(() => undefined);
       }

@@ -26,7 +26,10 @@ interface OverviewStream {
   isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
-  posterDataUri: string;
+  /** Poster cache key (`itemId:imageTag`); '' when the stream has no item. */
+  posterKey: string;
+  /** Omitted when the frontend already shows this poster (see `have`). */
+  posterDataUri?: string;
 }
 
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
@@ -40,7 +43,14 @@ function listServerDevices(homey: HomeyRef): ServerSummary[] {
 
 function selectServer(homey: HomeyRef, requestedId?: string): ServerSummary | null {
   const servers = listServerDevices(homey);
-  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
+  if (requestedId) {
+    const match = servers.find((s) => s.id === requestedId);
+    // A stale (unpaired) server id must surface as an error, not silently show
+    // another server's data — the frontend resets its stored selection on it.
+    if (!match) throw new Error(`Unknown server: ${requestedId}`);
+    return match;
+  }
+  return servers[0] || null;
 }
 
 function snapshotToStream(snap: ClientSnapshot): OverviewStream {
@@ -69,7 +79,7 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterDataUri: '',
+    posterKey: item?.Id ? `${item.Id}:${item.ImageTags?.Primary ?? ''}` : '',
   };
 }
 
@@ -104,7 +114,11 @@ module.exports = {
     }
     if (!snap || !snap.nowPlaying) return { hasStream: false, server, online };
     const stream = snapshotToStream(snap);
-    stream.posterDataUri = await posterFor(hub, snap);
+    // `have` carries the key (`itemId:imageTag`) of the poster the frontend
+    // currently shows — skip re-encoding and re-shipping it while unchanged.
+    if (!stream.posterKey || query?.have !== stream.posterKey) {
+      stream.posterDataUri = await posterFor(hub, snap);
+    }
     return { hasStream: true, server, online, stream };
   },
 

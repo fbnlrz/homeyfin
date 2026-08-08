@@ -21,6 +21,8 @@ interface GridItem {
   type: string;
   seriesName?: string;
   progressPercent?: number;
+  /** Poster image tag — part of the frontend's cache key (`id:imageTag`). */
+  imageTag?: string;
   /** Omitted when the frontend already holds this item's poster (see `have`). */
   posterDataUri?: string;
 }
@@ -41,7 +43,14 @@ function listServerDevices(homey: HomeyRef): ServerSummary[] {
 
 function selectServer(homey: HomeyRef, requestedId?: string): ServerSummary | null {
   const servers = listServerDevices(homey);
-  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
+  if (requestedId) {
+    const match = servers.find((s) => s.id === requestedId);
+    // A stale (unpaired) server id must surface as an error, not silently show
+    // another server's data — the frontend resets its stored selection on it.
+    if (!match) throw new Error(`Unknown server: ${requestedId}`);
+    return match;
+  }
+  return servers[0] || null;
 }
 
 module.exports = {
@@ -58,8 +67,8 @@ module.exports = {
 
     const online = hub.isSocketOpen();
     const tab = query?.tab === 'resume' ? 'resume' : 'latest';
-    // Item ids whose poster the frontend already caches — no need to re-encode
-    // and re-ship those (posters only travel once per item).
+    // Poster keys (`id:imageTag`) the frontend already caches — no need to
+    // re-encode and re-ship those (posters only travel once per item version).
     const have = new Set((query?.have ?? '').split(',').filter(Boolean));
 
     let entries: Array<LatestListEntry | ResumeListEntry>;
@@ -79,7 +88,9 @@ module.exports = {
       if (entry.seriesName) item.seriesName = entry.seriesName;
       const pct = (entry as ResumeListEntry).progressPercent;
       if (typeof pct === 'number') item.progressPercent = pct;
-      if (!have.has(entry.id)) {
+      if (entry.imageTag) item.imageTag = entry.imageTag;
+      // Keyed on id AND image tag so changed artwork is re-shipped.
+      if (!have.has(`${entry.id}:${entry.imageTag ?? ''}`)) {
         // Poster is fetched server-side (authenticated, LRU-cached) and delivered
         // as a data: URI so no api_key ever reaches the dashboard webview.
         item.posterDataUri = (await hub.getPosterDataUri(entry.id, entry.imageTag, POSTER_MAX_WIDTH)) ?? '';

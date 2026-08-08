@@ -11,6 +11,9 @@ import type { TimerProvider } from '../lib/JellyfinSocket';
 type HubInternals = {
   handleActivityLog(entries: unknown[]): void;
   maybeCheckUpdate(): Promise<void>;
+  refreshLibrary(): Promise<void>;
+  scheduleSocketRefresh(): void;
+  scheduleTaskPoll(taskId: string, startedAt: number): void;
   socketOpen: boolean;
   lastUpdateCheckAt: number;
 };
@@ -160,6 +163,150 @@ test('runScheduledTask emits task:completed after the state returns to Idle (H4)
       { taskId: 'task-1', taskName: 'Scan Media Library', status: 'Completed' },
     ]);
     assert.equal(pendingCount(), 0, 'monitoring must stop after completion');
+  } finally {
+    await hub.stop();
+  }
+});
+
+test('overlapping refreshLibrary runs coalesce and never double-emit new_item (F1)', async () => {
+  const hub = makeHub();
+  const h = hub as unknown as HubInternals;
+  const newItems: string[] = [];
+  hub.on('library:new_item', (ev: { item: { Id: string } }) => newItems.push(ev.item.Id));
+  const movie = (id: string): { Id: string; Name: string; Type: string } => ({
+    Id: id,
+    Name: id,
+    Type: 'Movie',
+  });
+  const client = hub.client as unknown as {
+    getItemCounts: (userId?: string) => Promise<unknown>;
+    getMediaFolders: () => Promise<{ Items: Array<{ Id: string; Name: string }> }>;
+    getLatestItems: (opts: unknown) => Promise<unknown[]>;
+  };
+  client.getItemCounts = () => Promise.reject(new Error('n/a'));
+  client.getMediaFolders = async () => ({ Items: [{ Id: 'lib-movies', Name: 'Movies' }] });
+  try {
+    // Baseline run: bootstraps silently.
+    client.getLatestItems = async () => [movie('m1')];
+    await h.refreshLibrary();
+    assert.equal(newItems.length, 0, 'baseline items must not fire new_item');
+
+    // A second call arrives while the first is stuck fetching latest items —
+    // before the guard, both runs saw the old baseline and emitted m2 twice.
+    let release!: (items: unknown[]) => void;
+    const gate = new Promise<unknown[]>((resolve) => {
+      release = resolve;
+    });
+    let fetches = 0;
+    client.getLatestItems = () => {
+      fetches++;
+      return gate;
+    };
+    const first = h.refreshLibrary();
+    const second = h.refreshLibrary();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(fetches, 1, 'the overlapping call must not fetch in parallel');
+    release([movie('m1'), movie('m2')]);
+    await Promise.all([first, second]);
+    assert.deepEqual(newItems, ['m2'], 'the new item must fire exactly once');
+    assert.equal(fetches, 2, 'the deferred follow-up run executes once afterwards');
+  } finally {
+    await hub.stop();
+  }
+});
+
+test('socket-triggered library refreshes are debounced into one run (F1)', async () => {
+  const { timers, flush, pendingCount } = makeManualTimers();
+  const hub = makeHub(timers);
+  const h = hub as unknown as HubInternals;
+  let refreshes = 0;
+  const client = hub.client as unknown as {
+    getItemCounts: (userId?: string) => Promise<unknown>;
+    getMediaFolders: () => Promise<{ Items: unknown[] }>;
+  };
+  client.getItemCounts = () => Promise.reject(new Error('n/a'));
+  client.getMediaFolders = async () => {
+    refreshes++;
+    return { Items: [] };
+  };
+  try {
+    // A burst of LibraryChanged frames arms exactly one trailing timer.
+    h.scheduleSocketRefresh();
+    h.scheduleSocketRefresh();
+    h.scheduleSocketRefresh();
+    assert.equal(pendingCount(), 1, 'a frame burst must arm a single timer');
+    await flush();
+    assert.equal(refreshes, 1, 'the burst must collapse into one refresh');
+    assert.equal(pendingCount(), 0, 'no timer may stay behind after the refresh');
+  } finally {
+    await hub.stop();
+  }
+});
+
+test('a repeated runScheduledTask does not stack a second monitor (F3)', async () => {
+  const { timers, flush, pendingCount } = makeManualTimers();
+  const hub = makeHub(timers);
+  const completed: Array<{ taskId: string; taskName: string; status: string }> = [];
+  hub.on('task:completed', (d: { taskId: string; taskName: string; status: string }) =>
+    completed.push(d),
+  );
+  let state = 'Running';
+  let starts = 0;
+  hub.client.startScheduledTask = async () => {
+    starts++;
+  };
+  hub.client.getScheduledTask = async (taskId: string) => ({
+    id: taskId,
+    name: 'Scan Media Library',
+    state,
+    lastResultStatus: state === 'Idle' ? 'Completed' : undefined,
+  });
+  try {
+    await hub.runScheduledTask('task-1');
+    await hub.runScheduledTask('task-1');
+    assert.equal(starts, 2, 'the task start itself is repeated');
+    assert.equal(pendingCount(), 1, 'only one monitor may exist per task id');
+
+    await flush(); // still Running → the single monitor reschedules
+    assert.equal(pendingCount(), 1);
+
+    state = 'Idle';
+    await flush();
+    assert.deepEqual(completed, [
+      { taskId: 'task-1', taskName: 'Scan Media Library', status: 'Completed' },
+    ]);
+    assert.equal(pendingCount(), 0, 'monitoring must stop after completion');
+
+    // After completion the id is free again: a new run starts a new monitor.
+    state = 'Running';
+    await hub.runScheduledTask('task-1');
+    assert.equal(pendingCount(), 1, 'a fresh run may monitor again');
+  } finally {
+    await hub.stop();
+  }
+});
+
+test('task monitor reports TimedOut after the horizon instead of going silent (V2)', async () => {
+  const { timers, flush, pendingCount } = makeManualTimers();
+  const hub = makeHub(timers);
+  const h = hub as unknown as HubInternals;
+  const completed: Array<{ taskId: string; taskName: string; status: string }> = [];
+  hub.on('task:completed', (d: { taskId: string; taskName: string; status: string }) =>
+    completed.push(d),
+  );
+  hub.client.getScheduledTask = async (taskId: string) => ({
+    id: taskId,
+    name: 'Scan Media Library',
+    state: 'Running',
+  });
+  try {
+    // Arm a poll whose monitor started beyond the 30-min horizon.
+    h.scheduleTaskPoll('task-1', Date.now() - 31 * 60 * 1000);
+    await flush();
+    assert.deepEqual(completed, [
+      { taskId: 'task-1', taskName: 'Scan Media Library', status: 'TimedOut' },
+    ]);
+    assert.equal(pendingCount(), 0, 'monitoring must stop after the timeout');
   } finally {
     await hub.stop();
   }

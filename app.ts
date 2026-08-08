@@ -80,6 +80,10 @@ export default class HomeyfinApp extends Homey.App {
       ...opts,
       homeyDeviceId,
       appVersion,
+      // Seed the update-available edge from the persisted flag so the
+      // update_available card doesn't re-fire on every app restart.
+      initialUpdateAvailable:
+        this.homey.settings.get('updateAvailable:' + opts.serverId) === true,
       debug: false,
       timers: {
         setInterval: this.homey.setInterval.bind(this.homey),
@@ -91,7 +95,25 @@ export default class HomeyfinApp extends Homey.App {
 
     this.hubs.set(opts.serverId, hub);
     hub.on('error', (err: Error) => this.error(`Hub ${opts.serverId} error:`, err.message));
+    // Persist the update-available flag so the edge survives app restarts
+    // (read back via initialUpdateAvailable above).
+    hub.on('server:update_available', () =>
+      this.homey.settings.set('updateAvailable:' + opts.serverId, true),
+    );
+    hub.on('server:update_cleared', () =>
+      this.homey.settings.set('updateAvailable:' + opts.serverId, false),
+    );
     await hub.start();
+    if (this.hubs.get(opts.serverId) !== hub) {
+      // releaseHub() ran while start() was in flight: this instance is already
+      // stopped (its listeners are gone too) and must never be notified or
+      // handed out. Prefer whatever hub owns the map slot now; if none does,
+      // fail the bootstrap instead of returning a zombie.
+      await hub.stop().catch(() => undefined);
+      const current = this.hubs.get(opts.serverId);
+      if (current) return current;
+      throw new Error(`Hub for server ${opts.serverId} was released during startup`);
+    }
     this.log(`Hub started for server ${opts.serverId}`);
     this.notifyHubSwap(opts.serverId, hub);
     return hub;

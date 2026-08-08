@@ -211,7 +211,12 @@ export class JellyfinClient {
   private appVersion: string;
   private insecureAgent?: https.Agent;
   private imageCache = new Map<string, CachedImage>();
+  private imageCacheBytes = 0;
   private static readonly IMAGE_CACHE_MAX = 64;
+  // Entries alone don't bound memory (a 600-px poster can be 100–500 KB), so
+  // the cache is also capped byte-exact; oversized images bypass it entirely.
+  private static readonly IMAGE_CACHE_MAX_BYTES = 6 * 1024 * 1024;
+  private static readonly IMAGE_CACHE_MAX_ENTRY_BYTES = 1.5 * 1024 * 1024;
   private static readonly IMAGE_CACHE_TTL_MS = 30 * 60 * 1000;
   private static readonly REQUEST_TIMEOUT_MS = 12_000;
 
@@ -713,9 +718,11 @@ export class JellyfinClient {
   /**
    * Ids of the playable items inside a playlist/collection/folder. Playlist
    * children keep their curated order — the server only returns that when no
-   * SortBy is requested — everything else is sorted by SortName.
+   * SortBy is requested — everything else is sorted by SortName. Capped via
+   * `limit` (server-side): the ids end up in the query string of
+   * playItemsOnSession, so an unbounded list would blow the request line.
    */
-  async getPlayableChildIds(parentId: string): Promise<string[]> {
+  async getPlayableChildIds(parentId: string, limit: number = 300): Promise<string[]> {
     let isPlaylist = false;
     try {
       const parent = await this.request<{ Items?: Array<{ Id: string; Type?: string }> }>(
@@ -733,6 +740,7 @@ export class JellyfinClient {
       Recursive: 'true',
       IncludeItemTypes: 'Movie,Episode,Audio,Video',
       SortBy: isPlaylist ? undefined : 'SortName',
+      Limit: limit,
     });
     return (res?.Items ?? []).map((i) => i.Id);
   }
@@ -886,15 +894,34 @@ export class JellyfinClient {
         contentType: raw.contentType || 'image/jpeg',
         fetchedAt: now,
       };
+      // A stale entry may still sit under this key — drop its bytes first.
+      this.evictImage(url);
+      // Oversized images are served but never cached: a single huge poster
+      // would otherwise flush most of the cache on its own.
+      if (entry.buffer.length > JellyfinClient.IMAGE_CACHE_MAX_ENTRY_BYTES) {
+        return entry;
+      }
       this.imageCache.set(url, entry);
-      while (this.imageCache.size > JellyfinClient.IMAGE_CACHE_MAX) {
+      this.imageCacheBytes += entry.buffer.length;
+      while (
+        this.imageCache.size > JellyfinClient.IMAGE_CACHE_MAX ||
+        this.imageCacheBytes > JellyfinClient.IMAGE_CACHE_MAX_BYTES
+      ) {
         const firstKey = this.imageCache.keys().next().value;
         if (firstKey === undefined) break;
-        this.imageCache.delete(firstKey);
+        this.evictImage(firstKey);
       }
       return entry;
     } catch {
       return undefined;
     }
+  }
+
+  /** Removes a cache entry and keeps the byte accounting in sync. */
+  private evictImage(key: string): void {
+    const entry = this.imageCache.get(key);
+    if (!entry) return;
+    this.imageCache.delete(key);
+    this.imageCacheBytes -= entry.buffer.length;
   }
 }

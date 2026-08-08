@@ -32,6 +32,11 @@ const SKIPPABLE_SEGMENT_TYPES = new Set(['Intro', 'Outro', 'Recap', 'Commercial'
 // Hard cap on how many sessions stop_user_sessions addresses in one run so a
 // runaway session list can never turn into an unbounded command burst.
 const MAX_STOPPED_SESSIONS = 20;
+// How many playlist/collection children play_playlist fetches from the server
+// at most, and how many of them one Play request may carry: the ids travel in
+// the query string, which tops out around ~230 GUIDs.
+const MAX_PLAYLIST_FETCH = 300;
+const MAX_PLAYLIST_PLAY = 200;
 
 interface UserListDevice {
   name: string;
@@ -77,8 +82,11 @@ export default class JellyfinUserDriver extends Homey.Driver {
     this.homey.flow
       .getDeviceTriggerCard('minutes_before_end')
       .registerRunListener(
+        // Remaining DECREASES: a threshold of N minutes fires when the floored
+        // remaining drops from N to N-1 — i.e. when exactly N minutes are left,
+        // not a minute early while N minutes and change still remain.
         async (args: { minutes: number }, state: { minutes: number; prev: number }) =>
-          state.minutes <= args.minutes && args.minutes < state.prev,
+          state.minutes < args.minutes && args.minutes <= state.prev,
       );
 
     this.homey.flow
@@ -301,7 +309,7 @@ export default class JellyfinUserDriver extends Homey.Driver {
         if (!session) throw new Error('User has no active Jellyfin session right now');
         if (!args.playlist?.id) throw new Error('No playlist or collection picked');
         const client = JellyfinUserDriver.requireHub(args.device).client;
-        const ids = await client.getPlayableChildIds(args.playlist.id);
+        const ids = await client.getPlayableChildIds(args.playlist.id, MAX_PLAYLIST_FETCH);
         if (ids.length === 0) throw new Error('Playlist or collection has no playable items');
         if (args.mode === 'shuffle') {
           // Fisher–Yates shuffle
@@ -309,6 +317,11 @@ export default class JellyfinUserDriver extends Homey.Driver {
             const j = Math.floor(Math.random() * (i + 1));
             [ids[i], ids[j]] = [ids[j], ids[i]];
           }
+        }
+        // Cap AFTER the shuffle so shuffle mode still samples the whole list.
+        if (ids.length > MAX_PLAYLIST_PLAY) {
+          this.log(`play_playlist: capping ${ids.length} items to ${MAX_PLAYLIST_PLAY}`);
+          ids.length = MAX_PLAYLIST_PLAY;
         }
         await client.playItemsOnSession(session.sessionId, ids);
       },

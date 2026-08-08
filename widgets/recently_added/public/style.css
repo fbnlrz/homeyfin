@@ -291,3 +291,10 @@ html, body {
   font-size: 12px;
   padding: 14px 0;
 }
+
+.sheet-error {
+  text-align: center;
+  color: #e5484d;
+  font-size: 12px;
+  padding: 6px 0 2px;
+}

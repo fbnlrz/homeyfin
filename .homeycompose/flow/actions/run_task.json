@@ -10,9 +10,9 @@
     "nl": "Geplande taak [[task]] starten"
   },
   "hint": {
-    "en": "Starts a Jellyfin scheduled task. The 'Task completed' card fires when it finishes. Requires the API key to belong to an admin user.",
-    "de": "Startet eine geplante Jellyfin-Aufgabe. Die Karte 'Aufgabe abgeschlossen' wird beim Ende ausgelöst. Erfordert einen Admin-API-Key.",
-    "nl": "Start een geplande Jellyfin-taak. De kaart 'Taak voltooid' wordt geactiveerd wanneer deze eindigt. Vereist dat de API-sleutel van een beheerder is."
+    "en": "Starts a Jellyfin scheduled task. The 'Task completed' card fires when it finishes. The task is monitored for up to 30 minutes; if it runs longer, the card fires with status 'TimedOut'. Requires the API key to belong to an admin user.",
+    "de": "Startet eine geplante Jellyfin-Aufgabe. Die Karte 'Aufgabe abgeschlossen' wird beim Ende ausgelöst. Die Aufgabe wird maximal 30 Minuten überwacht; dauert sie länger, wird die Karte mit dem Status 'TimedOut' ausgelöst. Erfordert einen Admin-API-Key.",
+    "nl": "Start een geplande Jellyfin-taak. De kaart 'Taak voltooid' wordt geactiveerd wanneer deze eindigt. De taak wordt maximaal 30 minuten gevolgd; duurt deze langer, dan wordt de kaart geactiveerd met status 'TimedOut'. Vereist dat de API-sleutel van een beheerder is."
   },
   "args": [
     {

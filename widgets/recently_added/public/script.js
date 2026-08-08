@@ -19,6 +19,7 @@ function onHomeyReady(Homey) {
     noClients: { en: 'No active client found', de: 'Kein aktiver Client gefunden', nl: 'Geen actieve client gevonden' },
     playOn: { en: 'Play on…', de: 'Abspielen auf…', nl: 'Afspelen op…' },
     loading: { en: 'Loading…', de: 'Lade…', nl: 'Laden…' },
+    playFailed: { en: 'Playback failed', de: 'Wiedergabe fehlgeschlagen', nl: 'Afspelen mislukt' },
   };
   const t = (key) => TEXTS[key][lang] || TEXTS[key].en;
 
@@ -28,13 +29,15 @@ function onHomeyReady(Homey) {
   let serverId = null;
   try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
 
-  // Posters travel only once per item: the API skips the data URI for ids we
-  // report as already cached. Small FIFO cap keeps webview memory bounded.
+  // Posters travel only once per item: the API skips the data URI for keys
+  // (`id:imageTag`, so changed artwork is re-shipped) we report as already
+  // cached. Small FIFO cap keeps webview memory bounded.
   const POSTER_CACHE_MAX = 40;
   const posterCache = new Map();
-  function cachePoster(id, uri) {
-    if (posterCache.has(id)) posterCache.delete(id);
-    posterCache.set(id, uri);
+  const posterKey = (item) => `${item.id}:${item.imageTag || ''}`;
+  function cachePoster(key, uri) {
+    if (posterCache.has(key)) posterCache.delete(key);
+    posterCache.set(key, uri);
     while (posterCache.size > POSTER_CACHE_MAX) {
       posterCache.delete(posterCache.keys().next().value);
     }
@@ -83,8 +86,8 @@ function onHomeyReady(Homey) {
       const poster = document.createElement('div');
       poster.className = 'poster';
       let uri = item.posterDataUri;
-      if (uri) cachePoster(item.id, uri);
-      else uri = posterCache.get(item.id) || '';
+      if (uri) cachePoster(posterKey(item), uri);
+      else uri = posterCache.get(posterKey(item)) || '';
       if (uri) {
         poster.style.backgroundImage = `url("${uri}")`;
         poster.classList.add('has-image');
@@ -122,18 +125,29 @@ function onHomeyReady(Homey) {
   }
 
   async function refresh() {
+    let retry = false;
     try {
       const have = Array.from(posterCache.keys()).join(',');
       const data = await Homey.api('GET', '/items' + serverQuery({ tab, have }));
       render(data);
     } catch (err) {
-      showEmpty(err && err.message ? err.message : 'Error');
+      const msg = err && err.message ? err.message : 'Error';
+      if (serverId && msg.indexOf('Unknown server') !== -1) {
+        // Stored selection points at an unpaired server — fall back to default.
+        serverId = null;
+        try { localStorage.removeItem(LS_KEY); } catch (e) { /* storage unavailable */ }
+        posterCache.clear();
+        retry = true;
+      } else {
+        showEmpty(msg);
+      }
     } finally {
       if (!announcedReady) {
         announcedReady = true;
         Homey.ready();
       }
     }
+    if (retry) refresh();
   }
 
   function startPolling() {
@@ -167,7 +181,24 @@ function onHomeyReady(Homey) {
   }
   $('sheet-backdrop').addEventListener('click', closeSheet);
 
+  // Each openSheet gets a token so a stale /sessions response (from a sheet
+  // that was closed and reopened for another item while the fetch was in
+  // flight) can never build buttons for the wrong item.
+  let sheetToken = 0;
+
+  function showSheetError(msg) {
+    const list = $('sheet-list');
+    let el = list.querySelector('.sheet-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'sheet-error';
+      list.appendChild(el);
+    }
+    el.textContent = msg;
+  }
+
   async function openSheet(item) {
+    const token = ++sheetToken;
     $('sheet-title').textContent = t('playOn');
     const list = $('sheet-list');
     list.innerHTML = '';
@@ -181,7 +212,7 @@ function onHomeyReady(Homey) {
     try {
       sessions = await Homey.api('GET', '/sessions' + serverQuery());
     } catch (e) { /* fall through to empty state */ }
-    if (sheet.classList.contains('hidden')) return;
+    if (token !== sheetToken || sheet.classList.contains('hidden')) return;
 
     list.innerHTML = '';
     if (!Array.isArray(sessions) || sessions.length === 0) {
@@ -211,6 +242,7 @@ function onHomeyReady(Homey) {
           closeSheet();
         } catch (e) {
           btn.disabled = false;
+          showSheetError(t('playFailed'));
         }
       });
       list.appendChild(btn);
