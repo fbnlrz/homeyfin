@@ -4,6 +4,11 @@
     "de": "Aktuelle Wiedergabe geändert",
     "nl": "Afgespeeld item gewijzigd"
   },
+  "hint": {
+    "en": "Fires when the item this Jellyfin user is playing changes. This card is for user devices; player devices have their own cards.",
+    "de": "Wird ausgelöst, wenn sich das gerade abgespielte Item dieses Jellyfin-Benutzers ändert. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eigene Karten.",
+    "nl": "Wordt geactiveerd wanneer het item dat deze Jellyfin-gebruiker afspeelt verandert. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben eigen kaarten."
+  },
   "args": [
     {
       "name": "device",
@@ -55,6 +60,24 @@
         "en": "Episode",
         "de": "Folge",
         "nl": "Aflevering"
+      }
+    },
+    {
+      "name": "runtime",
+      "type": "number",
+      "title": {
+        "en": "Runtime (s)",
+        "de": "Laufzeit (s)",
+        "nl": "Speelduur (s)"
+      }
+    },
+    {
+      "name": "user",
+      "type": "string",
+      "title": {
+        "en": "User",
+        "de": "Benutzer",
+        "nl": "Gebruiker"
       }
     },
     {

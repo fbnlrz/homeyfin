@@ -4,6 +4,11 @@
     "de": "Wiedergabe fortgesetzt",
     "nl": "Afspelen hervat"
   },
+  "hint": {
+    "en": "Fires when playback for this Jellyfin user is resumed after a pause. This card is for user devices; player devices have their own card.",
+    "de": "Wird ausgelöst, wenn die Wiedergabe für diesen Jellyfin-Benutzer nach einer Pause fortgesetzt wird. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eine eigene Karte.",
+    "nl": "Wordt geactiveerd wanneer het afspelen voor deze Jellyfin-gebruiker na een pauze wordt hervat. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben een eigen kaart."
+  },
   "args": [
     {
       "name": "device",
@@ -55,6 +60,15 @@
         "en": "Episode",
         "de": "Folge",
         "nl": "Aflevering"
+      }
+    },
+    {
+      "name": "runtime",
+      "type": "number",
+      "title": {
+        "en": "Runtime (s)",
+        "de": "Laufzeit (s)",
+        "nl": "Speelduur (s)"
       }
     },
     {

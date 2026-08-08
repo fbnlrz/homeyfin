@@ -1,0 +1,33 @@
+{
+  "title": {
+    "en": "Show item on client",
+    "de": "Item auf Client anzeigen",
+    "nl": "Item op client tonen"
+  },
+  "titleFormatted": {
+    "en": "Show [[item]] on the client",
+    "de": "Zeige [[item]] auf dem Client",
+    "nl": "[[item]] tonen op de client"
+  },
+  "hint": {
+    "en": "Opens the item's detail page on the client the user is active on, without starting playback.",
+    "de": "Öffnet die Detailseite des Items auf dem aktiven Client des Benutzers, ohne die Wiedergabe zu starten.",
+    "nl": "Opent de detailpagina van het item op de client waarop de gebruiker actief is, zonder het afspelen te starten."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
+    {
+      "name": "item",
+      "type": "autocomplete",
+      "title": {
+        "en": "Item",
+        "de": "Item",
+        "nl": "Item"
+      }
+    }
+  ]
+}

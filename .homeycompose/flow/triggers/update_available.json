@@ -1,0 +1,19 @@
+{
+  "title": {
+    "en": "Server update available",
+    "de": "Server-Update verfügbar",
+    "nl": "Serverupdate beschikbaar"
+  },
+  "hint": {
+    "en": "Fires when Jellyfin starts reporting an available server update. Checked roughly every 6 hours while connected. Fires once per detected update, even across app restarts.",
+    "de": "Wird ausgelöst, wenn Jellyfin ein verfügbares Server-Update meldet. Prüfung etwa alle 6 Stunden bei bestehender Verbindung. Wird pro erkanntem Update nur einmal ausgelöst, auch über App-Neustarts hinweg.",
+    "nl": "Wordt geactiveerd wanneer Jellyfin een beschikbare serverupdate meldt. Controle ongeveer elke 6 uur zolang er verbinding is. Wordt per gedetecteerde update slechts één keer geactiveerd, ook na een herstart van de app."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    }
+  ]
+}

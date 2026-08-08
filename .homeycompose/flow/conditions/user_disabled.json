@@ -1,0 +1,19 @@
+{
+  "title": {
+    "en": "User is !{{disabled|not disabled}}",
+    "de": "Benutzer ist !{{gesperrt|nicht gesperrt}}",
+    "nl": "Gebruiker is !{{geblokkeerd|niet geblokkeerd}}"
+  },
+  "hint": {
+    "en": "Checks whether this user's Jellyfin account is disabled (parental control). Requires an admin API key.",
+    "de": "Prüft, ob das Jellyfin-Konto dieses Benutzers gesperrt ist (Kindersicherung). Benötigt einen Admin-API-Key.",
+    "nl": "Controleert of het Jellyfin-account van deze gebruiker is uitgeschakeld (ouderlijk toezicht). Vereist een admin-API-sleutel."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ]
+}

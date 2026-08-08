@@ -1,5 +1,5 @@
 import type HomeyfinApp from '../../app';
-import type { ClientSnapshot } from '../../lib/ServerHub';
+import type { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
 
 type HomeyRef = HomeyfinApp['homey'];
 
@@ -16,15 +16,20 @@ interface ServerSummary {
 }
 
 interface OverviewStream {
+  deviceId: string;
   deviceName: string;
   clientName: string;
   userName: string;
   title: string;
   subtitle: string;
   isPaused: boolean;
+  isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
-  posterUrl: string;
+  /** Poster cache key (`itemId:imageTag`); '' when the stream has no item. */
+  posterKey: string;
+  /** Omitted when the frontend already shows this poster (see `have`). */
+  posterDataUri?: string;
 }
 
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
@@ -38,7 +43,14 @@ function listServerDevices(homey: HomeyRef): ServerSummary[] {
 
 function selectServer(homey: HomeyRef, requestedId?: string): ServerSummary | null {
   const servers = listServerDevices(homey);
-  return (requestedId && servers.find((s) => s.id === requestedId)) || servers[0] || null;
+  if (requestedId) {
+    const match = servers.find((s) => s.id === requestedId);
+    // A stale (unpaired) server id must surface as an error, not silently show
+    // another server's data — the frontend resets its stored selection on it.
+    if (!match) throw new Error(`Unknown server: ${requestedId}`);
+    return match;
+  }
+  return servers[0] || null;
 }
 
 function snapshotToStream(snap: ClientSnapshot): OverviewStream {
@@ -57,26 +69,42 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     }
   }
   return {
+    deviceId: snap.deviceId,
     deviceName: snap.deviceName ?? '',
     clientName: snap.clientName ?? '',
     userName: snap.userName ?? '',
     title,
     subtitle,
     isPaused: snap.isPaused,
+    isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterUrl: snap.posterUrl ?? '',
+    posterKey: item?.Id ? `${item.Id}:${item.ImageTags?.Primary ?? ''}` : '',
   };
 }
 
+// Poster is fetched server-side (authenticated, LRU-cached) and delivered as a
+// data: URI so no api_key ever reaches the dashboard webview.
+async function posterFor(hub: ServerHub, snap: ClientSnapshot): Promise<string> {
+  const item = snap.nowPlaying;
+  if (!item?.Id) return '';
+  const uri = await hub.getPosterDataUri(item.Id, item.ImageTags?.Primary, 600);
+  return uri ?? '';
+}
+
 module.exports = {
+  async getServers({ homey }: ApiArgs) {
+    return listServerDevices(homey);
+  },
+
   async getNowPlaying({ homey, query }: ApiArgs) {
     const app = homey.app as HomeyfinApp;
     const server = selectServer(homey, query?.serverId);
-    if (!server) return { hasStream: false };
+    if (!server) return { hasStream: false, server: null, online: false };
     const hub = app.getHub(server.id);
-    if (!hub) return { hasStream: false, server };
+    if (!hub) return { hasStream: false, server, online: false };
 
+    const online = hub.isSocketOpen();
     let snap: ClientSnapshot | undefined;
     if (query?.deviceId) {
       snap = hub.getClientSnapshot(query.deviceId);
@@ -84,8 +112,14 @@ module.exports = {
       const streams = await hub.getActiveStreams();
       snap = streams[0];
     }
-    if (!snap || !snap.nowPlaying) return { hasStream: false, server };
-    return { hasStream: true, server, stream: snapshotToStream(snap) };
+    if (!snap || !snap.nowPlaying) return { hasStream: false, server, online };
+    const stream = snapshotToStream(snap);
+    // `have` carries the key (`itemId:imageTag`) of the poster the frontend
+    // currently shows — skip re-encoding and re-shipping it while unchanged.
+    if (!stream.posterKey || query?.have !== stream.posterKey) {
+      stream.posterDataUri = await posterFor(hub, snap);
+    }
+    return { hasStream: true, server, online, stream };
   },
 
   async togglePlayback({ homey, body }: ApiArgs) {

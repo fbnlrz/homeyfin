@@ -51,11 +51,22 @@ const jobs = [
   { html: 'widget-preview.html?widget=server_overview&theme=dark',  out: 'widgets/server_overview/preview-dark.png',  w: 1024, h: 1024, transparent: true },
   { html: 'widget-preview.html?widget=now_playing&theme=light',     out: 'widgets/now_playing/preview-light.png',     w: 1024, h: 1024, transparent: true },
   { html: 'widget-preview.html?widget=now_playing&theme=dark',      out: 'widgets/now_playing/preview-dark.png',      w: 1024, h: 1024, transparent: true },
+  { html: 'widget-preview.html?widget=recently_added&theme=light',  out: 'widgets/recently_added/preview-light.png',  w: 1024, h: 1024, transparent: true },
+  { html: 'widget-preview.html?widget=recently_added&theme=dark',   out: 'widgets/recently_added/preview-dark.png',   w: 1024, h: 1024, transparent: true },
 ];
+
+// Optional filter: `node scripts/render-store-images.mjs <substring>` renders
+// only the jobs whose output path contains the substring (e.g. a widget id).
+const filter = process.argv[2];
+const selected = filter ? jobs.filter((j) => j.out.includes(filter)) : jobs;
+if (!selected.length) {
+  console.error(`No jobs match filter "${filter}".`);
+  process.exit(1);
+}
 
 const browser = await chromium.launch({ executablePath: findChrome(), args: ['--no-sandbox'] });
 try {
-  for (const job of jobs) {
+  for (const job of selected) {
     const [file, query] = job.html.split('?');
     const url = pathToFileURL(path.join(design, file)).href + (query ? '?' + query : '');
     const page = await browser.newPage({ viewport: { width: job.w, height: job.h }, deviceScaleFactor: 1 });

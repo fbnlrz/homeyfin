@@ -7,6 +7,35 @@ function onHomeyReady(Homey) {
   const $ = (id) => document.getElementById(id);
   const lastValues = {};
 
+  const LS_KEY = 'homeyfin.server_overview.server';
+  let pollTimer = null;
+  let announcedReady = false;
+  let refreshing = false;
+  let serverId = null;
+  try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
+
+  // Posters travel only once per item: the API skips the data URI for keys
+  // (`itemId:imageTag`) we report as already cached. Small FIFO cap keeps
+  // webview memory bounded.
+  const POSTER_CACHE_MAX = 20;
+  const posterCache = new Map();
+  function cachePoster(key, uri) {
+    if (posterCache.has(key)) posterCache.delete(key);
+    posterCache.set(key, uri);
+    while (posterCache.size > POSTER_CACHE_MAX) {
+      posterCache.delete(posterCache.keys().next().value);
+    }
+  }
+
+  function serverQuery(extra) {
+    const params = [];
+    if (serverId) params.push(`serverId=${encodeURIComponent(serverId)}`);
+    for (const [k, v] of Object.entries(extra || {})) {
+      if (v) params.push(`${k}=${encodeURIComponent(v)}`);
+    }
+    return params.length ? '?' + params.join('&') : '';
+  }
+
   function fmtTime(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
     const h = Math.floor(sec / 3600);
@@ -104,8 +133,12 @@ function onHomeyReady(Homey) {
 
         const poster = document.createElement('div');
         poster.className = 'poster';
-        if (s.posterUrl) {
-          poster.style.backgroundImage = `url("${s.posterUrl}")`;
+        // posterDataUri omitted → we already cache this poster; '' → no art.
+        let uri = s.posterDataUri;
+        if (uri === undefined) uri = posterCache.get(s.posterKey) || '';
+        else if (uri && s.posterKey) cachePoster(s.posterKey, uri);
+        if (uri) {
+          poster.style.backgroundImage = `url("${uri}")`;
           poster.classList.add('has-image');
         } else {
           // Use the title's first letters as the poster glyph when we have no art
@@ -199,18 +232,88 @@ function onHomeyReady(Homey) {
   }
 
   async function refresh() {
+    // In-flight guard: a slow response must not stack overlapping polls.
+    if (refreshing) return;
+    refreshing = true;
+    let retry = false;
     try {
-      const data = await Homey.api('GET', '/overview');
+      const have = Array.from(posterCache.keys()).join(',');
+      const data = await Homey.api('GET', '/overview' + serverQuery({ have }));
       render(data);
     } catch (err) {
-      showError(err && err.message ? err.message : String(err));
+      const msg = err && err.message ? err.message : String(err);
+      if (serverId && msg.indexOf('Unknown server') !== -1) {
+        // Stored selection points at an unpaired server — fall back to default.
+        serverId = null;
+        try { localStorage.removeItem(LS_KEY); } catch (e) { /* storage unavailable */ }
+        posterCache.clear();
+        retry = true;
+      } else {
+        showError(msg);
+      }
     } finally {
-      Homey.ready();
+      refreshing = false;
+      if (!announcedReady) {
+        announcedReady = true;
+        Homey.ready();
+      }
     }
+    if (retry) refresh();
   }
 
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(refresh, refreshSeconds * 1000);
+  }
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // --- Server switcher (only visible with 2+ paired servers) ---
+  const serverSelect = $('server-select');
+  serverSelect.addEventListener('change', () => {
+    serverId = serverSelect.value;
+    try { localStorage.setItem(LS_KEY, serverId); } catch (e) { /* storage unavailable */ }
+    posterCache.clear();
+    refresh();
+  });
+
+  async function loadServers() {
+    try {
+      const servers = await Homey.api('GET', '/servers');
+      if (!Array.isArray(servers) || servers.length <= 1) {
+        serverSelect.classList.add('hidden');
+        return;
+      }
+      if (!servers.some((s) => s.id === serverId)) serverId = servers[0].id;
+      serverSelect.innerHTML = '';
+      for (const s of servers) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        serverSelect.appendChild(opt);
+      }
+      serverSelect.value = serverId;
+      serverSelect.classList.remove('hidden');
+    } catch (e) { /* keep default server */ }
+  }
+
+  // Pause polling while the dashboard is hidden; resume with a fresh fetch.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      startPolling();
+      refresh();
+    }
+  });
+  window.addEventListener('pagehide', () => stopPolling());
+
+  loadServers();
   refresh();
-  setInterval(refresh, refreshSeconds * 1000);
+  startPolling();
 }
 
 if (typeof Homey !== 'undefined') {

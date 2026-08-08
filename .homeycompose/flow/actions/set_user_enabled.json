@@ -1,0 +1,51 @@
+{
+  "title": {
+    "en": "Enable/disable user",
+    "de": "Benutzer sperren/entsperren",
+    "nl": "Gebruiker in-/uitschakelen"
+  },
+  "titleFormatted": {
+    "en": "[[mode]] this user account",
+    "de": "Dieses Benutzerkonto [[mode]]",
+    "nl": "Dit gebruikersaccount [[mode]]"
+  },
+  "hint": {
+    "en": "Blocks or unblocks this user's Jellyfin account (parental control). A disabled user cannot sign in. Requires an admin API key.",
+    "de": "Sperrt oder entsperrt das Jellyfin-Konto dieses Benutzers (Kindersicherung). Ein gesperrter Benutzer kann sich nicht anmelden. Benötigt einen Admin-API-Key.",
+    "nl": "Blokkeert of deblokkeert het Jellyfin-account van deze gebruiker (ouderlijk toezicht). Een uitgeschakelde gebruiker kan niet inloggen. Vereist een admin-API-sleutel."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
+    {
+      "name": "mode",
+      "type": "dropdown",
+      "title": {
+        "en": "Mode",
+        "de": "Modus",
+        "nl": "Modus"
+      },
+      "values": [
+        {
+          "id": "disable",
+          "label": {
+            "en": "Disable",
+            "de": "Sperren",
+            "nl": "Uitschakelen"
+          }
+        },
+        {
+          "id": "enable",
+          "label": {
+            "en": "Enable",
+            "de": "Entsperren",
+            "nl": "Inschakelen"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import type HomeyfinApp from '../../app';
-import type { ClientSnapshot } from '../../lib/ServerHub';
+import type { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
 
 type HomeyRef = HomeyfinApp['homey'];
 
@@ -24,8 +24,15 @@ interface OverviewStream {
   isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
-  posterUrl: string;
+  /** Poster cache key (`itemId:imageTag`); '' when the stream has no item. */
+  posterKey: string;
+  /** Omitted when the frontend already holds this poster (see `have`). */
+  posterDataUri?: string;
 }
+
+// Resource cap: encode posters for at most the first 8 streams per response —
+// the remaining rows render the initials fallback so busy servers stay cheap.
+const POSTER_STREAM_CAP = 8;
 
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
   const driver = homey.drivers.getDriver('server');
@@ -34,6 +41,18 @@ function listServerDevices(homey: HomeyRef): ServerSummary[] {
     const store = d.getStore() as { baseUrl: string };
     return { id, name: d.getName(), baseUrl: store.baseUrl };
   });
+}
+
+function selectServer(homey: HomeyRef, requestedId?: string): ServerSummary | null {
+  const servers = listServerDevices(homey);
+  if (requestedId) {
+    const match = servers.find((s) => s.id === requestedId);
+    // A stale (unpaired) server id must surface as an error, not silently show
+    // another server's data — the frontend resets its stored selection on it.
+    if (!match) throw new Error(`Unknown server: ${requestedId}`);
+    return match;
+  }
+  return servers[0] || null;
 }
 
 function snapshotToStream(snap: ClientSnapshot): OverviewStream {
@@ -61,8 +80,17 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterUrl: snap.posterUrl ?? '',
+    posterKey: item?.Id ? `${item.Id}:${item.ImageTags?.Primary ?? ''}` : '',
   };
+}
+
+// Poster is fetched server-side (authenticated, LRU-cached) and delivered as a
+// data: URI so no api_key ever reaches the dashboard webview.
+async function posterFor(hub: ServerHub, snap: ClientSnapshot): Promise<string> {
+  const item = snap.nowPlaying;
+  if (!item?.Id) return '';
+  const uri = await hub.getPosterDataUri(item.Id, item.ImageTags?.Primary, 300);
+  return uri ?? '';
 }
 
 module.exports = {
@@ -72,8 +100,7 @@ module.exports = {
 
   async getOverview({ homey, query }: ApiArgs) {
     const app = homey.app as HomeyfinApp;
-    const servers = listServerDevices(homey);
-    const server = (query?.serverId && servers.find((s) => s.id === query.serverId)) || servers[0] || null;
+    const server = selectServer(homey, query?.serverId);
 
     if (!server) {
       return {
@@ -99,7 +126,20 @@ module.exports = {
     }
 
     const counts = hub.getLastCounts();
-    const streams = (await hub.getActiveStreams()).map(snapshotToStream);
+    // Poster keys (`itemId:imageTag`) the frontend already caches — no need to
+    // re-encode and re-ship those (posters only travel once per item version).
+    const have = new Set((query?.have ?? '').split(',').filter(Boolean));
+    const snaps = await hub.getActiveStreams();
+    const streams: OverviewStream[] = [];
+    for (let i = 0; i < snaps.length; i++) {
+      const stream = snapshotToStream(snaps[i]);
+      if (i >= POSTER_STREAM_CAP) {
+        stream.posterDataUri = '';
+      } else if (!stream.posterKey || !have.has(stream.posterKey)) {
+        stream.posterDataUri = await posterFor(hub, snaps[i]);
+      }
+      streams.push(stream);
+    }
     const active = streams.filter((s) => !s.isPaused).length;
     const paused = streams.filter((s) => s.isPaused).length;
 

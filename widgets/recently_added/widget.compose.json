@@ -1,0 +1,40 @@
+{
+  "name": {
+    "en": "Recently added",
+    "de": "Zuletzt hinzugefügt",
+    "nl": "Onlangs toegevoegd"
+  },
+  "height": 360,
+  "settings": [
+    {
+      "id": "refreshSeconds",
+      "type": "number",
+      "title": {
+        "en": "Refresh interval (s)",
+        "de": "Aktualisierung (s)",
+        "nl": "Verversingsinterval (s)"
+      },
+      "value": 300,
+      "min": 60,
+      "max": 3600
+    }
+  ],
+  "api": {
+    "getServers": {
+      "method": "GET",
+      "path": "/servers"
+    },
+    "getItems": {
+      "method": "GET",
+      "path": "/items"
+    },
+    "getSessions": {
+      "method": "GET",
+      "path": "/sessions"
+    },
+    "play": {
+      "method": "POST",
+      "path": "/play"
+    }
+  }
+}

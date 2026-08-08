@@ -1,8 +1,8 @@
 {
   "title": {
-    "en": "Playback resumed",
-    "de": "Wiedergabe fortgesetzt",
-    "nl": "Afspelen hervat"
+    "en": "Playback resumed (player)",
+    "de": "Wiedergabe fortgesetzt (Player)",
+    "nl": "Afspelen hervat (speler)"
   },
   "hint": {
     "en": "Fires when playback on this player is resumed after a pause.",

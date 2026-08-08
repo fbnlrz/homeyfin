@@ -1,8 +1,8 @@
 {
   "title": {
-    "en": "Playback started",
-    "de": "Wiedergabe gestartet",
-    "nl": "Afspelen gestart"
+    "en": "Playback started (player)",
+    "de": "Wiedergabe gestartet (Player)",
+    "nl": "Afspelen gestart (speler)"
   },
   "hint": {
     "en": "Fires when this player starts playing something.",
