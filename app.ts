@@ -8,6 +8,10 @@ import { ServerHub, ServerHubOptions } from './lib/ServerHub';
  */
 export default class HomeyfinApp extends Homey.App {
   private hubs = new Map<string, ServerHub>();
+  // serverId -> subscribers notified when that server's hub instance is
+  // swapped (created anew or released). Survives releaseHub on purpose:
+  // devices unsubscribe themselves via the returned function.
+  private hubSwapSubs = new Map<string, Set<(hub: ServerHub | undefined) => void>>();
 
   async onInit(): Promise<void> {
     this.log('Homeyfin app starting');
@@ -23,6 +27,39 @@ export default class HomeyfinApp extends Homey.App {
       }
     }
     this.hubs.clear();
+  }
+
+  /**
+   * Subscribes to hub swaps for a server: cb fires with the new hub when one
+   * is created (a fresh instance from getOrCreateHub) and with undefined when
+   * the hub is released. Returns an unsubscribe function.
+   */
+  onHubSwap(serverId: string, cb: (hub: ServerHub | undefined) => void): () => void {
+    let subs = this.hubSwapSubs.get(serverId);
+    if (!subs) {
+      subs = new Set();
+      this.hubSwapSubs.set(serverId, subs);
+    }
+    subs.add(cb);
+    return () => {
+      const set = this.hubSwapSubs.get(serverId);
+      if (!set) return;
+      set.delete(cb);
+      if (set.size === 0) this.hubSwapSubs.delete(serverId);
+    };
+  }
+
+  private notifyHubSwap(serverId: string, hub: ServerHub | undefined): void {
+    const subs = this.hubSwapSubs.get(serverId);
+    if (!subs) return;
+    // Copy first: a callback may (un)subscribe while we iterate.
+    for (const cb of Array.from(subs)) {
+      try {
+        cb(hub);
+      } catch (err) {
+        this.error(`Hub swap callback for ${serverId} failed:`, (err as Error).message);
+      }
+    }
   }
 
   /**
@@ -44,12 +81,19 @@ export default class HomeyfinApp extends Homey.App {
       homeyDeviceId,
       appVersion,
       debug: false,
+      timers: {
+        setInterval: this.homey.setInterval.bind(this.homey),
+        clearInterval: this.homey.clearInterval.bind(this.homey),
+        setTimeout: this.homey.setTimeout.bind(this.homey),
+        clearTimeout: this.homey.clearTimeout.bind(this.homey),
+      },
     });
 
     this.hubs.set(opts.serverId, hub);
     hub.on('error', (err: Error) => this.error(`Hub ${opts.serverId} error:`, err.message));
     await hub.start();
     this.log(`Hub started for server ${opts.serverId}`);
+    this.notifyHubSwap(opts.serverId, hub);
     return hub;
   }
 
@@ -67,6 +111,7 @@ export default class HomeyfinApp extends Homey.App {
     await hub.stop();
     this.hubs.delete(serverId);
     this.log(`Hub stopped for server ${serverId}`);
+    this.notifyHubSwap(serverId, undefined);
   }
 
   private async getHomeyDeviceId(): Promise<string> {

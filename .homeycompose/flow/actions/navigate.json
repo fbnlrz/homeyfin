@@ -1,0 +1,91 @@
+{
+  "title": {
+    "en": "Send navigation command",
+    "de": "Navigations-Befehl senden",
+    "nl": "Navigatiecommando sturen"
+  },
+  "titleFormatted": {
+    "en": "Send [[command]] to the client",
+    "de": "Sende [[command]] an den Client",
+    "nl": "[[command]] naar de client sturen"
+  },
+  "hint": {
+    "en": "Sends a remote-control navigation command (home, back, select, arrows) to the client the user is active on.",
+    "de": "Sendet einen Fernbedienungs-Navigationsbefehl (Home, Zurück, Auswählen, Pfeile) an den aktiven Client des Benutzers.",
+    "nl": "Stuurt een navigatiecommando van de afstandsbediening (home, terug, selecteren, pijlen) naar de client waarop de gebruiker actief is."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
+    {
+      "name": "command",
+      "type": "dropdown",
+      "title": {
+        "en": "Command",
+        "de": "Befehl",
+        "nl": "Commando"
+      },
+      "values": [
+        {
+          "id": "GoHome",
+          "label": {
+            "en": "Home",
+            "de": "Startseite",
+            "nl": "Home"
+          }
+        },
+        {
+          "id": "Back",
+          "label": {
+            "en": "Back",
+            "de": "Zurück",
+            "nl": "Terug"
+          }
+        },
+        {
+          "id": "Select",
+          "label": {
+            "en": "Select",
+            "de": "Auswählen",
+            "nl": "Selecteren"
+          }
+        },
+        {
+          "id": "MoveUp",
+          "label": {
+            "en": "Up",
+            "de": "Hoch",
+            "nl": "Omhoog"
+          }
+        },
+        {
+          "id": "MoveDown",
+          "label": {
+            "en": "Down",
+            "de": "Runter",
+            "nl": "Omlaag"
+          }
+        },
+        {
+          "id": "MoveLeft",
+          "label": {
+            "en": "Left",
+            "de": "Links",
+            "nl": "Links"
+          }
+        },
+        {
+          "id": "MoveRight",
+          "label": {
+            "en": "Right",
+            "de": "Rechts",
+            "nl": "Rechts"
+          }
+        }
+      ]
+    }
+  ]
+}

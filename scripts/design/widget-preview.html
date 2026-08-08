@@ -84,6 +84,24 @@
   .btn i { display: block; width: 3vw; height: 3vw; border-radius: 1vw; background: var(--bar-strong); }
   .btn.big i { width: 0; height: 0; border-radius: 0; background: none;
     border-left: 4.6vw solid #fff; border-top: 2.9vw solid transparent; border-bottom: 2.9vw solid transparent; margin-left: 1vw; }
+
+  /* --- recently added --- */
+  .ra-tabs { display: flex; align-items: center; gap: 2.6vw; }
+  .ra-tab { width: 17vw; height: 5.4vw; border-radius: 4vw; background: linear-gradient(90deg, var(--purple), var(--cyan)); }
+  .ra-tab.idle { background: var(--tile); }
+  .ra-tabs .pill { margin-left: auto; }
+  .ra-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3.4vw; }
+  .ra-item { display: flex; flex-direction: column; gap: 1.8vw; }
+  .ra-poster { aspect-ratio: 2 / 3; border-radius: 2.4vw; position: relative; overflow: hidden; box-shadow: 0 1.6vw 3.6vw var(--shadow); }
+  .ra-poster.a { background: linear-gradient(150deg, #12d0b0, #0a6f96); }
+  .ra-poster.b { background: linear-gradient(150deg, #ff6ea8, #8a3390); }
+  .ra-poster.c { background: linear-gradient(150deg, #2b6df0, #7d3bd6 70%, #3a1f86); }
+  .ra-poster.d { background: linear-gradient(150deg, #f5a623, #d0483e); }
+  .ra-poster.e { background: linear-gradient(150deg, #57d461, #12766f); }
+  .ra-poster.f { background: linear-gradient(150deg, #9aa6ff, #4a3fd0); }
+  .ra-poster > i { position: absolute; left: 0; right: 0; bottom: 0; height: 1.4vw; background: rgba(255, 255, 255, 0.35); }
+  .ra-poster > i > b { position: absolute; left: 0; top: 0; bottom: 0; display: block; background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+  .ra-item .bar { height: 2vw; }
 </style>
 </head>
 <body data-theme="light">
@@ -112,6 +130,16 @@
           <div class="btn big"><i></i></div>
           <div class="btn"><i></i></div>
           <div class="btn"><i></i></div>
+        </div>`,
+      recently_added: `
+        <div class="ra-tabs"><div class="ra-tab"></div><div class="ra-tab idle"></div><div class="pill"></div></div>
+        <div class="ra-grid">
+          <div class="ra-item"><div class="ra-poster a"></div><div class="bar" style="width:80%"></div></div>
+          <div class="ra-item"><div class="ra-poster b"></div><div class="bar" style="width:62%"></div></div>
+          <div class="ra-item"><div class="ra-poster c"></div><div class="bar" style="width:74%"></div></div>
+          <div class="ra-item"><div class="ra-poster d"><i><b style="width:62%"></b></i></div><div class="bar" style="width:56%"></div></div>
+          <div class="ra-item"><div class="ra-poster e"><i><b style="width:28%"></b></i></div><div class="bar" style="width:72%"></div></div>
+          <div class="ra-item"><div class="ra-poster f"></div><div class="bar" style="width:48%"></div></div>
         </div>`
     };
     document.getElementById('card').innerHTML = layouts[q.widget] || layouts.now_playing;

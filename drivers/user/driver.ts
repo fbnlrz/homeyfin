@@ -26,6 +26,13 @@ type JellyfinUserDevice = Homey.Device & {
   getVolumeCap(): number;
 };
 
+// Segment types the skip_segment action jumps over. Only these are considered
+// "skippable"; unknown/preview types are ignored.
+const SKIPPABLE_SEGMENT_TYPES = new Set(['Intro', 'Outro', 'Recap', 'Commercial']);
+// Hard cap on how many sessions stop_user_sessions addresses in one run so a
+// runaway session list can never turn into an unbounded command burst.
+const MAX_STOPPED_SESSIONS = 20;
+
 interface UserListDevice {
   name: string;
   data: { id: string };
@@ -57,6 +64,23 @@ export default class JellyfinUserDriver extends Homey.Driver {
    * concrete device via args.device.
    */
   private registerFlowHandlers(): void {
+    // Crossing semantics: the device fires once per floor change with the
+    // previous floor in the state, so a threshold is matched exactly once even
+    // when a seek jumps multiple percents/minutes at a time.
+    this.homey.flow
+      .getDeviceTriggerCard('progress_percent')
+      .registerRunListener(
+        async (args: { percent: number }, state: { percent: number; prev: number }) =>
+          state.prev < args.percent && args.percent <= state.percent,
+      );
+
+    this.homey.flow
+      .getDeviceTriggerCard('minutes_before_end')
+      .registerRunListener(
+        async (args: { minutes: number }, state: { minutes: number; prev: number }) =>
+          state.minutes <= args.minutes && args.minutes < state.prev,
+      );
+
     this.homey.flow
       .getConditionCard('is_playing')
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
@@ -266,6 +290,96 @@ export default class JellyfinUserDriver extends Homey.Driver {
       }));
     });
 
+    const playPlaylist = this.homey.flow.getActionCard('play_playlist');
+    playPlaylist.registerRunListener(
+      async (args: {
+        device: JellyfinUserDevice;
+        playlist: { id?: string };
+        mode: 'play' | 'shuffle';
+      }) => {
+        const session = await args.device.liveSession();
+        if (!session) throw new Error('User has no active Jellyfin session right now');
+        if (!args.playlist?.id) throw new Error('No playlist or collection picked');
+        const client = JellyfinUserDriver.requireHub(args.device).client;
+        const ids = await client.getPlayableChildIds(args.playlist.id);
+        if (ids.length === 0) throw new Error('Playlist or collection has no playable items');
+        if (args.mode === 'shuffle') {
+          // Fisher–Yates shuffle
+          for (let i = ids.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [ids[i], ids[j]] = [ids[j], ids[i]];
+          }
+        }
+        await client.playItemsOnSession(session.sessionId, ids);
+      },
+    );
+    playPlaylist.registerArgumentAutocompleteListener('playlist', async (query, args) => {
+      const dev = (args as { device?: JellyfinUserDevice }).device;
+      const hub = dev?.getHub();
+      if (!hub) return [];
+      const items = await hub.client.getPlaylistsAndCollections().catch(() => []);
+      const all = items.map((i) => ({ name: i.Name, id: i.Id }));
+      if (!query) return all;
+      const q = query.toLowerCase();
+      return all.filter((i) => i.name.toLowerCase().includes(q));
+    });
+
+    this.homey.flow
+      .getActionCard('navigate')
+      .registerRunListener(
+        async (args: {
+          device: JellyfinUserDevice;
+          command: 'GoHome' | 'Back' | 'Select' | 'MoveUp' | 'MoveDown' | 'MoveLeft' | 'MoveRight';
+        }) => {
+          const sessionId = await args.device.requireSessionId();
+          await JellyfinUserDriver.requireHub(args.device).client.sendCommand(sessionId, args.command);
+        },
+      );
+
+    const displayItem = this.homey.flow.getActionCard('display_item');
+    displayItem.registerRunListener(
+      async (args: {
+        device: JellyfinUserDevice;
+        item: { id?: string; name?: string; type?: string; itemName?: string };
+      }) => {
+        const session = await args.device.liveSession();
+        if (!session) throw new Error('User has no active Jellyfin session right now');
+        if (!args.item?.id) throw new Error('No item picked');
+        await JellyfinUserDriver.requireHub(args.device).client.displayContent(session.sessionId, {
+          id: args.item.id,
+          name: args.item.itemName ?? args.item.name,
+          type: args.item.type,
+        });
+      },
+    );
+    displayItem.registerArgumentAutocompleteListener('item', async (query, args) => {
+      const dev = (args as { device?: JellyfinUserDevice }).device;
+      const hub = dev?.getHub();
+      if (!hub || !query || query.length < 2) return [];
+      const res = await hub.client
+        .searchItems({
+          userId: dev!.getUserId(),
+          searchTerm: query,
+          limit: 20,
+          includeItemTypes: 'Movie,Episode,Series',
+        })
+        .catch(() => ({ Items: [] }));
+      return res.Items.map((i) => ({
+        name: i.SeriesName
+          ? `${i.SeriesName} · S${String(i.ParentIndexNumber ?? 0).padStart(2, '0')}E${String(
+              i.IndexNumber ?? 0,
+            ).padStart(2, '0')} – ${i.Name}`
+          : i.ProductionYear
+            ? `${i.Name} (${i.ProductionYear})`
+            : i.Name,
+        id: i.Id,
+        // Extra fields ride along in the saved autocomplete result so the run
+        // listener can hand DisplayContent the real item name/type.
+        type: i.Type,
+        itemName: i.Name,
+      }));
+    });
+
     this.homey.flow
       .getActionCard('queue_clear')
       .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
@@ -369,6 +483,62 @@ export default class JellyfinUserDriver extends Homey.Driver {
           }
           return { title: name };
         },
+      );
+
+    this.homey.flow
+      .getActionCard('skip_segment')
+      .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
+        const session = await args.device.liveSession();
+        if (!session) throw new Error('User has no active Jellyfin session right now');
+        const item = session.snap.nowPlaying;
+        if (!item?.Id) throw new Error('Nothing is currently playing');
+        const hub = JellyfinUserDriver.requireHub(args.device);
+        const segments = await hub.getMediaSegments(item.Id);
+        const position = session.snap.positionSeconds ?? 0;
+        const active = segments.find(
+          (s) =>
+            SKIPPABLE_SEGMENT_TYPES.has(s.type) &&
+            s.startSeconds <= position &&
+            position < s.endSeconds,
+        );
+        // Not being inside a segment is a valid state — treat it as a no-op so
+        // the card is safe to fire unconditionally during playback.
+        if (!active) return;
+        await hub.client.seekToSeconds(session.sessionId, active.endSeconds);
+      });
+
+    this.homey.flow
+      .getActionCard('set_user_enabled')
+      .registerRunListener(
+        async (args: { device: JellyfinUserDevice; mode: 'enable' | 'disable' }) => {
+          await JellyfinUserDriver.requireHub(args.device).client.setUserDisabled(
+            args.device.getUserId(),
+            args.mode === 'disable',
+          );
+        },
+      );
+
+    this.homey.flow
+      .getActionCard('stop_user_sessions')
+      .registerRunListener(async (args: { device: JellyfinUserDevice }) => {
+        const hub = JellyfinUserDriver.requireHub(args.device);
+        const userId = args.device.getUserId();
+        const sessions = (await hub.client.getSessions())
+          .filter((s) => s.UserId === userId && s.NowPlayingItem)
+          .slice(0, MAX_STOPPED_SESSIONS);
+        for (const session of sessions) {
+          // One unreachable client must not keep the user's other sessions
+          // playing — log per-session failures and carry on.
+          await hub.client
+            .sendPlaystate(session.Id, 'Stop')
+            .catch((err: Error) => this.error('stop session failed', session.Id, err.message));
+        }
+      });
+
+    this.homey.flow
+      .getConditionCard('user_disabled')
+      .registerRunListener(async (args: { device: JellyfinUserDevice }) =>
+        JellyfinUserDriver.requireHub(args.device).client.getUserDisabled(args.device.getUserId()),
       );
   }
 

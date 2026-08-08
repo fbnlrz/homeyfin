@@ -1,0 +1,19 @@
+{
+  "title": {
+    "en": "Skip current segment",
+    "de": "Aktuelles Segment überspringen",
+    "nl": "Huidig segment overslaan"
+  },
+  "hint": {
+    "en": "Seeks to the end of the segment (intro, outro, recap or commercial) the playback is currently in. Does nothing when no segment is active. Requires Jellyfin 10.10+ with media segments (e.g. the Intro Skipper plugin).",
+    "de": "Springt ans Ende des Segments (Intro, Outro, Rückblick oder Werbung), in dem sich die Wiedergabe gerade befindet. Ohne aktives Segment passiert nichts. Benötigt Jellyfin 10.10+ mit Media-Segmenten (z. B. das Intro-Skipper-Plugin).",
+    "nl": "Springt naar het einde van het segment (intro, outro, samenvatting of reclame) waarin het afspelen zich momenteel bevindt. Doet niets als er geen segment actief is. Vereist Jellyfin 10.10+ met mediasegmenten (bijv. de Intro Skipper-plug-in)."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import type HomeyfinApp from '../../app';
-import type { ClientSnapshot } from '../../lib/ServerHub';
+import type { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
 
 type HomeyRef = HomeyfinApp['homey'];
 
@@ -16,15 +16,17 @@ interface ServerSummary {
 }
 
 interface OverviewStream {
+  deviceId: string;
   deviceName: string;
   clientName: string;
   userName: string;
   title: string;
   subtitle: string;
   isPaused: boolean;
+  isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
-  posterUrl: string;
+  posterDataUri: string;
 }
 
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
@@ -57,26 +59,42 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     }
   }
   return {
+    deviceId: snap.deviceId,
     deviceName: snap.deviceName ?? '',
     clientName: snap.clientName ?? '',
     userName: snap.userName ?? '',
     title,
     subtitle,
     isPaused: snap.isPaused,
+    isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterUrl: snap.posterUrl ?? '',
+    posterDataUri: '',
   };
 }
 
+// Poster is fetched server-side (authenticated, LRU-cached) and delivered as a
+// data: URI so no api_key ever reaches the dashboard webview.
+async function posterFor(hub: ServerHub, snap: ClientSnapshot): Promise<string> {
+  const item = snap.nowPlaying;
+  if (!item?.Id) return '';
+  const uri = await hub.getPosterDataUri(item.Id, item.ImageTags?.Primary, 600);
+  return uri ?? '';
+}
+
 module.exports = {
+  async getServers({ homey }: ApiArgs) {
+    return listServerDevices(homey);
+  },
+
   async getNowPlaying({ homey, query }: ApiArgs) {
     const app = homey.app as HomeyfinApp;
     const server = selectServer(homey, query?.serverId);
-    if (!server) return { hasStream: false };
+    if (!server) return { hasStream: false, server: null, online: false };
     const hub = app.getHub(server.id);
-    if (!hub) return { hasStream: false, server };
+    if (!hub) return { hasStream: false, server, online: false };
 
+    const online = hub.isSocketOpen();
     let snap: ClientSnapshot | undefined;
     if (query?.deviceId) {
       snap = hub.getClientSnapshot(query.deviceId);
@@ -84,8 +102,10 @@ module.exports = {
       const streams = await hub.getActiveStreams();
       snap = streams[0];
     }
-    if (!snap || !snap.nowPlaying) return { hasStream: false, server };
-    return { hasStream: true, server, stream: snapshotToStream(snap) };
+    if (!snap || !snap.nowPlaying) return { hasStream: false, server, online };
+    const stream = snapshotToStream(snap);
+    stream.posterDataUri = await posterFor(hub, snap);
+    return { hasStream: true, server, online, stream };
   },
 
   async togglePlayback({ homey, body }: ApiArgs) {

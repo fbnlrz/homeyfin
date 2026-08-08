@@ -10,7 +10,28 @@ export interface JellyfinSocketOptions {
   debug?: boolean;
   /** Accept self-signed TLS certs on the WebSocket (LAN servers). */
   insecureTls?: boolean;
+  /** Injectable timer functions (Homey-bound in app code); defaults to the globals. */
+  timers?: TimerProvider;
 }
+
+/**
+ * Timer functions used instead of the globals so Homey code can inject the
+ * homey-managed versions (this.homey.setInterval etc.), which are cleaned up
+ * with the app.
+ */
+export interface TimerProvider {
+  setInterval: (callback: () => void, ms: number) => NodeJS.Timeout;
+  clearInterval: (timer: NodeJS.Timeout) => void;
+  setTimeout: (callback: () => void, ms: number) => NodeJS.Timeout;
+  clearTimeout: (timer: NodeJS.Timeout) => void;
+}
+
+export const defaultTimers: TimerProvider = {
+  setInterval: (cb, ms) => setInterval(cb, ms),
+  clearInterval: (t) => clearInterval(t),
+  setTimeout: (cb, ms) => setTimeout(cb, ms),
+  clearTimeout: (t) => clearTimeout(t),
+};
 
 const BACKOFF_MS = [1_000, 2_000, 5_000, 15_000, 30_000];
 
@@ -42,9 +63,11 @@ export class JellyfinSocket extends EventEmitter {
   private reconnectTimer?: NodeJS.Timeout;
   private retryAttempt = 0;
   private stopped = false;
+  private readonly timers: TimerProvider;
 
   constructor(private readonly opts: JellyfinSocketOptions) {
     super();
+    this.timers = opts.timers ?? defaultTimers;
   }
 
   start(): void {
@@ -55,18 +78,23 @@ export class JellyfinSocket extends EventEmitter {
   stop(): void {
     this.stopped = true;
     if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
+      this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = undefined;
     }
     this.clearKeepAlive();
     if (this.ws) {
+      const ws = this.ws;
+      this.ws = undefined;
       try {
-        this.ws.removeAllListeners();
-        this.ws.close();
+        // With listeners removed, 'close' will never fire — terminate the
+        // connection here ourselves and swallow late 'error' events so a
+        // teardown-time ECONNRESET can't crash the process.
+        ws.removeAllListeners();
+        ws.on('error', () => undefined);
+        ws.terminate();
       } catch {
         // ignore
       }
-      this.ws = undefined;
     }
   }
 
@@ -81,6 +109,9 @@ export class JellyfinSocket extends EventEmitter {
 
     const ws = new WebSocket(wsUrl, {
       rejectUnauthorized: !this.opts.insecureTls,
+      // Without this a black-holed upgrade leaves the socket in CONNECTING
+      // forever — 'close' never fires and the reconnect chain dies.
+      handshakeTimeout: 15_000,
     });
     this.ws = ws;
 
@@ -147,7 +178,7 @@ export class JellyfinSocket extends EventEmitter {
     const delay = BACKOFF_MS[Math.min(this.retryAttempt, BACKOFF_MS.length - 1)];
     this.retryAttempt += 1;
     if (this.opts.debug) console.log('[JellyfinSocket] reconnect in', delay, 'ms');
-    this.reconnectTimer = setTimeout(() => {
+    this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = undefined;
       this.connect();
     }, delay);
@@ -155,14 +186,14 @@ export class JellyfinSocket extends EventEmitter {
 
   private startKeepAlive(): void {
     this.clearKeepAlive();
-    this.keepAliveTimer = setInterval(() => {
+    this.keepAliveTimer = this.timers.setInterval(() => {
       this.send({ MessageType: 'KeepAlive' });
     }, 30_000);
   }
 
   private clearKeepAlive(): void {
     if (this.keepAliveTimer) {
-      clearInterval(this.keepAliveTimer);
+      this.timers.clearInterval(this.keepAliveTimer);
       this.keepAliveTimer = undefined;
     }
   }

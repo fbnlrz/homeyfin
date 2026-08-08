@@ -1,12 +1,14 @@
 import { EventEmitter } from 'events';
+import { URL } from 'url';
 import {
   ItemCounts,
   JellyfinClient,
   JellyfinSession,
   LatestItem,
+  MediaSegment,
   NowPlayingItem,
 } from './JellyfinClient';
-import { JellyfinSocket } from './JellyfinSocket';
+import { JellyfinSocket, TimerProvider, defaultTimers } from './JellyfinSocket';
 
 export interface ServerHubOptions {
   baseUrl: string;
@@ -22,6 +24,10 @@ export interface ServerHubOptions {
   libraryPollMs?: number;
   fallbackPollMs?: number;
   activePollMs?: number;
+  /** How often to check /System/Info for an available server update (min 1 h). */
+  updateCheckMs?: number;
+  /** Injectable timer functions (Homey-bound in app code); defaults to the globals. */
+  timers?: TimerProvider;
 }
 
 export interface ClientSnapshot {
@@ -48,8 +54,32 @@ export interface ClientSnapshot {
 
 export interface NewItemEvent {
   item: LatestItem;
+  /** CollectionFolder id of the library the item belongs to ('' if unknown). */
+  libraryId: string;
   libraryName: string;
   posterUrl?: string;
+}
+
+/** Compact projection of a recently-added library item (see getLatestList). */
+export interface LatestListEntry {
+  id: string;
+  name: string;
+  type: string;
+  seriesName?: string;
+  imageTag?: string;
+}
+
+/** Compact projection of a continue-watching item (see getResumeList). */
+export interface ResumeListEntry extends LatestListEntry {
+  progressPercent?: number;
+}
+
+/** Compact projection of a remote-controllable session (see getControllableSessions). */
+export interface ControllableSession {
+  sessionId: string;
+  deviceId: string;
+  clientName: string;
+  userName: string;
 }
 
 const TICKS_PER_SECOND = 10_000_000;
@@ -57,6 +87,8 @@ const DEFAULT_LIBRARY_POLL_MS = 5 * 60 * 1000;
 const DEFAULT_FALLBACK_POLL_MS = 30 * 1000;
 const DEFAULT_ACTIVE_POLL_MS = 5 * 1000;
 const MAX_PERSISTED_IDS = 500;
+// Overall cap on "latest items" considered per refresh (across all libraries).
+const MAX_LATEST_ITEMS = 50;
 // Remote-control commands look up the live session right before sending, but a
 // volume slider can fire several times in a row — cache the lookup this long so
 // we don't hammer /Sessions on every tick.
@@ -67,6 +99,25 @@ const LIVE_SESSION_TTL_MS = 1500;
 // spurious "stopped". A genuine Stop with the client still connected clears
 // NowPlayingItem while the device stays present, so it is unaffected by this.
 const OFFLINE_GRACE_MS = 11 * 1000;
+// Media-segment lookups are keyed by item id; intros/outros are queried per
+// played episode, so a small LRU (negatives included) keeps memory flat.
+const MEDIA_SEGMENTS_CACHE_MAX = 30;
+// activity:auth_failed fan-out cap: at most this many emits per rolling minute.
+const AUTH_FAILED_MAX_PER_WINDOW = 5;
+const AUTH_FAILED_WINDOW_MS = 60 * 1000;
+// server:update_available checks piggyback on the library poll; never more
+// often than hourly, default every 6 h.
+const DEFAULT_UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
+const MIN_UPDATE_CHECK_MS = 60 * 60 * 1000;
+// runScheduledTask monitoring: poll cadence and give-up horizon.
+const TASK_MONITOR_POLL_MS = 10 * 1000;
+const TASK_MONITOR_TIMEOUT_MS = 30 * 60 * 1000;
+// Compact list caps + TTLs (resource rules: no raw items, everything bounded).
+const LATEST_LIST_MAX = 20;
+const RESUME_LIST_MAX = 12;
+const RESUME_CACHE_TTL_MS = 60 * 1000;
+const CONTROLLABLE_SESSIONS_TTL_MS = 10 * 1000;
+const CONTROLLABLE_SESSIONS_MAX = 50;
 
 /**
  * Holds a single connection to a Jellyfin server and translates raw events
@@ -105,11 +156,31 @@ export class ServerHub extends EventEmitter {
   private liveAppCache = new Map<string, { at: number; snap?: ClientSnapshot }>();
   // deviceId -> first timestamp it went missing from /Sessions (for OFFLINE_GRACE_MS).
   private deviceMissedSince = new Map<string, number>();
+  // Set by stop(); guards every async continuation (in-flight polls, socket
+  // callbacks) so a stopped hub can never restart a timer and live on as a zombie.
+  private stopped = false;
+  // LRU of per-item media segments (empty arrays cached too, so an old server
+  // without the endpoint isn't re-queried on every played episode).
+  private mediaSegmentsCache = new Map<string, MediaSegment[]>();
+  // Timestamps of recent activity:auth_failed emits (rolling-minute rate limit).
+  private authFailedEmits: number[] = [];
+  private authFailedOverflowLogged = false;
+  // server:update_available state — fires only on the false→true transition.
+  private lastUpdateCheckAt = 0;
+  private lastUpdateAvailable = false;
+  // Pending task-monitor timers (cleared on stop()).
+  private taskMonitorTimers = new Set<NodeJS.Timeout>();
+  // Compact projection of the newest library items, refreshed by refreshLibrary.
+  private latestList: LatestListEntry[] = [];
+  private resumeCache?: { at: number; items: ResumeListEntry[] };
+  private controllableCache?: { at: number; items: ControllableSession[] };
 
   private readonly libraryPollMs: number;
   private readonly fallbackPollMs: number;
   private readonly activePollMs: number;
+  private readonly updateCheckMs: number;
   private readonly saveItemIds?: (ids: string[]) => void | Promise<void>;
+  private readonly timers: TimerProvider;
 
   constructor(private readonly opts: ServerHubOptions) {
     super();
@@ -118,7 +189,9 @@ export class ServerHub extends EventEmitter {
     this.libraryPollMs = opts.libraryPollMs ?? DEFAULT_LIBRARY_POLL_MS;
     this.fallbackPollMs = opts.fallbackPollMs ?? DEFAULT_FALLBACK_POLL_MS;
     this.activePollMs = opts.activePollMs ?? DEFAULT_ACTIVE_POLL_MS;
+    this.updateCheckMs = Math.max(opts.updateCheckMs ?? DEFAULT_UPDATE_CHECK_MS, MIN_UPDATE_CHECK_MS);
     this.saveItemIds = opts.saveItemIds;
+    this.timers = opts.timers ?? defaultTimers;
 
     if (opts.persistedItemIds && opts.persistedItemIds.length > 0) {
       this.lastItemIds = new Set(opts.persistedItemIds);
@@ -141,15 +214,18 @@ export class ServerHub extends EventEmitter {
       deviceId: opts.homeyDeviceId,
       debug: opts.debug,
       insecureTls: opts.insecureTls,
+      timers: this.timers,
     });
 
     this.socket.on('open', () => {
+      if (this.stopped) return;
       const wasOpen = this.socketOpen;
       this.socketOpen = true;
       if (!wasOpen) this.emit('connection:up');
       this.adjustPolling();
     });
     this.socket.on('close', () => {
+      if (this.stopped) return;
       const wasOpen = this.socketOpen;
       this.socketOpen = false;
       if (wasOpen) this.emit('connection:down');
@@ -157,10 +233,17 @@ export class ServerHub extends EventEmitter {
     });
     this.socket.on('sessions', (data) => this.handleSessions(data as JellyfinSession[]));
     this.socket.on('libraryChanged', () => {
+      if (this.stopped) return;
       this.refreshLibrary().catch((err) => this.emit('error', err));
     });
-    this.socket.on('scheduledTaskEnded', (data) => this.handleScheduledTask(data));
-    this.socket.on('activityLogEntry', (entries) => this.handleActivityLog(entries));
+    this.socket.on('scheduledTaskEnded', (data) => {
+      if (this.stopped) return;
+      this.handleScheduledTask(data);
+    });
+    this.socket.on('activityLogEntry', (entries) => {
+      if (this.stopped) return;
+      this.handleActivityLog(entries);
+    });
     this.socket.on('error', (err) => {
       if (opts.debug) console.log('[ServerHub] socket error', err.message);
     });
@@ -187,22 +270,30 @@ export class ServerHub extends EventEmitter {
   }
 
   async start(): Promise<void> {
+    this.stopped = false;
     this.socket.start();
     await this.refreshLibrary().catch((err) => {
       if (this.opts.debug) console.log('[ServerHub] initial refresh failed', err);
     });
-    this.libraryPollTimer = setInterval(() => {
+    if (this.stopped) return;
+    this.libraryPollTimer = this.timers.setInterval(() => {
       this.refreshLibrary().catch(() => undefined);
+      // Piggyback the (heavily throttled) update check on the existing poll
+      // instead of running yet another timer.
+      this.maybeCheckUpdate().catch(() => undefined);
     }, this.libraryPollMs);
     this.adjustPolling();
   }
 
   async stop(): Promise<void> {
+    this.stopped = true;
     if (this.libraryPollTimer) {
-      clearInterval(this.libraryPollTimer);
+      this.timers.clearInterval(this.libraryPollTimer);
       this.libraryPollTimer = undefined;
     }
     this.stopSessionPoll();
+    for (const timer of this.taskMonitorTimers) this.timers.clearTimeout(timer);
+    this.taskMonitorTimers.clear();
     this.socket.stop();
     this.removeAllListeners();
   }
@@ -268,7 +359,9 @@ export class ServerHub extends EventEmitter {
       )
       .map((s) => this.toSnapshot(s));
     const active = ServerHub.pickActiveSnapshot(snaps);
-    if (active) this.lastAppSnapshots.set(key, active);
+    // Only the TTL cache is updated here — lastAppSnapshots is the prev-baseline
+    // of diffSessions, and writing the live result into it swallows the very
+    // started/paused/stopped transition the next handleSessions should emit.
     this.liveAppCache.set(key, { at: Date.now(), snap: active });
     return active ?? this.getAppSnapshot(clientName, userId);
   }
@@ -291,7 +384,8 @@ export class ServerHub extends EventEmitter {
       .filter((s) => s.UserId === userId && s.DeviceId && s.DeviceId !== this.opts.homeyDeviceId)
       .map((s) => this.toSnapshot(s));
     const active = ServerHub.pickActiveSnapshot(snaps);
-    if (active) this.lastUserSnapshots.set(userId, active);
+    // TTL cache only — never lastUserSnapshots (the diff baseline), see
+    // getLiveClientSessionByApp.
     this.liveSessionCache.set(userId, { at: Date.now(), snap: active });
     return active ?? this.getUserSnapshot(userId);
   }
@@ -318,7 +412,8 @@ export class ServerHub extends EventEmitter {
       (s) => s.DeviceId === deviceId && (!userId || s.UserId === userId),
     );
     const snap = match ? this.toSnapshot(match) : undefined;
-    if (snap) this.lastSnapshots.set(deviceId, snap);
+    // TTL cache only — never lastSnapshots (the diff baseline), see
+    // getLiveClientSessionByApp.
     this.liveClientCache.set(key, { at: Date.now(), snap });
     return snap ?? cachedByUser();
   }
@@ -370,6 +465,7 @@ export class ServerHub extends EventEmitter {
   // - Socket down       : poll every fallbackPollMs.
 
   private adjustPolling(): void {
+    if (this.stopped) return;
     const hasActive = this.lastStreamCount > 0;
     let desiredMs: number | undefined;
     if (!this.socketOpen) desiredMs = this.fallbackPollMs;
@@ -380,7 +476,7 @@ export class ServerHub extends EventEmitter {
     this.stopSessionPoll();
     if (desiredMs) {
       this.currentPollMs = desiredMs;
-      this.sessionPollTimer = setInterval(
+      this.sessionPollTimer = this.timers.setInterval(
         () => this.pollSessions().catch(() => undefined),
         desiredMs,
       );
@@ -389,7 +485,7 @@ export class ServerHub extends EventEmitter {
 
   private stopSessionPoll(): void {
     if (this.sessionPollTimer) {
-      clearInterval(this.sessionPollTimer);
+      this.timers.clearInterval(this.sessionPollTimer);
       this.sessionPollTimer = undefined;
     }
     this.currentPollMs = undefined;
@@ -398,6 +494,7 @@ export class ServerHub extends EventEmitter {
   // --- Sessions handling -------------------------------------------------
 
   private async pollSessions(): Promise<void> {
+    if (this.stopped) return;
     // Stamp the dispatch time up front so a slow response overtaken by a socket
     // frame (or a newer poll) is dropped by handleSessions rather than
     // rewinding state to this older snapshot.
@@ -462,6 +559,9 @@ export class ServerHub extends EventEmitter {
   }
 
   private handleSessions(sessions: JellyfinSession[], dispatchedAt: number = Date.now()): void {
+    // A stopped hub must not process late frames — they would re-arm the
+    // session poll via adjustPolling and leak a zombie interval.
+    if (this.stopped) return;
     // Drop out-of-order data: only apply a frame at least as fresh as the last
     // one applied. Socket frames default dispatchedAt to now and arrive in
     // order, so they never drop each other; only a poll response that lost the
@@ -518,6 +618,9 @@ export class ServerHub extends EventEmitter {
       this.deviceMissedSince.set(deviceId, missedSince);
       if (now - missedSince < OFFLINE_GRACE_MS) {
         nextMap.set(deviceId, prev);
+        // The session is still considered present — keep its key known so a
+        // one-frame blip doesn't re-fire user:logged_in when it reappears.
+        seenSessionKeys.add(`${deviceId}:${prev.userId ?? 'anon'}`);
         continue;
       }
       this.deviceMissedSince.delete(deviceId);
@@ -581,9 +684,15 @@ export class ServerHub extends EventEmitter {
       if (active) nextUserMap.set(userId, active);
     }
     // Users that disappeared: keep their last snapshot but mark offline so the diff
-    // emits a stopped event exactly once.
+    // emits a stopped event exactly once — then evict on the next frame, like
+    // lastSnapshots above, so the map (and the per-frame update fan-out) doesn't
+    // grow forever with users that are long gone.
     for (const [userId, prev] of this.lastUserSnapshots) {
       if (nextUserMap.has(userId)) continue;
+      if (!prev.online) {
+        this.lastUserSnapshots.delete(userId);
+        continue;
+      }
       const offline: ClientSnapshot = {
         ...prev,
         online: false,
@@ -647,9 +756,14 @@ export class ServerHub extends EventEmitter {
       if (active) nextAppMap.set(key, active);
     }
     // App groups that vanished: keep the last snapshot but mark offline so the
-    // diff emits a single stopped event.
+    // diff emits a single stopped event — then evict on the next frame (see the
+    // lastUserSnapshots loop above).
     for (const [key, prev] of this.lastAppSnapshots) {
       if (nextAppMap.has(key)) continue;
+      if (!prev.online) {
+        this.lastAppSnapshots.delete(key);
+        continue;
+      }
       nextAppMap.set(key, { ...prev, online: false, isPaused: false, nowPlaying: undefined });
     }
 
@@ -764,27 +878,82 @@ export class ServerHub extends EventEmitter {
   // --- Library handling --------------------------------------------------
 
   private async refreshLibrary(): Promise<void> {
+    if (this.stopped) return;
     try {
-      const [counts, latest, folders] = await Promise.all([
-        this.client.getItemCounts(this.opts.userId).catch(() => undefined),
-        this.client.getLatestItems({ userId: this.opts.userId, limit: 50 }).catch(() => []),
-        this.client.getMediaFolders().catch(() => ({ Items: [] as { Id: string; Name: string }[] })),
-      ]);
-
+      const counts = await this.client.getItemCounts(this.opts.userId).catch(() => undefined);
+      if (this.stopped) return;
       if (counts) {
         this.lastCounts = counts;
         this.emit('library:counts', counts);
       }
 
-      const folderById = new Map(folders.Items.map((f) => [f.Id, f.Name]));
+      // Without the folder list we can neither attribute items to a library nor
+      // trust an "empty" result — skip this cycle instead of poisoning the
+      // new-item baseline.
+      const folders = await this.client.getMediaFolders();
+      if (this.stopped) return;
 
-      const currentIds = new Set(latest.map((i) => i.Id));
+      // Query each CollectionFolder separately: a global getLatestItems returns
+      // episodes with their *Season* as ParentId, which can't be mapped back to
+      // a library folder — per-folder queries give every item its correct
+      // libraryId/libraryName.
+      let anyFailed = false;
+      const perFolder = await Promise.all(
+        folders.Items.map(async (folder) => {
+          try {
+            const items = await this.client.getLatestItems({
+              userId: this.opts.userId,
+              limit: MAX_LATEST_ITEMS,
+              parentId: folder.Id,
+            });
+            return { folder, items };
+          } catch {
+            anyFailed = true;
+            return { folder, items: [] as LatestItem[] };
+          }
+        }),
+      );
+      if (this.stopped) return;
+
+      // A failed fetch must not be mistaken for an empty library: bootstrapping
+      // (or persisting) an empty baseline on failure would replay up to
+      // MAX_LATEST_ITEMS stale new_item events on the next successful poll.
+      if (!this.bootstrapped && anyFailed) return;
+
+      const dedup = new Set<string>();
+      const latest: Array<{ item: LatestItem; libraryId: string; libraryName: string }> = [];
+      for (const { folder, items } of perFolder) {
+        for (const item of items) {
+          if (dedup.has(item.Id)) continue;
+          dedup.add(item.Id);
+          latest.push({ item, libraryId: folder.Id, libraryName: folder.Name });
+        }
+      }
+      // Keep the overall cap the single global query had: newest first.
+      const createdAt = (i: LatestItem): number => {
+        const t = i.DateCreated ? Date.parse(i.DateCreated) : NaN;
+        return Number.isNaN(t) ? 0 : t;
+      };
+      latest.sort((a, b) => createdAt(b.item) - createdAt(a.item));
+      const capped = latest.slice(0, MAX_LATEST_ITEMS);
+
+      // Keep a compact, capped projection for the synchronous getLatestList()
+      // consumer — ids + display fields only, never the raw items.
+      this.latestList = capped.slice(0, LATEST_LIST_MAX).map(({ item }) => ({
+        id: item.Id,
+        name: item.Name,
+        type: item.Type,
+        seriesName: item.SeriesName,
+        imageTag: item.ImageTags?.Primary,
+      }));
+
       if (this.bootstrapped) {
-        for (const item of latest) {
+        for (const { item, libraryId, libraryName } of capped) {
           if (!this.lastItemIds.has(item.Id)) {
             this.emit('library:new_item', {
               item,
-              libraryName: item.ParentId ? folderById.get(item.ParentId) ?? '' : '',
+              libraryId,
+              libraryName,
               posterUrl: item.ImageTags?.Primary
                 ? this.client.imageUrl(item.Id, 'Primary', item.ImageTags.Primary)
                 : undefined,
@@ -793,7 +962,10 @@ export class ServerHub extends EventEmitter {
         }
       }
 
-      // Persist a bounded set so the cache doesn't grow unboundedly.
+      // Persist a bounded set so the cache doesn't grow unboundedly. A folder
+      // that failed above contributes nothing new; its previously known ids
+      // survive via the merge, so nothing is re-announced later.
+      const currentIds = capped.map((e) => e.item.Id);
       const merged = Array.from(new Set([...currentIds, ...this.lastItemIds])).slice(
         0,
         MAX_PERSISTED_IDS,
@@ -837,7 +1009,7 @@ export class ServerHub extends EventEmitter {
   private handleActivityLog(entries: unknown[]): void {
     for (const raw of entries) {
       const entry = raw as
-        | { Type?: string; Name?: string; ShortOverview?: string; Severity?: string }
+        | { Type?: string; Name?: string; ShortOverview?: string; Severity?: string; UserName?: string }
         | undefined;
       if (!entry || !entry.Type) continue;
 
@@ -846,7 +1018,43 @@ export class ServerHub extends EventEmitter {
       if (type === 'SessionStarted' || type === 'SessionEnded' || type === 'AuthenticationFailed') {
         this.emit('activity', { type, name: entry.Name, overview: entry.ShortOverview });
       }
+      if (type.includes('AuthenticationFailed')) {
+        this.emitAuthFailed(entry);
+      }
     }
+  }
+
+  /**
+   * Emits 'activity:auth_failed' { userName }, rate-limited to at most
+   * AUTH_FAILED_MAX_PER_WINDOW emits per rolling minute — a brute-force run
+   * against the server must not turn into an unbounded Flow-trigger burst.
+   * Overflow is dropped and logged once per burst.
+   */
+  private emitAuthFailed(entry: { Name?: string; UserName?: string }): void {
+    const now = Date.now();
+    this.authFailedEmits = this.authFailedEmits.filter((t) => now - t < AUTH_FAILED_WINDOW_MS);
+    if (this.authFailedEmits.length >= AUTH_FAILED_MAX_PER_WINDOW) {
+      if (!this.authFailedOverflowLogged) {
+        this.authFailedOverflowLogged = true;
+        console.log('[ServerHub] auth_failed rate limit reached — dropping further events this minute');
+      }
+      return;
+    }
+    this.authFailedOverflowLogged = false;
+    this.authFailedEmits.push(now);
+    this.emit('activity:auth_failed', { userName: ServerHub.extractAuthFailedUser(entry) });
+  }
+
+  /**
+   * Best-effort user extraction from an AuthenticationFailed activity entry.
+   * The entry name reads e.g. "Failed login attempt made by eve." — fall back
+   * to the whole name when the pattern doesn't match.
+   */
+  static extractAuthFailedUser(entry: { Name?: string; UserName?: string }): string {
+    if (entry.UserName) return entry.UserName;
+    const name = entry.Name ?? '';
+    const match = /(?:made by|for user|by)\s+(.+?)\.?$/i.exec(name);
+    return match ? match[1] : name;
   }
 
   /** Marks a manual scan as started; helps compute duration on the resulting ScheduledTaskEnded. */
@@ -860,13 +1068,186 @@ export class ServerHub extends EventEmitter {
 
   /** Returns currently online sessions with NowPlayingItem (used by widget API). */
   async getActiveStreams(): Promise<ClientSnapshot[]> {
+    // Stable order (by sessionId) so consecutive calls render identically.
+    const bySessionId = (a: ClientSnapshot, b: ClientSnapshot): number =>
+      a.sessionId.localeCompare(b.sessionId);
     try {
       const sessions = await this.client.getSessions();
       return sessions
         .filter((s) => !!s.NowPlayingItem)
-        .map((s) => this.toSnapshot(s));
+        .map((s) => this.toSnapshot(s))
+        .sort(bySessionId);
     } catch {
-      return Array.from(this.lastSnapshots.values()).filter((s) => s.nowPlaying);
+      return Array.from(this.lastSnapshots.values())
+        .filter((s) => s.nowPlaying)
+        .sort(bySessionId);
+    }
+  }
+
+  /**
+   * Media segments of an item (intro/outro markers), through a small LRU that
+   * caches negatives too — an old server without the endpoint answers 404 for
+   * every item and must not be re-queried on each played episode.
+   */
+  async getMediaSegments(itemId: string): Promise<MediaSegment[]> {
+    const hit = this.mediaSegmentsCache.get(itemId);
+    if (hit) {
+      this.mediaSegmentsCache.delete(itemId);
+      this.mediaSegmentsCache.set(itemId, hit);
+      return hit;
+    }
+    const segments = await this.client.getMediaSegments(itemId);
+    this.mediaSegmentsCache.set(itemId, segments);
+    while (this.mediaSegmentsCache.size > MEDIA_SEGMENTS_CACHE_MAX) {
+      const firstKey = this.mediaSegmentsCache.keys().next().value;
+      if (firstKey === undefined) break;
+      this.mediaSegmentsCache.delete(firstKey);
+    }
+    return segments;
+  }
+
+  /**
+   * Throttled server-update check, piggybacked on the library poll (no timer of
+   * its own). Runs only while the socket connection is up, at most once per
+   * updateCheckMs (>= 1 h), and emits 'server:update_available' {} exactly on
+   * the false→true transition.
+   */
+  private async maybeCheckUpdate(): Promise<void> {
+    if (this.stopped || !this.socketOpen) return;
+    const now = Date.now();
+    if (now - this.lastUpdateCheckAt < this.updateCheckMs) return;
+    this.lastUpdateCheckAt = now;
+    try {
+      const available = await this.client.getUpdateAvailable();
+      if (this.stopped) return;
+      if (available && !this.lastUpdateAvailable) {
+        this.emit('server:update_available', {});
+      }
+      this.lastUpdateAvailable = available;
+    } catch {
+      // Transient failure — try again next interval.
+    }
+  }
+
+  /**
+   * Starts a scheduled task and monitors it (poll every 10 s over the injected
+   * timers, 30 min give-up horizon, aborted by stop()). When the task returns
+   * to Idle, emits 'task:completed' { taskId, taskName, status }.
+   */
+  async runScheduledTask(taskId: string): Promise<void> {
+    await this.client.startScheduledTask(taskId);
+    if (this.stopped) return;
+    this.scheduleTaskPoll(taskId, Date.now());
+  }
+
+  private scheduleTaskPoll(taskId: string, startedAt: number): void {
+    const timer = this.timers.setTimeout(() => {
+      this.taskMonitorTimers.delete(timer);
+      this.pollTask(taskId, startedAt).catch(() => undefined);
+    }, TASK_MONITOR_POLL_MS);
+    this.taskMonitorTimers.add(timer);
+  }
+
+  private async pollTask(taskId: string, startedAt: number): Promise<void> {
+    if (this.stopped) return;
+    if (Date.now() - startedAt > TASK_MONITOR_TIMEOUT_MS) {
+      if (this.opts.debug) console.log('[ServerHub] task monitor timed out', taskId);
+      return;
+    }
+    try {
+      const task = await this.client.getScheduledTask(taskId);
+      if (this.stopped) return;
+      if (!task) return; // task vanished — nothing to report
+      if (task.state === 'Idle') {
+        this.emit('task:completed', {
+          taskId,
+          taskName: task.name,
+          status: task.lastResultStatus ?? 'Completed',
+        });
+        return;
+      }
+    } catch {
+      // Transient error — keep polling until the timeout.
+    }
+    this.scheduleTaskPoll(taskId, startedAt);
+  }
+
+  /**
+   * Newest library items as a compact projection — synchronous, served from the
+   * capped list refreshLibrary maintains anyway (no extra request).
+   */
+  getLatestList(): LatestListEntry[] {
+    return this.latestList;
+  }
+
+  /** Continue-watching list (compact projection, cap 12, 60 s TTL cache). */
+  async getResumeList(limit?: number): Promise<ResumeListEntry[]> {
+    const capped = Math.max(1, Math.min(limit ?? RESUME_LIST_MAX, RESUME_LIST_MAX));
+    const now = Date.now();
+    if (this.resumeCache && now - this.resumeCache.at < RESUME_CACHE_TTL_MS) {
+      return this.resumeCache.items.slice(0, capped);
+    }
+    const res = await this.client.getResumeItems({
+      userId: this.opts.userId,
+      limit: RESUME_LIST_MAX,
+    });
+    const items: ResumeListEntry[] = (res?.Items ?? []).slice(0, RESUME_LIST_MAX).map((i) => ({
+      id: i.Id,
+      name: i.Name,
+      type: i.Type,
+      seriesName: i.SeriesName,
+      imageTag: i.ImageTags?.Primary,
+      progressPercent:
+        typeof i.UserData?.PlayedPercentage === 'number'
+          ? Math.round(i.UserData.PlayedPercentage)
+          : undefined,
+    }));
+    this.resumeCache = { at: now, items };
+    return items.slice(0, capped);
+  }
+
+  /** Remote-controllable sessions (compact projection, 10 s TTL cache). */
+  async getControllableSessions(): Promise<ControllableSession[]> {
+    const now = Date.now();
+    if (this.controllableCache && now - this.controllableCache.at < CONTROLLABLE_SESSIONS_TTL_MS) {
+      return this.controllableCache.items;
+    }
+    const sessions = await this.client.getSessions();
+    const items: ControllableSession[] = sessions
+      .filter(
+        (s) =>
+          s.SupportsRemoteControl === true &&
+          !!s.DeviceId &&
+          s.DeviceId !== this.opts.homeyDeviceId,
+      )
+      .slice(0, CONTROLLABLE_SESSIONS_MAX)
+      .map((s) => ({
+        sessionId: s.Id,
+        deviceId: s.DeviceId,
+        clientName: s.Client,
+        userName: s.UserName ?? '',
+      }));
+    this.controllableCache = { at: now, items };
+    return items;
+  }
+
+  /**
+   * Fetches an item's Primary image server-side (with auth, through the
+   * client's LRU image cache) and returns it as a data:image/...;base64 URI so
+   * widgets can embed it without exposing an api_key URL. Returns null on
+   * error or when the item has no image.
+   */
+  async getPosterDataUri(itemId: string, tag?: string, maxWidth?: number): Promise<string | null> {
+    try {
+      const url = new URL(`${this.client.getBaseUrl()}/Items/${itemId}/Images/Primary`);
+      url.searchParams.set('maxWidth', String(maxWidth ?? 500));
+      if (tag) url.searchParams.set('tag', tag);
+      url.searchParams.set('api_key', this.client.getApiKey());
+      const img = await this.client.getCachedImage(url.toString());
+      if (!img) return null;
+      return `data:${img.contentType};base64,${img.buffer.toString('base64')}`;
+    } catch {
+      return null;
     }
   }
 }

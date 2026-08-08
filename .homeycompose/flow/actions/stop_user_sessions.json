@@ -1,0 +1,19 @@
+{
+  "title": {
+    "en": "Stop all playback of this user",
+    "de": "Alle Wiedergaben dieses Benutzers stoppen",
+    "nl": "Alle weergaven van deze gebruiker stoppen"
+  },
+  "hint": {
+    "en": "Sends a stop command to every session of this user that is currently playing something (max. 20 sessions). Requires an admin API key.",
+    "de": "Sendet einen Stopp-Befehl an jede Sitzung dieses Benutzers, in der gerade etwas wiedergegeben wird (max. 20 Sitzungen). Benötigt einen Admin-API-Key.",
+    "nl": "Stuurt een stopopdracht naar elke sessie van deze gebruiker waarin momenteel iets wordt afgespeeld (max. 20 sessies). Vereist een admin-API-sleutel."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ]
+}

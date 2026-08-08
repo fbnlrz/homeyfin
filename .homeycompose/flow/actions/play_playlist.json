@@ -1,0 +1,60 @@
+{
+  "title": {
+    "en": "Play playlist or collection",
+    "de": "Playlist/Sammlung abspielen",
+    "nl": "Afspeellijst/verzameling afspelen"
+  },
+  "titleFormatted": {
+    "en": "Play [[playlist]] ([[mode]])",
+    "de": "Spiele [[playlist]] ([[mode]])",
+    "nl": "[[playlist]] afspelen ([[mode]])"
+  },
+  "hint": {
+    "en": "Starts every playable item of the picked playlist or collection on whatever client the user is active on.",
+    "de": "Startet alle abspielbaren Items der gewählten Playlist/Sammlung auf dem aktiven Client des Benutzers.",
+    "nl": "Start alle afspeelbare items van de gekozen afspeellijst/verzameling op de client waarop de gebruiker actief is."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    },
+    {
+      "name": "playlist",
+      "type": "autocomplete",
+      "title": {
+        "en": "Playlist / collection",
+        "de": "Playlist/Sammlung",
+        "nl": "Afspeellijst/verzameling"
+      }
+    },
+    {
+      "name": "mode",
+      "type": "dropdown",
+      "title": {
+        "en": "Order",
+        "de": "Reihenfolge",
+        "nl": "Volgorde"
+      },
+      "values": [
+        {
+          "id": "play",
+          "label": {
+            "en": "In order",
+            "de": "Der Reihe nach",
+            "nl": "Op volgorde"
+          }
+        },
+        {
+          "id": "shuffle",
+          "label": {
+            "en": "Shuffled",
+            "de": "Zufällig",
+            "nl": "Willekeurig"
+          }
+        }
+      ]
+    }
+  ]
+}

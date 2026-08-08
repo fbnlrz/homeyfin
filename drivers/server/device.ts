@@ -28,11 +28,37 @@ export default class JellyfinServerDevice extends Homey.Device {
   private serverId!: string;
   private posterImage?: Homey.Image;
   private lastPosterUrl = '';
+  private hubSwapUnsub?: () => void;
+  // Connectivity as reported by the hub; gates uptime writes and baseline resets.
+  private connectionOnline = true;
 
   async onInit(): Promise<void> {
     this.serverId = this.getData().id.replace(/^server:/, '');
+    await this.migrateCapabilities();
+    // Keep this.hub pointing at the live instance even when someone other
+    // than this device swaps the hub (e.g. repair flow, app-level recovery).
+    const app = this.homey.app as HomeyfinApp;
+    this.hubSwapUnsub = app.onHubSwap(this.serverId, (hub) => {
+      if (hub === this.hub) return;
+      this.detachHubListeners();
+      this.hub = hub;
+      if (hub) this.registerHubHandlers();
+    });
     await this.setupPosterImage();
     await this.bootstrapHub();
+  }
+
+  private async migrateCapabilities(): Promise<void> {
+    // Backfill capabilities added in newer app versions for existing devices.
+    const manifestCaps: string[] = Array.isArray(this.driver.manifest?.capabilities)
+      ? this.driver.manifest.capabilities
+      : [];
+    for (const cap of manifestCaps) {
+      if (this.hasCapability(cap)) continue;
+      await this.addCapability(cap).catch((err) =>
+        this.error(`addCapability ${cap} failed`, (err as Error).message),
+      );
+    }
   }
 
   private async setupPosterImage(): Promise<void> {
@@ -56,10 +82,13 @@ export default class JellyfinServerDevice extends Homey.Device {
   private uptimePollTimer?: NodeJS.Timeout;
   private async refreshUptime(): Promise<void> {
     if (!this.hub) return;
+    // Don't advance uptime while the server is unreachable; the baseline is
+    // reset on reconnect so the value means 'minutes since last reconnect'.
+    if (!this.connectionOnline) return;
     try {
-      // Jellyfin doesn't expose uptime directly. Persist the first time we
-      // successfully see the server and report minutes since then. The
-      // timestamp is cleared in onDeleted so re-pairing starts fresh.
+      // Jellyfin doesn't expose uptime directly. Persist the baseline the
+      // first time we successfully see the server and report minutes since
+      // then. The timestamp is cleared in onDeleted so re-pairing starts fresh.
       const key = 'serverStartTs:' + this.serverId;
       let started = this.homey.settings.get(key) as number | undefined;
       if (!started) {
@@ -163,9 +192,6 @@ export default class JellyfinServerDevice extends Homey.Device {
 
     if (connectionTouched || pollTouched) {
       this.log('Settings changed; recreating hub', changedKeys);
-      this.unregister();
-      const app = this.homey.app as HomeyfinApp;
-      await app.releaseHub(this.serverId);
       await this.setStoreValue('baseUrl', newSettings.baseUrl ?? '').catch(() => undefined);
       await this.setStoreValue('apiKey', newSettings.apiKey ?? '').catch(() => undefined);
       if (newSettings.userName) {
@@ -173,17 +199,33 @@ export default class JellyfinServerDevice extends Homey.Device {
       }
       // Pass newSettings through: getSettings() would still yield the old
       // poll intervals / TLS flag until this handler resolves.
-      await this.bootstrapHub(newSettings);
+      await this.rebuildHub(newSettings);
     }
+  }
+
+  /**
+   * Tear down the current hub and build a fresh one. Called from onSettings
+   * and from the driver's repair flow — a programmatic setSettings() does NOT
+   * fire onSettings, so repair must invoke this explicitly.
+   */
+  async rebuildHub(settingsOverride?: ServerSettings): Promise<void> {
+    this.unregister();
+    const app = this.homey.app as HomeyfinApp;
+    await app.releaseHub(this.serverId);
+    await this.bootstrapHub(settingsOverride);
   }
 
   async onUninit(): Promise<void> {
     // Detach hub listeners and stop the uptime timer on app shutdown/reload.
     // The shared hub itself is released centrally by the app's onUninit.
+    this.hubSwapUnsub?.();
+    this.hubSwapUnsub = undefined;
     this.unregister();
   }
 
   async onDeleted(): Promise<void> {
+    this.hubSwapUnsub?.();
+    this.hubSwapUnsub = undefined;
     this.unregister();
     const app = this.homey.app as HomeyfinApp;
     await app.releaseHub(this.serverId);
@@ -191,9 +233,13 @@ export default class JellyfinServerDevice extends Homey.Device {
     this.homey.settings.unset('serverStartTs:' + this.serverId);
   }
 
-  private unregister(): void {
+  private detachHubListeners(): void {
     for (const off of this.offCallbacks) off();
     this.offCallbacks = [];
+  }
+
+  private unregister(): void {
+    this.detachHubListeners();
     if (this.uptimePollTimer) {
       this.homey.clearInterval(this.uptimePollTimer);
       this.uptimePollTimer = undefined;
@@ -204,6 +250,10 @@ export default class JellyfinServerDevice extends Homey.Device {
 
   private registerHubHandlers(): void {
     if (!this.hub) return;
+    // Idempotent: the onHubSwap callback may already have bound handlers to
+    // this instance before bootstrapHubInner runs — drop those first so hub
+    // events never fire the device handlers twice.
+    this.detachHubListeners();
     const hub = this.hub;
 
     const onCounts = (counts: ItemCounts) =>
@@ -215,6 +265,12 @@ export default class JellyfinServerDevice extends Homey.Device {
     const onUser = (data: { user: string; client: string; deviceName: string }) =>
       this.handleUserLoggedIn(data).catch((e) => this.error(e));
     const onUp = () => {
+      if (!this.connectionOnline) {
+        this.connectionOnline = true;
+        // Reconnect after an outage: restart the uptime baseline.
+        this.homey.settings.set('serverStartTs:' + this.serverId, Date.now());
+        this.refreshUptime().catch(() => undefined);
+      }
       this.safeSet('socket_online', true).catch(() => undefined);
       this.homey.flow
         .getDeviceTriggerCard('server_connected')
@@ -222,6 +278,7 @@ export default class JellyfinServerDevice extends Homey.Device {
         .catch(() => undefined);
     };
     const onDown = () => {
+      this.connectionOnline = false;
       this.safeSet('socket_online', false).catch(() => undefined);
       this.homey.flow
         .getDeviceTriggerCard('server_disconnected')
@@ -257,6 +314,27 @@ export default class JellyfinServerDevice extends Homey.Device {
         .trigger(this, { user: data.user, title: data.title }, undefined)
         .catch(() => undefined);
     };
+    const onUpdateAvailable = () => {
+      this.homey.flow
+        .getDeviceTriggerCard('update_available')
+        .trigger(this, {}, undefined)
+        .catch(() => undefined);
+    };
+    const onTaskCompleted = (data: { taskId: string; taskName: string; status: string }) => {
+      // taskId travels as state so the run listener can match the selected
+      // task ('' in the argument means 'any task').
+      this.homey.flow
+        .getDeviceTriggerCard('task_completed')
+        .trigger(this, { task_name: data.taskName, status: data.status }, { taskId: data.taskId })
+        .catch(() => undefined);
+    };
+    const onAuthFailed = (data: { userName: string }) => {
+      // Fan-out is rate-limited by the hub (max 5 emits/minute).
+      this.homey.flow
+        .getDeviceTriggerCard('auth_failed')
+        .trigger(this, { user: data.userName }, undefined)
+        .catch(() => undefined);
+    };
 
     hub.on('library:counts', onCounts);
     hub.on('library:new_item', onNewItem);
@@ -267,6 +345,9 @@ export default class JellyfinServerDevice extends Homey.Device {
     hub.on('streams:count', onStreams);
     hub.on('transcoding:started', onTransStart);
     hub.on('transcoding:stopped', onTransStop);
+    hub.on('server:update_available', onUpdateAvailable);
+    hub.on('task:completed', onTaskCompleted);
+    hub.on('activity:auth_failed', onAuthFailed);
 
     this.offCallbacks.push(
       () => hub.off('library:counts', onCounts),
@@ -278,6 +359,9 @@ export default class JellyfinServerDevice extends Homey.Device {
       () => hub.off('streams:count', onStreams),
       () => hub.off('transcoding:started', onTransStart),
       () => hub.off('transcoding:stopped', onTransStop),
+      () => hub.off('server:update_available', onUpdateAvailable),
+      () => hub.off('task:completed', onTaskCompleted),
+      () => hub.off('activity:auth_failed', onAuthFailed),
     );
   }
 
@@ -322,7 +406,9 @@ export default class JellyfinServerDevice extends Homey.Device {
     await this.safeSet('last_added_title', this.describeItem(item));
     await this.homey.flow
       .getDeviceTriggerCard('new_item_added')
-      .trigger(this, tokens as never, { type: item.Type ?? '', libraryId: item.ParentId })
+      // libraryId is the CollectionFolder id ('' if unknown) so the run
+      // listener can match it against the MediaFolder autocomplete ids.
+      .trigger(this, tokens as never, { type: item.Type ?? '', libraryId: ev.libraryId })
       .catch((err: Error) => this.error('new_item_added trigger failed', err.message));
   }
 

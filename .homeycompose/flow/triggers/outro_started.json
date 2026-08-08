@@ -1,0 +1,66 @@
+{
+  "title": {
+    "en": "Outro started",
+    "de": "Outro gestartet",
+    "nl": "Outro gestart"
+  },
+  "hint": {
+    "en": "Fires when playback enters an outro (credits) segment of the current item. Requires Jellyfin 10.10+ with media segments (e.g. the Intro Skipper plugin).",
+    "de": "Wird ausgelöst, wenn die Wiedergabe in ein Outro-Segment (Abspann) des aktuellen Items eintritt. Benötigt Jellyfin 10.10+ mit Media-Segmenten (z. B. das Intro-Skipper-Plugin).",
+    "nl": "Wordt geactiveerd wanneer het afspelen een outrosegment (aftiteling) van het huidige item binnengaat. Vereist Jellyfin 10.10+ met mediasegmenten (bijv. de Intro Skipper-plug-in)."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=user"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "title",
+      "type": "string",
+      "title": {
+        "en": "Title",
+        "de": "Titel",
+        "nl": "Titel"
+      }
+    },
+    {
+      "name": "type",
+      "type": "string",
+      "title": {
+        "en": "Type",
+        "de": "Typ",
+        "nl": "Type"
+      }
+    },
+    {
+      "name": "series",
+      "type": "string",
+      "title": {
+        "en": "Series",
+        "de": "Serie",
+        "nl": "Serie"
+      }
+    },
+    {
+      "name": "season",
+      "type": "number",
+      "title": {
+        "en": "Season",
+        "de": "Staffel",
+        "nl": "Seizoen"
+      }
+    },
+    {
+      "name": "episode",
+      "type": "number",
+      "title": {
+        "en": "Episode",
+        "de": "Folge",
+        "nl": "Aflevering"
+      }
+    }
+  ]
+}

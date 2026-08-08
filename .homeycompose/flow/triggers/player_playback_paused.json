@@ -1,8 +1,8 @@
 {
   "title": {
-    "en": "Playback paused",
-    "de": "Wiedergabe pausiert",
-    "nl": "Afspelen gepauzeerd"
+    "en": "Playback paused (player)",
+    "de": "Wiedergabe pausiert (Player)",
+    "nl": "Afspelen gepauzeerd (speler)"
   },
   "hint": {
     "en": "Fires when playback on this player is paused.",

@@ -1,7 +1,7 @@
 import Homey from 'homey';
 import type HomeyfinApp from '../../app';
 import { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
-import type { NowPlayingItem } from '../../lib/JellyfinClient';
+import type { MediaSegment, NowPlayingItem } from '../../lib/JellyfinClient';
 
 interface UserStore {
   serverId: string;
@@ -27,12 +27,16 @@ export default class JellyfinUserDevice extends Homey.Device {
   private pendingStop?: { snap: ClientSnapshot; item: NowPlayingItem | undefined };
   private unwatchedTimer?: NodeJS.Timeout;
   private initRetryTimer?: NodeJS.Timeout;
+  private hubSwapUnsub?: () => void;
   private albumArtImage?: Homey.Image;
   private posterTokenImage?: Homey.Image;
   private lastArtworkUrl = '';
-  private firedProgressMilestones = new Set<number>();
-  private firedRemainingMilestones = new Set<number>();
+  private lastProgressFloor?: number;
+  private lastRemainingFloor?: number;
   private trackedItemId?: string;
+  private segmentItemId?: string;
+  private currentSegments: MediaSegment[] = [];
+  private firedSegmentKeys = new Set<string>();
   private watchSecondsThisWeek = 0;
   private watchSecondsToday = 0;
   private lastWatchTickDay = -1;
@@ -43,6 +47,15 @@ export default class JellyfinUserDevice extends Homey.Device {
   async onInit(): Promise<void> {
     this.store = this.getStore() as UserStore;
     const app = this.homey.app as HomeyfinApp;
+
+    await this.migrateCapabilities();
+
+    // Rebind when the app tears down / recreates this server's hub (repair,
+    // credential change) — otherwise this device stays wired to the dead hub.
+    // Guarded because the retry timer re-enters onInit.
+    if (!this.hubSwapUnsub) {
+      this.hubSwapUnsub = app.onHubSwap(this.store.serverId, (hub) => this.handleHubSwap(hub));
+    }
 
     this.hub = app.getHub(this.store.serverId);
     if (!this.hub) {
@@ -73,7 +86,10 @@ export default class JellyfinUserDevice extends Homey.Device {
 
   async onDeleted(): Promise<void> {
     this.teardown();
-    this.homey.settings.unset('watch:' + this.store.userId);
+    // this.store is only assigned in onInit, which may never have run for this
+    // instance — read the store directly so deletion still cleans up.
+    const store = this.store ?? (this.getStore() as UserStore | undefined);
+    if (store?.userId) this.homey.settings.unset('watch:' + store.userId);
   }
 
   async onUninit(): Promise<void> {
@@ -100,8 +116,9 @@ export default class JellyfinUserDevice extends Homey.Device {
   }
 
   private teardown(): void {
-    for (const off of this.offCallbacks) off();
-    this.offCallbacks = [];
+    this.detachHubHandlers();
+    if (this.hubSwapUnsub) this.hubSwapUnsub();
+    this.hubSwapUnsub = undefined;
     if (this.initRetryTimer) this.homey.clearTimeout(this.initRetryTimer);
     if (this.positionTimer) this.homey.clearInterval(this.positionTimer);
     if (this.unwatchedTimer) this.homey.clearInterval(this.unwatchedTimer);
@@ -116,6 +133,42 @@ export default class JellyfinUserDevice extends Homey.Device {
     this.unwatchedTimer = undefined;
     this.stoppedDebounceTimer = undefined;
     this.summaryTimer = undefined;
+  }
+
+  /**
+   * Capabilities added in newer releases (e.g. continue_watching_title,
+   * watch_minutes_week) never reach devices paired before that release, so
+   * sync any missing ones from the driver manifest.
+   */
+  private async migrateCapabilities(): Promise<void> {
+    const wanted = (this.driver.manifest?.capabilities ?? []) as string[];
+    for (const cap of wanted) {
+      if (this.hasCapability(cap)) continue;
+      await this.addCapability(cap).catch((err: Error) =>
+        this.error(`addCapability ${cap} failed`, err.message),
+      );
+    }
+  }
+
+  /** Rewires this device when the hub for its server is recreated or released. */
+  private handleHubSwap(hub: ServerHub | undefined): void {
+    // Detach BEFORE reassigning this.hub so the old instance loses our listeners.
+    this.detachHubHandlers();
+    this.hub = hub;
+    if (!hub) {
+      this.setUnavailable('Jellyfin server not connected yet').catch(() => undefined);
+      return;
+    }
+    this.registerHubHandlers();
+    const snap = hub.getUserSnapshot(this.store.userId);
+    if (snap) this.applySnapshot(snap).catch((e) => this.error(e));
+    else this.safeSet('client_online', false).catch(() => undefined);
+    this.setAvailable().catch(() => undefined);
+  }
+
+  private detachHubHandlers(): void {
+    for (const off of this.offCallbacks) off();
+    this.offCallbacks = [];
   }
 
   private async setupAlbumArt(): Promise<void> {
@@ -228,6 +281,7 @@ export default class JellyfinUserDevice extends Homey.Device {
       const next = duration > 0 ? Math.min(current + 1, duration) : current + 1;
       this.safeSet('media_position', next).catch(() => undefined);
       this.checkProgressTriggers(snap, next, duration);
+      this.checkSegmentTriggers(snap, next);
       this.tickWatchTime();
     }, POSITION_TICK_MS);
   }
@@ -327,8 +381,8 @@ export default class JellyfinUserDevice extends Homey.Device {
     if (duration <= 0) return;
     if (snap.nowPlaying?.Id !== this.trackedItemId) {
       this.trackedItemId = snap.nowPlaying?.Id;
-      this.firedProgressMilestones.clear();
-      this.firedRemainingMilestones.clear();
+      this.lastProgressFloor = undefined;
+      this.lastRemainingFloor = undefined;
     }
 
     const percent = Math.floor((position / duration) * 100);
@@ -340,10 +394,13 @@ export default class JellyfinUserDevice extends Homey.Device {
   }
 
   private fireProgressIfNew(percent: number, snap: ClientSnapshot): void {
-    // Only the highest milestone reached is interesting; iterate all 1..99 and fire each at first crossing.
-    if (percent < 1 || percent > 99) return;
-    if (this.firedProgressMilestones.has(percent)) return;
-    this.firedProgressMilestones.add(percent);
+    const prev = this.lastProgressFloor;
+    if (prev === percent) return;
+    this.lastProgressFloor = percent;
+    // The first observation of an item seeds the baseline WITHOUT firing (a
+    // resume mid-movie must not replay already-passed thresholds); a backwards
+    // seek just lowers the baseline so thresholds can fire again.
+    if (prev === undefined || percent < prev) return;
     const item = snap.nowPlaying;
     if (!item) return;
     this.homey.flow
@@ -351,15 +408,19 @@ export default class JellyfinUserDevice extends Homey.Device {
       .trigger(
         this,
         { title: item.Name ?? '', type: item.Type ?? '' },
-        { percent },
+        // Run listener (user/driver.ts) fires args.percent in (prev, percent].
+        { percent, prev },
       )
       .catch((err: Error) => this.error('progress trigger failed', err.message));
   }
 
   private fireRemainingIfNew(remainingMin: number, remainingSeconds: number, snap: ClientSnapshot): void {
-    if (remainingMin < 1 || remainingMin > 60) return;
-    if (this.firedRemainingMilestones.has(remainingMin)) return;
-    this.firedRemainingMilestones.add(remainingMin);
+    const prev = this.lastRemainingFloor;
+    if (prev === remainingMin) return;
+    this.lastRemainingFloor = remainingMin;
+    // Same crossing semantics as fireProgressIfNew, but the remaining minute
+    // DECREASES over time; a backwards seek raises the baseline silently.
+    if (prev === undefined || remainingMin > prev) return;
     const item = snap.nowPlaying;
     if (!item) return;
     this.homey.flow
@@ -372,15 +433,76 @@ export default class JellyfinUserDevice extends Homey.Device {
           series: item.SeriesName ?? '',
           remaining_seconds: remainingSeconds,
         },
-        { minutes: remainingMin },
+        // Run listener (user/driver.ts) fires args.minutes in [minutes, prev).
+        { minutes: remainingMin, prev },
       )
       .catch((err: Error) => this.error('minutes_before_end trigger failed', err.message));
+  }
+
+  // --- Media segments (intro/outro triggers) ------------------------------
+
+  /**
+   * Fires intro_started / outro_started when the position enters an
+   * Intro/Outro media segment of the current item. Segments are fetched once
+   * per item (through the hub's LRU cache, fire-and-forget) and ONLY the
+   * current item's Intro/Outro segments are kept, so this holds no growing
+   * state. A set of fired segment keys — analogous to the progress-milestone
+   * baselines — guarantees each segment triggers at most once per item; the
+   * first tick observed inside a segment is the entry tick (the ticker runs
+   * every second), so a seek back into an already-fired segment stays silent.
+   */
+  private checkSegmentTriggers(snap: ClientSnapshot, position: number): void {
+    const itemId = snap.nowPlaying?.Id;
+    if (!itemId) return;
+    if (itemId !== this.segmentItemId) {
+      this.segmentItemId = itemId;
+      this.currentSegments = [];
+      this.firedSegmentKeys.clear();
+      this.hub?.getMediaSegments(itemId)
+        .then((segments) => {
+          // The item may have changed while the request was in flight.
+          if (this.segmentItemId !== itemId) return;
+          this.currentSegments = segments.filter(
+            (s) => (s.type === 'Intro' || s.type === 'Outro') && s.endSeconds > s.startSeconds,
+          );
+        })
+        .catch((err: Error) => this.error('getMediaSegments failed', err.message));
+      return;
+    }
+    for (const seg of this.currentSegments) {
+      if (position < seg.startSeconds || position >= seg.endSeconds) continue;
+      const key = `${seg.type}:${seg.startSeconds}`;
+      if (this.firedSegmentKeys.has(key)) continue;
+      this.firedSegmentKeys.add(key);
+      const cardId = seg.type === 'Intro' ? 'intro_started' : 'outro_started';
+      const item = snap.nowPlaying;
+      if (!item) return;
+      this.homey.flow
+        .getDeviceTriggerCard(cardId)
+        .trigger(
+          this,
+          {
+            title: item.Name ?? '',
+            type: item.Type ?? '',
+            series: item.SeriesName ?? '',
+            season: typeof item.ParentIndexNumber === 'number' ? item.ParentIndexNumber : 0,
+            episode: typeof item.IndexNumber === 'number' ? item.IndexNumber : 0,
+          },
+          undefined,
+        )
+        .catch((err: Error) => this.error(`${cardId} trigger failed`, err.message));
+    }
   }
 
   // --- Hub event wiring --------------------------------------------------
 
   private registerHubHandlers(): void {
-    if (!this.hub) return;
+    // Detach-first so a hub swap or init retry can never stack duplicate
+    // listeners; the local `hub` binding keeps the off() calls aimed at the
+    // instance the listeners were actually attached to.
+    this.detachHubHandlers();
+    const hub = this.hub;
+    if (!hub) return;
     const userId = this.store.userId;
 
     const onUpdate = (snap: ClientSnapshot) =>
@@ -399,20 +521,20 @@ export default class JellyfinUserDevice extends Homey.Device {
       this.fireMediaTrigger('now_playing_changed', item, snap);
 
     const ev = (suffix: string) => `user:${userId}:${suffix}`;
-    this.hub.on(ev('update'), onUpdate);
-    this.hub.on(ev('playback_started'), onStarted);
-    this.hub.on(ev('playback_paused'), onPaused);
-    this.hub.on(ev('playback_resumed'), onResumed);
-    this.hub.on(ev('playback_stopped'), onStopped);
-    this.hub.on(ev('now_playing_changed'), onChanged);
+    hub.on(ev('update'), onUpdate);
+    hub.on(ev('playback_started'), onStarted);
+    hub.on(ev('playback_paused'), onPaused);
+    hub.on(ev('playback_resumed'), onResumed);
+    hub.on(ev('playback_stopped'), onStopped);
+    hub.on(ev('now_playing_changed'), onChanged);
 
     this.offCallbacks.push(
-      () => this.hub?.off(ev('update'), onUpdate),
-      () => this.hub?.off(ev('playback_started'), onStarted),
-      () => this.hub?.off(ev('playback_paused'), onPaused),
-      () => this.hub?.off(ev('playback_resumed'), onResumed),
-      () => this.hub?.off(ev('playback_stopped'), onStopped),
-      () => this.hub?.off(ev('now_playing_changed'), onChanged),
+      () => hub.off(ev('update'), onUpdate),
+      () => hub.off(ev('playback_started'), onStarted),
+      () => hub.off(ev('playback_paused'), onPaused),
+      () => hub.off(ev('playback_resumed'), onResumed),
+      () => hub.off(ev('playback_stopped'), onStopped),
+      () => hub.off(ev('now_playing_changed'), onChanged),
     );
   }
 

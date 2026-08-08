@@ -201,6 +201,7 @@
       "icon": "/assets/capabilities/clock.svg",
       "units": {
         "en": "s",
+        "de": "s",
         "nl": "s"
       },
       "getable": true,
@@ -218,6 +219,7 @@
       "icon": "/assets/capabilities/clock.svg",
       "units": {
         "en": "s",
+        "de": "s",
         "nl": "s"
       },
       "getable": true,
@@ -369,6 +371,37 @@
   "flow": {
     "triggers": [
       {
+        "id": "auth_failed",
+        "title": {
+          "en": "Failed login attempt",
+          "de": "Fehlgeschlagener Anmeldeversuch",
+          "nl": "Mislukte aanmeldpoging"
+        },
+        "hint": {
+          "en": "Fires on a failed Jellyfin login attempt — useful for security notifications. Rate-limited to a few events per minute.",
+          "de": "Wird bei einem fehlgeschlagenen Jellyfin-Anmeldeversuch ausgelöst — geeignet für Sicherheits-Benachrichtigungen. Auf wenige Ereignisse pro Minute begrenzt.",
+          "nl": "Wordt geactiveerd bij een mislukte Jellyfin-aanmeldpoging — handig voor beveiligingsmeldingen. Beperkt tot enkele gebeurtenissen per minuut."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer",
+              "nl": "Gebruiker"
+            }
+          }
+        ]
+      },
+      {
         "id": "daily_summary",
         "title": {
           "en": "Daily summary",
@@ -404,6 +437,73 @@
               "en": "Minutes this week",
               "de": "Minuten diese Woche",
               "nl": "Minuten deze week"
+            }
+          }
+        ]
+      },
+      {
+        "id": "intro_started",
+        "title": {
+          "en": "Intro started",
+          "de": "Intro gestartet",
+          "nl": "Intro gestart"
+        },
+        "hint": {
+          "en": "Fires when playback enters an intro segment of the current item. Requires Jellyfin 10.10+ with media segments (e.g. the Intro Skipper plugin).",
+          "de": "Wird ausgelöst, wenn die Wiedergabe in ein Intro-Segment des aktuellen Items eintritt. Benötigt Jellyfin 10.10+ mit Media-Segmenten (z. B. das Intro-Skipper-Plugin).",
+          "nl": "Wordt geactiveerd wanneer het afspelen een introsegment van het huidige item binnengaat. Vereist Jellyfin 10.10+ met mediasegmenten (bijv. de Intro Skipper-plug-in)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
             }
           }
         ]
@@ -470,6 +570,7 @@
             "step": 1,
             "placeholder": {
               "en": "5",
+              "de": "5",
               "nl": "5"
             }
           }
@@ -688,85 +789,10 @@
           "de": "Aktuelle Wiedergabe geändert",
           "nl": "Afgespeeld item gewijzigd"
         },
-        "args": [
-          {
-            "name": "device",
-            "type": "device",
-            "filter": "driver_id=user"
-          }
-        ],
-        "tokens": [
-          {
-            "name": "title",
-            "type": "string",
-            "title": {
-              "en": "Title",
-              "de": "Titel",
-              "nl": "Titel"
-            }
-          },
-          {
-            "name": "type",
-            "type": "string",
-            "title": {
-              "en": "Type",
-              "de": "Typ",
-              "nl": "Type"
-            }
-          },
-          {
-            "name": "series",
-            "type": "string",
-            "title": {
-              "en": "Series",
-              "de": "Serie",
-              "nl": "Serie"
-            }
-          },
-          {
-            "name": "season",
-            "type": "number",
-            "title": {
-              "en": "Season",
-              "de": "Staffel",
-              "nl": "Seizoen"
-            }
-          },
-          {
-            "name": "episode",
-            "type": "number",
-            "title": {
-              "en": "Episode",
-              "de": "Folge",
-              "nl": "Aflevering"
-            }
-          },
-          {
-            "name": "client",
-            "type": "string",
-            "title": {
-              "en": "Client",
-              "de": "Client",
-              "nl": "Client"
-            }
-          },
-          {
-            "name": "device",
-            "type": "string",
-            "title": {
-              "en": "Device",
-              "de": "Gerät",
-              "nl": "Apparaat"
-            }
-          }
-        ]
-      },
-      {
-        "id": "playback_paused",
-        "title": {
-          "en": "Playback paused",
-          "de": "Wiedergabe pausiert",
-          "nl": "Afspelen gepauzeerd"
+        "hint": {
+          "en": "Fires when the item this Jellyfin user is playing changes. This card is for user devices; player devices have their own cards.",
+          "de": "Wird ausgelöst, wenn sich das gerade abgespielte Item dieses Jellyfin-Benutzers ändert. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eigene Karten.",
+          "nl": "Wordt geactiveerd wanneer het item dat deze Jellyfin-gebruiker afspeelt verandert. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben eigen kaarten."
         },
         "args": [
           {
@@ -819,6 +845,185 @@
               "en": "Episode",
               "de": "Folge",
               "nl": "Aflevering"
+            }
+          },
+          {
+            "name": "runtime",
+            "type": "number",
+            "title": {
+              "en": "Runtime (s)",
+              "de": "Laufzeit (s)",
+              "nl": "Speelduur (s)"
+            }
+          },
+          {
+            "name": "user",
+            "type": "string",
+            "title": {
+              "en": "User",
+              "de": "Benutzer",
+              "nl": "Gebruiker"
+            }
+          },
+          {
+            "name": "client",
+            "type": "string",
+            "title": {
+              "en": "Client",
+              "de": "Client",
+              "nl": "Client"
+            }
+          },
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät",
+              "nl": "Apparaat"
+            }
+          }
+        ]
+      },
+      {
+        "id": "outro_started",
+        "title": {
+          "en": "Outro started",
+          "de": "Outro gestartet",
+          "nl": "Outro gestart"
+        },
+        "hint": {
+          "en": "Fires when playback enters an outro (credits) segment of the current item. Requires Jellyfin 10.10+ with media segments (e.g. the Intro Skipper plugin).",
+          "de": "Wird ausgelöst, wenn die Wiedergabe in ein Outro-Segment (Abspann) des aktuellen Items eintritt. Benötigt Jellyfin 10.10+ mit Media-Segmenten (z. B. das Intro-Skipper-Plugin).",
+          "nl": "Wordt geactiveerd wanneer het afspelen een outrosegment (aftiteling) van het huidige item binnengaat. Vereist Jellyfin 10.10+ met mediasegmenten (bijv. de Intro Skipper-plug-in)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
+            }
+          }
+        ]
+      },
+      {
+        "id": "playback_paused",
+        "title": {
+          "en": "Playback paused",
+          "de": "Wiedergabe pausiert",
+          "nl": "Afspelen gepauzeerd"
+        },
+        "hint": {
+          "en": "Fires when playback for this Jellyfin user is paused. This card is for user devices; player devices have their own card.",
+          "de": "Wird ausgelöst, wenn die Wiedergabe für diesen Jellyfin-Benutzer pausiert wird. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eine eigene Karte.",
+          "nl": "Wordt geactiveerd wanneer het afspelen voor deze Jellyfin-gebruiker wordt gepauzeerd. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben een eigen kaart."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "title",
+            "type": "string",
+            "title": {
+              "en": "Title",
+              "de": "Titel",
+              "nl": "Titel"
+            }
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "title": {
+              "en": "Type",
+              "de": "Typ",
+              "nl": "Type"
+            }
+          },
+          {
+            "name": "series",
+            "type": "string",
+            "title": {
+              "en": "Series",
+              "de": "Serie",
+              "nl": "Serie"
+            }
+          },
+          {
+            "name": "season",
+            "type": "number",
+            "title": {
+              "en": "Season",
+              "de": "Staffel",
+              "nl": "Seizoen"
+            }
+          },
+          {
+            "name": "episode",
+            "type": "number",
+            "title": {
+              "en": "Episode",
+              "de": "Folge",
+              "nl": "Aflevering"
+            }
+          },
+          {
+            "name": "runtime",
+            "type": "number",
+            "title": {
+              "en": "Runtime (s)",
+              "de": "Laufzeit (s)",
+              "nl": "Speelduur (s)"
             }
           },
           {
@@ -857,6 +1062,11 @@
           "de": "Wiedergabe fortgesetzt",
           "nl": "Afspelen hervat"
         },
+        "hint": {
+          "en": "Fires when playback for this Jellyfin user is resumed after a pause. This card is for user devices; player devices have their own card.",
+          "de": "Wird ausgelöst, wenn die Wiedergabe für diesen Jellyfin-Benutzer nach einer Pause fortgesetzt wird. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eine eigene Karte.",
+          "nl": "Wordt geactiveerd wanneer het afspelen voor deze Jellyfin-gebruiker na een pauze wordt hervat. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben een eigen kaart."
+        },
         "args": [
           {
             "name": "device",
@@ -908,6 +1118,15 @@
               "en": "Episode",
               "de": "Folge",
               "nl": "Aflevering"
+            }
+          },
+          {
+            "name": "runtime",
+            "type": "number",
+            "title": {
+              "en": "Runtime (s)",
+              "de": "Laufzeit (s)",
+              "nl": "Speelduur (s)"
             }
           },
           {
@@ -1053,6 +1272,11 @@
           "de": "Wiedergabe gestoppt",
           "nl": "Afspelen gestopt"
         },
+        "hint": {
+          "en": "Fires when playback for this Jellyfin user stops. This card is for user devices; player devices have their own card.",
+          "de": "Wird ausgelöst, wenn die Wiedergabe für diesen Jellyfin-Benutzer stoppt. Diese Karte gilt für Benutzer-Geräte; Player-Geräte haben eine eigene Karte.",
+          "nl": "Wordt geactiveerd wanneer het afspelen voor deze Jellyfin-gebruiker stopt. Deze kaart is voor gebruikersapparaten; spelerapparaten hebben een eigen kaart."
+        },
         "args": [
           {
             "name": "device",
@@ -1107,6 +1331,15 @@
             }
           },
           {
+            "name": "runtime",
+            "type": "number",
+            "title": {
+              "en": "Runtime (s)",
+              "de": "Laufzeit (s)",
+              "nl": "Speelduur (s)"
+            }
+          },
+          {
             "name": "user",
             "type": "string",
             "title": {
@@ -1138,9 +1371,9 @@
       {
         "id": "player_playback_paused",
         "title": {
-          "en": "Playback paused",
-          "de": "Wiedergabe pausiert",
-          "nl": "Afspelen gepauzeerd"
+          "en": "Playback paused (player)",
+          "de": "Wiedergabe pausiert (Player)",
+          "nl": "Afspelen gepauzeerd (speler)"
         },
         "hint": {
           "en": "Fires when playback on this player is paused.",
@@ -1205,9 +1438,9 @@
       {
         "id": "player_playback_resumed",
         "title": {
-          "en": "Playback resumed",
-          "de": "Wiedergabe fortgesetzt",
-          "nl": "Afspelen hervat"
+          "en": "Playback resumed (player)",
+          "de": "Wiedergabe fortgesetzt (Player)",
+          "nl": "Afspelen hervat (speler)"
         },
         "hint": {
           "en": "Fires when playback on this player is resumed after a pause.",
@@ -1272,9 +1505,9 @@
       {
         "id": "player_playback_started",
         "title": {
-          "en": "Playback started",
-          "de": "Wiedergabe gestartet",
-          "nl": "Afspelen gestart"
+          "en": "Playback started (player)",
+          "de": "Wiedergabe gestartet (Player)",
+          "nl": "Afspelen gestart (speler)"
         },
         "hint": {
           "en": "Fires when this player starts playing something.",
@@ -1339,9 +1572,9 @@
       {
         "id": "player_playback_stopped",
         "title": {
-          "en": "Playback stopped",
-          "de": "Wiedergabe gestoppt",
-          "nl": "Afspelen gestopt"
+          "en": "Playback stopped (player)",
+          "de": "Wiedergabe gestoppt (Player)",
+          "nl": "Afspelen gestopt (speler)"
         },
         "hint": {
           "en": "Fires when this player stops playing (not the same as pausing).",
@@ -1439,6 +1672,7 @@
             "step": 1,
             "placeholder": {
               "en": "50",
+              "de": "50",
               "nl": "50"
             }
           }
@@ -1530,6 +1764,60 @@
         ]
       },
       {
+        "id": "task_completed",
+        "title": {
+          "en": "Task completed",
+          "de": "Aufgabe abgeschlossen",
+          "nl": "Taak voltooid"
+        },
+        "titleFormatted": {
+          "en": "Task [[task]] completed",
+          "de": "Aufgabe [[task]] abgeschlossen",
+          "nl": "Taak [[task]] voltooid"
+        },
+        "hint": {
+          "en": "Fires when a scheduled task started via the 'Start a scheduled task' card finishes. Tasks started elsewhere are not monitored.",
+          "de": "Wird ausgelöst, wenn eine über die Karte 'Geplante Aufgabe starten' gestartete Aufgabe endet. Anderweitig gestartete Aufgaben werden nicht überwacht.",
+          "nl": "Wordt geactiveerd wanneer een via de kaart 'Geplande taak starten' gestarte taak eindigt. Elders gestarte taken worden niet gevolgd."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "task",
+            "type": "autocomplete",
+            "title": {
+              "en": "Task",
+              "de": "Aufgabe",
+              "nl": "Taak"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "task_name",
+            "type": "string",
+            "title": {
+              "en": "Task",
+              "de": "Aufgabe",
+              "nl": "Taak"
+            }
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "title": {
+              "en": "Status",
+              "de": "Status",
+              "nl": "Status"
+            }
+          }
+        ]
+      },
+      {
         "id": "transcoding_started",
         "title": {
           "en": "Transcoding started",
@@ -1614,6 +1902,26 @@
               "de": "Titel",
               "nl": "Titel"
             }
+          }
+        ]
+      },
+      {
+        "id": "update_available",
+        "title": {
+          "en": "Server update available",
+          "de": "Server-Update verfügbar",
+          "nl": "Serverupdate beschikbaar"
+        },
+        "hint": {
+          "en": "Fires when Jellyfin starts reporting an available server update. Checked roughly every 6 hours while connected.",
+          "de": "Wird ausgelöst, wenn Jellyfin ein verfügbares Server-Update meldet. Prüfung etwa alle 6 Stunden bei bestehender Verbindung.",
+          "nl": "Wordt geactiveerd wanneer Jellyfin een beschikbare serverupdate meldt. Controle ongeveer elke 6 uur zolang er verbinding is."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
           }
         ]
       },
@@ -1832,8 +2140,29 @@
             "step": 1,
             "placeholder": {
               "en": "1",
+              "de": "1",
               "nl": "1"
             }
+          }
+        ]
+      },
+      {
+        "id": "user_disabled",
+        "title": {
+          "en": "User is !{{disabled|not disabled}}",
+          "de": "Benutzer ist !{{gesperrt|nicht gesperrt}}",
+          "nl": "Gebruiker is !{{geblokkeerd|niet geblokkeerd}}"
+        },
+        "hint": {
+          "en": "Checks whether this user's Jellyfin account is disabled (parental control). Requires an admin API key.",
+          "de": "Prüft, ob das Jellyfin-Konto dieses Benutzers gesperrt ist (Kindersicherung). Benötigt einen Admin-API-Key.",
+          "nl": "Controleert of het Jellyfin-account van deze gebruiker is uitgeschakeld (ouderlijk toezicht). Vereist een admin-API-sleutel."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
           }
         ]
       }
@@ -1916,6 +2245,40 @@
         ]
       },
       {
+        "id": "display_item",
+        "title": {
+          "en": "Show item on client",
+          "de": "Item auf Client anzeigen",
+          "nl": "Item op client tonen"
+        },
+        "titleFormatted": {
+          "en": "Show [[item]] on the client",
+          "de": "Zeige [[item]] auf dem Client",
+          "nl": "[[item]] tonen op de client"
+        },
+        "hint": {
+          "en": "Opens the item's detail page on the client the user is active on, without starting playback.",
+          "de": "Öffnet die Detailseite des Items auf dem aktiven Client des Benutzers, ohne die Wiedergabe zu starten.",
+          "nl": "Opent de detailpagina van het item op de client waarop de gebruiker actief is, zonder het afspelen te starten."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "item",
+            "type": "autocomplete",
+            "title": {
+              "en": "Item",
+              "de": "Item",
+              "nl": "Item"
+            }
+          }
+        ]
+      },
+      {
         "id": "health_check",
         "title": {
           "en": "Health check",
@@ -1984,6 +2347,98 @@
         ]
       },
       {
+        "id": "navigate",
+        "title": {
+          "en": "Send navigation command",
+          "de": "Navigations-Befehl senden",
+          "nl": "Navigatiecommando sturen"
+        },
+        "titleFormatted": {
+          "en": "Send [[command]] to the client",
+          "de": "Sende [[command]] an den Client",
+          "nl": "[[command]] naar de client sturen"
+        },
+        "hint": {
+          "en": "Sends a remote-control navigation command (home, back, select, arrows) to the client the user is active on.",
+          "de": "Sendet einen Fernbedienungs-Navigationsbefehl (Home, Zurück, Auswählen, Pfeile) an den aktiven Client des Benutzers.",
+          "nl": "Stuurt een navigatiecommando van de afstandsbediening (home, terug, selecteren, pijlen) naar de client waarop de gebruiker actief is."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "command",
+            "type": "dropdown",
+            "title": {
+              "en": "Command",
+              "de": "Befehl",
+              "nl": "Commando"
+            },
+            "values": [
+              {
+                "id": "GoHome",
+                "label": {
+                  "en": "Home",
+                  "de": "Startseite",
+                  "nl": "Home"
+                }
+              },
+              {
+                "id": "Back",
+                "label": {
+                  "en": "Back",
+                  "de": "Zurück",
+                  "nl": "Terug"
+                }
+              },
+              {
+                "id": "Select",
+                "label": {
+                  "en": "Select",
+                  "de": "Auswählen",
+                  "nl": "Selecteren"
+                }
+              },
+              {
+                "id": "MoveUp",
+                "label": {
+                  "en": "Up",
+                  "de": "Hoch",
+                  "nl": "Omhoog"
+                }
+              },
+              {
+                "id": "MoveDown",
+                "label": {
+                  "en": "Down",
+                  "de": "Runter",
+                  "nl": "Omlaag"
+                }
+              },
+              {
+                "id": "MoveLeft",
+                "label": {
+                  "en": "Left",
+                  "de": "Links",
+                  "nl": "Links"
+                }
+              },
+              {
+                "id": "MoveRight",
+                "label": {
+                  "en": "Right",
+                  "de": "Rechts",
+                  "nl": "Rechts"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "id": "play_item",
         "title": {
           "en": "Play item",
@@ -2014,6 +2469,67 @@
               "de": "Item",
               "nl": "Item"
             }
+          }
+        ]
+      },
+      {
+        "id": "play_playlist",
+        "title": {
+          "en": "Play playlist or collection",
+          "de": "Playlist/Sammlung abspielen",
+          "nl": "Afspeellijst/verzameling afspelen"
+        },
+        "titleFormatted": {
+          "en": "Play [[playlist]] ([[mode]])",
+          "de": "Spiele [[playlist]] ([[mode]])",
+          "nl": "[[playlist]] afspelen ([[mode]])"
+        },
+        "hint": {
+          "en": "Starts every playable item of the picked playlist or collection on whatever client the user is active on.",
+          "de": "Startet alle abspielbaren Items der gewählten Playlist/Sammlung auf dem aktiven Client des Benutzers.",
+          "nl": "Start alle afspeelbare items van de gekozen afspeellijst/verzameling op de client waarop de gebruiker actief is."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "playlist",
+            "type": "autocomplete",
+            "title": {
+              "en": "Playlist / collection",
+              "de": "Playlist/Sammlung",
+              "nl": "Afspeellijst/verzameling"
+            }
+          },
+          {
+            "name": "mode",
+            "type": "dropdown",
+            "title": {
+              "en": "Order",
+              "de": "Reihenfolge",
+              "nl": "Volgorde"
+            },
+            "values": [
+              {
+                "id": "play",
+                "label": {
+                  "en": "In order",
+                  "de": "Der Reihe nach",
+                  "nl": "Op volgorde"
+                }
+              },
+              {
+                "id": "shuffle",
+                "label": {
+                  "en": "Shuffled",
+                  "de": "Zufällig",
+                  "nl": "Willekeurig"
+                }
+              }
+            ]
           }
         ]
       },
@@ -2172,6 +2688,40 @@
             "name": "device",
             "type": "device",
             "filter": "driver_id=server"
+          }
+        ]
+      },
+      {
+        "id": "run_task",
+        "title": {
+          "en": "Start a scheduled task",
+          "de": "Geplante Aufgabe starten",
+          "nl": "Geplande taak starten"
+        },
+        "titleFormatted": {
+          "en": "Start scheduled task [[task]]",
+          "de": "Geplante Aufgabe [[task]] starten",
+          "nl": "Geplande taak [[task]] starten"
+        },
+        "hint": {
+          "en": "Starts a Jellyfin scheduled task. The 'Task completed' card fires when it finishes. Requires the API key to belong to an admin user.",
+          "de": "Startet eine geplante Jellyfin-Aufgabe. Die Karte 'Aufgabe abgeschlossen' wird beim Ende ausgelöst. Erfordert einen Admin-API-Key.",
+          "nl": "Start een geplande Jellyfin-taak. De kaart 'Taak voltooid' wordt geactiveerd wanneer deze eindigt. Vereist dat de API-sleutel van een beheerder is."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=server"
+          },
+          {
+            "name": "task",
+            "type": "autocomplete",
+            "title": {
+              "en": "Task",
+              "de": "Aufgabe",
+              "nl": "Taak"
+            }
           }
         ]
       },
@@ -2363,6 +2913,58 @@
         ]
       },
       {
+        "id": "set_user_enabled",
+        "title": {
+          "en": "Enable/disable user",
+          "de": "Benutzer sperren/entsperren",
+          "nl": "Gebruiker in-/uitschakelen"
+        },
+        "titleFormatted": {
+          "en": "[[mode]] this user account",
+          "de": "Dieses Benutzerkonto [[mode]]",
+          "nl": "Dit gebruikersaccount [[mode]]"
+        },
+        "hint": {
+          "en": "Blocks or unblocks this user's Jellyfin account (parental control). A disabled user cannot sign in. Requires an admin API key.",
+          "de": "Sperrt oder entsperrt das Jellyfin-Konto dieses Benutzers (Kindersicherung). Ein gesperrter Benutzer kann sich nicht anmelden. Benötigt einen Admin-API-Key.",
+          "nl": "Blokkeert of deblokkeert het Jellyfin-account van deze gebruiker (ouderlijk toezicht). Een uitgeschakelde gebruiker kan niet inloggen. Vereist een admin-API-sleutel."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          },
+          {
+            "name": "mode",
+            "type": "dropdown",
+            "title": {
+              "en": "Mode",
+              "de": "Modus",
+              "nl": "Modus"
+            },
+            "values": [
+              {
+                "id": "disable",
+                "label": {
+                  "en": "Disable",
+                  "de": "Sperren",
+                  "nl": "Uitschakelen"
+                }
+              },
+              {
+                "id": "enable",
+                "label": {
+                  "en": "Enable",
+                  "de": "Entsperren",
+                  "nl": "Inschakelen"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "id": "shutdown_server",
         "title": {
           "en": "Shut down Jellyfin server",
@@ -2435,6 +3037,26 @@
         ]
       },
       {
+        "id": "skip_segment",
+        "title": {
+          "en": "Skip current segment",
+          "de": "Aktuelles Segment überspringen",
+          "nl": "Huidig segment overslaan"
+        },
+        "hint": {
+          "en": "Seeks to the end of the segment (intro, outro, recap or commercial) the playback is currently in. Does nothing when no segment is active. Requires Jellyfin 10.10+ with media segments (e.g. the Intro Skipper plugin).",
+          "de": "Springt ans Ende des Segments (Intro, Outro, Rückblick oder Werbung), in dem sich die Wiedergabe gerade befindet. Ohne aktives Segment passiert nichts. Benötigt Jellyfin 10.10+ mit Media-Segmenten (z. B. das Intro-Skipper-Plugin).",
+          "nl": "Springt naar het einde van het segment (intro, outro, samenvatting of reclame) waarin het afspelen zich momenteel bevindt. Doet niets als er geen segment actief is. Vereist Jellyfin 10.10+ met mediasegmenten (bijv. de Intro Skipper-plug-in)."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
+          }
+        ]
+      },
+      {
         "id": "start_library_scan",
         "title": {
           "en": "Scan library",
@@ -2460,6 +3082,26 @@
               "de": "Bibliothek",
               "nl": "Bibliotheek"
             }
+          }
+        ]
+      },
+      {
+        "id": "stop_user_sessions",
+        "title": {
+          "en": "Stop all playback of this user",
+          "de": "Alle Wiedergaben dieses Benutzers stoppen",
+          "nl": "Alle weergaven van deze gebruiker stoppen"
+        },
+        "hint": {
+          "en": "Sends a stop command to every session of this user that is currently playing something (max. 20 sessions). Requires an admin API key.",
+          "de": "Sendet einen Stopp-Befehl an jede Sitzung dieses Benutzers, in der gerade etwas wiedergegeben wird (max. 20 Sitzungen). Benötigt einen Admin-API-Key.",
+          "nl": "Stuurt een stopopdracht naar elke sessie van deze gebruiker waarin momenteel iets wordt afgespeeld (max. 20 sessies). Vereist een admin-API-sleutel."
+        },
+        "args": [
+          {
+            "name": "device",
+            "type": "device",
+            "filter": "driver_id=user"
           }
         ]
       },
@@ -2866,6 +3508,10 @@
         }
       ],
       "api": {
+        "getServers": {
+          "method": "GET",
+          "path": "/servers"
+        },
         "getNowPlaying": {
           "method": "GET",
           "path": "/now_playing"
@@ -2893,6 +3539,46 @@
         "toggleFavorite": {
           "method": "POST",
           "path": "/playback/favorite"
+        }
+      }
+    },
+    "recently_added": {
+      "name": {
+        "en": "Recently added",
+        "de": "Zuletzt hinzugefügt",
+        "nl": "Onlangs toegevoegd"
+      },
+      "height": 360,
+      "settings": [
+        {
+          "id": "refreshSeconds",
+          "type": "number",
+          "title": {
+            "en": "Refresh interval (s)",
+            "de": "Aktualisierung (s)",
+            "nl": "Verversingsinterval (s)"
+          },
+          "value": 300,
+          "min": 60,
+          "max": 3600
+        }
+      ],
+      "api": {
+        "getServers": {
+          "method": "GET",
+          "path": "/servers"
+        },
+        "getItems": {
+          "method": "GET",
+          "path": "/items"
+        },
+        "getSessions": {
+          "method": "GET",
+          "path": "/sessions"
+        },
+        "play": {
+          "method": "POST",
+          "path": "/play"
         }
       }
     },

@@ -27,12 +27,22 @@ export default class JellyfinPlayerDevice extends Homey.Device {
   private store!: PlayerStore;
   private positionTimer?: NodeJS.Timeout;
   private initRetryTimer?: NodeJS.Timeout;
+  private hubSwapUnsub?: () => void;
   private albumArtImage?: Homey.Image;
   private lastArtworkUrl = '';
 
   async onInit(): Promise<void> {
     this.store = this.getStore() as PlayerStore;
     const app = this.homey.app as HomeyfinApp;
+
+    await this.migrateCapabilities();
+
+    // Rebind when the app tears down / recreates this server's hub (repair,
+    // credential change) — otherwise this device stays wired to the dead hub.
+    // Guarded because the retry timer re-enters onInit.
+    if (!this.hubSwapUnsub) {
+      this.hubSwapUnsub = app.onHubSwap(this.store.serverId, (hub) => this.handleHubSwap(hub));
+    }
 
     this.hub = app.getHub(this.store.serverId);
     if (!this.hub) {
@@ -87,12 +97,48 @@ export default class JellyfinPlayerDevice extends Homey.Device {
   }
 
   private teardown(): void {
-    for (const off of this.offCallbacks) off();
-    this.offCallbacks = [];
+    this.detachHubHandlers();
+    if (this.hubSwapUnsub) this.hubSwapUnsub();
+    this.hubSwapUnsub = undefined;
     if (this.initRetryTimer) this.homey.clearTimeout(this.initRetryTimer);
     if (this.positionTimer) this.homey.clearInterval(this.positionTimer);
     this.initRetryTimer = undefined;
     this.positionTimer = undefined;
+  }
+
+  /**
+   * Capabilities added in newer releases never reach devices paired before
+   * that release, so sync any missing ones from the driver manifest.
+   */
+  private async migrateCapabilities(): Promise<void> {
+    const wanted = (this.driver.manifest?.capabilities ?? []) as string[];
+    for (const cap of wanted) {
+      if (this.hasCapability(cap)) continue;
+      await this.addCapability(cap).catch((err: Error) =>
+        this.error(`addCapability ${cap} failed`, err.message),
+      );
+    }
+  }
+
+  /** Rewires this device when the hub for its server is recreated or released. */
+  private handleHubSwap(hub: ServerHub | undefined): void {
+    // Detach BEFORE reassigning this.hub so the old instance loses our listeners.
+    this.detachHubHandlers();
+    this.hub = hub;
+    if (!hub) {
+      this.setUnavailable('Jellyfin server not connected yet').catch(() => undefined);
+      return;
+    }
+    this.registerHubHandlers();
+    const snap = this.currentSnapshot();
+    if (snap) this.applyClientSnapshot(snap).catch((e) => this.error(e));
+    else this.applyOffline().catch((e) => this.error(e));
+    this.setAvailable().catch(() => undefined);
+  }
+
+  private detachHubHandlers(): void {
+    for (const off of this.offCallbacks) off();
+    this.offCallbacks = [];
   }
 
   private async setupAlbumArt(): Promise<void> {
@@ -114,7 +160,12 @@ export default class JellyfinPlayerDevice extends Homey.Device {
   // --- Hub event wiring --------------------------------------------------
 
   private registerHubHandlers(): void {
-    if (!this.hub) return;
+    // Detach-first so a hub swap or init retry can never stack duplicate
+    // listeners; the local `hub` binding keeps the off() calls aimed at the
+    // instance the listeners were actually attached to.
+    this.detachHubHandlers();
+    const hub = this.hub;
+    if (!hub) return;
     const prefix = this.eventPrefix();
 
     // The device is bound to one user on this client; a different user's session
@@ -140,18 +191,18 @@ export default class JellyfinPlayerDevice extends Homey.Device {
     };
 
     const ev = (suffix: string) => `${prefix}:${suffix}`;
-    this.hub.on(ev('update'), onUpdate);
-    this.hub.on(ev('playback_started'), onStarted);
-    this.hub.on(ev('playback_paused'), onPaused);
-    this.hub.on(ev('playback_resumed'), onResumed);
-    this.hub.on(ev('playback_stopped'), onStopped);
+    hub.on(ev('update'), onUpdate);
+    hub.on(ev('playback_started'), onStarted);
+    hub.on(ev('playback_paused'), onPaused);
+    hub.on(ev('playback_resumed'), onResumed);
+    hub.on(ev('playback_stopped'), onStopped);
 
     this.offCallbacks.push(
-      () => this.hub?.off(ev('update'), onUpdate),
-      () => this.hub?.off(ev('playback_started'), onStarted),
-      () => this.hub?.off(ev('playback_paused'), onPaused),
-      () => this.hub?.off(ev('playback_resumed'), onResumed),
-      () => this.hub?.off(ev('playback_stopped'), onStopped),
+      () => hub.off(ev('update'), onUpdate),
+      () => hub.off(ev('playback_started'), onStarted),
+      () => hub.off(ev('playback_paused'), onPaused),
+      () => hub.off(ev('playback_resumed'), onResumed),
+      () => hub.off(ev('playback_stopped'), onStopped),
     );
   }
 

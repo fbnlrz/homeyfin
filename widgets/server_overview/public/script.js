@@ -7,6 +7,16 @@ function onHomeyReady(Homey) {
   const $ = (id) => document.getElementById(id);
   const lastValues = {};
 
+  const LS_KEY = 'homeyfin.server_overview.server';
+  let pollTimer = null;
+  let announcedReady = false;
+  let serverId = null;
+  try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
+
+  function serverQuery() {
+    return serverId ? `?serverId=${encodeURIComponent(serverId)}` : '';
+  }
+
   function fmtTime(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
     const h = Math.floor(sec / 3600);
@@ -104,8 +114,8 @@ function onHomeyReady(Homey) {
 
         const poster = document.createElement('div');
         poster.className = 'poster';
-        if (s.posterUrl) {
-          poster.style.backgroundImage = `url("${s.posterUrl}")`;
+        if (s.posterDataUri) {
+          poster.style.backgroundImage = `url("${s.posterDataUri}")`;
           poster.classList.add('has-image');
         } else {
           // Use the title's first letters as the poster glyph when we have no art
@@ -200,17 +210,70 @@ function onHomeyReady(Homey) {
 
   async function refresh() {
     try {
-      const data = await Homey.api('GET', '/overview');
+      const data = await Homey.api('GET', '/overview' + serverQuery());
       render(data);
     } catch (err) {
       showError(err && err.message ? err.message : String(err));
     } finally {
-      Homey.ready();
+      if (!announcedReady) {
+        announcedReady = true;
+        Homey.ready();
+      }
     }
   }
 
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(refresh, refreshSeconds * 1000);
+  }
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // --- Server switcher (only visible with 2+ paired servers) ---
+  const serverSelect = $('server-select');
+  serverSelect.addEventListener('change', () => {
+    serverId = serverSelect.value;
+    try { localStorage.setItem(LS_KEY, serverId); } catch (e) { /* storage unavailable */ }
+    refresh();
+  });
+
+  async function loadServers() {
+    try {
+      const servers = await Homey.api('GET', '/servers');
+      if (!Array.isArray(servers) || servers.length <= 1) {
+        serverSelect.classList.add('hidden');
+        return;
+      }
+      if (!servers.some((s) => s.id === serverId)) serverId = servers[0].id;
+      serverSelect.innerHTML = '';
+      for (const s of servers) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        serverSelect.appendChild(opt);
+      }
+      serverSelect.value = serverId;
+      serverSelect.classList.remove('hidden');
+    } catch (e) { /* keep default server */ }
+  }
+
+  // Pause polling while the dashboard is hidden; resume with a fresh fetch.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      startPolling();
+      refresh();
+    }
+  });
+  window.addEventListener('pagehide', () => stopPolling());
+
+  loadServers();
   refresh();
-  setInterval(refresh, refreshSeconds * 1000);
+  startPolling();
 }
 
 if (typeof Homey !== 'undefined') {

@@ -1,8 +1,8 @@
 {
   "title": {
-    "en": "Playback stopped",
-    "de": "Wiedergabe gestoppt",
-    "nl": "Afspelen gestopt"
+    "en": "Playback stopped (player)",
+    "de": "Wiedergabe gestoppt (Player)",
+    "nl": "Afspelen gestopt (speler)"
   },
   "hint": {
     "en": "Fires when this player stops playing (not the same as pausing).",

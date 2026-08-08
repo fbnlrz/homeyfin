@@ -1,5 +1,5 @@
 import type HomeyfinApp from '../../app';
-import type { ClientSnapshot } from '../../lib/ServerHub';
+import type { ClientSnapshot, ServerHub } from '../../lib/ServerHub';
 
 type HomeyRef = HomeyfinApp['homey'];
 
@@ -24,7 +24,7 @@ interface OverviewStream {
   isTranscoding: boolean;
   positionSeconds: number;
   durationSeconds: number;
-  posterUrl: string;
+  posterDataUri: string;
 }
 
 function listServerDevices(homey: HomeyRef): ServerSummary[] {
@@ -61,8 +61,17 @@ function snapshotToStream(snap: ClientSnapshot): OverviewStream {
     isTranscoding: snap.isTranscoding === true,
     positionSeconds: snap.positionSeconds ?? 0,
     durationSeconds: snap.durationSeconds ?? 0,
-    posterUrl: snap.posterUrl ?? '',
+    posterDataUri: '',
   };
+}
+
+// Poster is fetched server-side (authenticated, LRU-cached) and delivered as a
+// data: URI so no api_key ever reaches the dashboard webview.
+async function posterFor(hub: ServerHub, snap: ClientSnapshot): Promise<string> {
+  const item = snap.nowPlaying;
+  if (!item?.Id) return '';
+  const uri = await hub.getPosterDataUri(item.Id, item.ImageTags?.Primary, 300);
+  return uri ?? '';
 }
 
 module.exports = {
@@ -99,7 +108,12 @@ module.exports = {
     }
 
     const counts = hub.getLastCounts();
-    const streams = (await hub.getActiveStreams()).map(snapshotToStream);
+    const snaps = await hub.getActiveStreams();
+    const streams = await Promise.all(snaps.map(async (snap) => {
+      const stream = snapshotToStream(snap);
+      stream.posterDataUri = await posterFor(hub, snap);
+      return stream;
+    }));
     const active = streams.filter((s) => !s.isPaused).length;
     const paused = streams.filter((s) => s.isPaused).length;
 

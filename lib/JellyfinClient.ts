@@ -118,6 +118,20 @@ export interface MediaFolder {
   CollectionType?: string;
 }
 
+/** Compact media-segment projection (intro/outro/recap markers), ticks already converted. */
+export interface MediaSegment {
+  type: string;
+  startSeconds: number;
+  endSeconds: number;
+}
+
+export interface ScheduledTaskSummary {
+  id: string;
+  name: string;
+  category?: string;
+  state: string;
+}
+
 export interface LatestItem {
   Id: string;
   Name: string;
@@ -135,6 +149,7 @@ export interface LatestItem {
     UnplayedItemCount?: number;
     PlaybackPositionTicks?: number;
     PlayCount?: number;
+    PlayedPercentage?: number;
   };
 }
 
@@ -156,7 +171,14 @@ export type GeneralCommand =
   | 'ToggleMute'
   | 'SetAudioStreamIndex'
   | 'SetSubtitleStreamIndex'
-  | 'DisplayMessage';
+  | 'DisplayMessage'
+  | 'GoHome'
+  | 'Back'
+  | 'Select'
+  | 'MoveUp'
+  | 'MoveDown'
+  | 'MoveLeft'
+  | 'MoveRight';
 
 const TICKS_PER_SECOND = 10_000_000;
 
@@ -218,13 +240,15 @@ export class JellyfinClient {
   }
 
   private authHeader(): string {
-    return (
+    const base =
       `MediaBrowser Client="${this.clientName}", ` +
       `Device="${this.deviceName}", ` +
       `DeviceId="${this.deviceId}", ` +
-      `Version="${this.appVersion}", ` +
-      `Token="${this.apiKey}"`
-    );
+      `Version="${this.appVersion}"`;
+    // No apiKey (QuickConnect bootstrap): send the header without a Token part —
+    // Jellyfin rejects an empty Token, but accepts the anonymous client header.
+    if (!this.apiKey) return base;
+    return `${base}, Token="${this.apiKey}"`;
   }
 
   private async request<T = unknown>(
@@ -372,6 +396,85 @@ export class JellyfinClient {
     return this.request<JellyfinUser[]>('GET', '/Users');
   }
 
+  // --- QuickConnect (works without an apiKey, see authHeader) ---
+
+  /** Whether the server has QuickConnect enabled. */
+  async quickConnectEnabled(): Promise<boolean> {
+    const res = await this.request<boolean | string>('GET', '/QuickConnect/Enabled');
+    return res === true || res === 'true';
+  }
+
+  /** Starts a QuickConnect flow; the code is shown to the user, the secret polled. */
+  async quickConnectInitiate(): Promise<{ secret: string; code: string }> {
+    const res = await this.request<{ Secret?: string; Code?: string }>(
+      'POST',
+      '/QuickConnect/Initiate',
+    );
+    if (!res?.Secret || !res?.Code) {
+      throw new JellyfinError('QuickConnect initiate returned no secret/code');
+    }
+    return { secret: res.Secret, code: res.Code };
+  }
+
+  /** Polls a QuickConnect flow; true once the user has approved the code. */
+  async quickConnectState(secret: string): Promise<boolean> {
+    const res = await this.request<{ Authenticated?: boolean }>(
+      'GET',
+      '/QuickConnect/Connect',
+      undefined,
+      { Secret: secret },
+    );
+    return res?.Authenticated === true;
+  }
+
+  /** Exchanges an approved QuickConnect secret for an access token. */
+  async authenticateWithQuickConnect(
+    secret: string,
+  ): Promise<{ accessToken: string; userId: string; userName: string }> {
+    const res = await this.request<{
+      AccessToken?: string;
+      User?: { Id?: string; Name?: string };
+    }>('POST', '/Users/AuthenticateWithQuickConnect', { Secret: secret });
+    if (!res?.AccessToken || !res.User?.Id) {
+      throw new JellyfinError('QuickConnect authentication returned no token');
+    }
+    return {
+      accessToken: res.AccessToken,
+      userId: res.User.Id,
+      userName: res.User.Name ?? '',
+    };
+  }
+
+  // --- User policy (admin token required) ---
+
+  /** Whether a user account is disabled. */
+  async getUserDisabled(userId: string): Promise<boolean> {
+    const user = await this.request<{ Policy?: { IsDisabled?: boolean } }>(
+      'GET',
+      `/Users/${userId}`,
+    );
+    return user?.Policy?.IsDisabled === true;
+  }
+
+  /**
+   * Enables/disables a user account. Jellyfin's policy endpoint replaces the
+   * WHOLE policy object — posting only IsDisabled would wipe every other
+   * permission, so read-modify-write the full policy.
+   */
+  async setUserDisabled(userId: string, disabled: boolean): Promise<void> {
+    const user = await this.request<{ Policy?: Record<string, unknown> }>(
+      'GET',
+      `/Users/${userId}`,
+    );
+    if (!user?.Policy) {
+      throw new JellyfinError(`User ${userId} has no policy to update`);
+    }
+    await this.request<void>('POST', `/Users/${userId}/Policy`, {
+      ...user.Policy,
+      IsDisabled: disabled,
+    });
+  }
+
   // --- Sessions ---
 
   getSessions(): Promise<JellyfinSession[]> {
@@ -419,6 +522,21 @@ export class JellyfinClient {
     });
   }
 
+  /** Ask a session's client to open an item's detail screen. */
+  displayContent(
+    sessionId: string,
+    item: { id: string; name?: string; type?: string },
+  ): Promise<void> {
+    return this.request<void>('POST', `/Sessions/${sessionId}/Command`, {
+      Name: 'DisplayContent',
+      Arguments: {
+        ItemId: item.id,
+        ItemName: item.name ?? '',
+        ItemType: item.type ?? '',
+      },
+    });
+  }
+
   sendMessage(
     sessionId: string,
     header: string,
@@ -451,6 +569,27 @@ export class JellyfinClient {
     // The Jellyfin web client clears the queue by issuing Stop followed by a
     // new PlayNow with the desired items. This helper just stops playback.
     return this.sendPlaystate(sessionId, 'Stop');
+  }
+
+  /**
+   * Media segments (intro/outro/recap/preview/commercial markers) of an item,
+   * ticks converted to seconds. Servers below 10.9 don't have the endpoint —
+   * a 404 yields an empty array instead of an error.
+   */
+  async getMediaSegments(itemId: string): Promise<MediaSegment[]> {
+    try {
+      const res = await this.request<{
+        Items?: Array<{ Type?: string; StartTicks?: number; EndTicks?: number }>;
+      }>('GET', `/MediaSegments/${itemId}`);
+      return (res?.Items ?? []).map((s) => ({
+        type: s.Type ?? '',
+        startSeconds: typeof s.StartTicks === 'number' ? s.StartTicks / TICKS_PER_SECOND : 0,
+        endSeconds: typeof s.EndTicks === 'number' ? s.EndTicks / TICKS_PER_SECOND : 0,
+      }));
+    } catch (err) {
+      if (err instanceof JellyfinError && err.status === 404) return [];
+      throw err;
+    }
   }
 
   /** Item details (incl. Chapters / MediaStreams). */
@@ -559,6 +698,45 @@ export class JellyfinClient {
     });
   }
 
+  /** Playlists and collections (BoxSets), name-sorted, for autocomplete/play-on. */
+  async getPlaylistsAndCollections(userId?: string): Promise<LatestItem[]> {
+    const res = await this.request<{ Items?: LatestItem[] }>('GET', '/Items', undefined, {
+      Recursive: 'true',
+      IncludeItemTypes: 'Playlist,BoxSet',
+      SortBy: 'SortName',
+      userId,
+      Fields: 'ChildCount',
+    });
+    return res?.Items ?? [];
+  }
+
+  /**
+   * Ids of the playable items inside a playlist/collection/folder. Playlist
+   * children keep their curated order — the server only returns that when no
+   * SortBy is requested — everything else is sorted by SortName.
+   */
+  async getPlayableChildIds(parentId: string): Promise<string[]> {
+    let isPlaylist = false;
+    try {
+      const parent = await this.request<{ Items?: Array<{ Id: string; Type?: string }> }>(
+        'GET',
+        '/Items',
+        undefined,
+        { Ids: parentId },
+      );
+      isPlaylist = parent?.Items?.[0]?.Type === 'Playlist';
+    } catch {
+      // Type lookup failed — fall back to name-sorted children.
+    }
+    const res = await this.request<{ Items?: Array<{ Id: string }> }>('GET', '/Items', undefined, {
+      ParentId: parentId,
+      Recursive: 'true',
+      IncludeItemTypes: 'Movie,Episode,Audio,Video',
+      SortBy: isPlaylist ? undefined : 'SortName',
+    });
+    return (res?.Items ?? []).map((i) => i.Id);
+  }
+
   getMediaFolders(): Promise<{ Items: MediaFolder[] }> {
     return this.request('GET', '/Library/MediaFolders');
   }
@@ -623,6 +801,54 @@ export class JellyfinClient {
   /** Lightweight ping (returns string "Healthy" or similar). */
   ping(): Promise<string> {
     return this.request<string>('GET', '/System/Ping');
+  }
+
+  /** Non-hidden scheduled tasks (compact projection). */
+  async getScheduledTasks(): Promise<ScheduledTaskSummary[]> {
+    const res = await this.request<
+      Array<{ Id: string; Name: string; Category?: string; State?: string }>
+    >('GET', '/ScheduledTasks', undefined, { isHidden: 'false' });
+    return (res ?? []).map((t) => ({
+      id: t.Id,
+      name: t.Name,
+      category: t.Category,
+      state: t.State ?? '',
+    }));
+  }
+
+  /** Kicks off a scheduled task by id. */
+  startScheduledTask(taskId: string): Promise<void> {
+    return this.request<void>('POST', `/ScheduledTasks/Running/${taskId}`);
+  }
+
+  /** Single scheduled task incl. last-run status; null when the id is unknown. */
+  async getScheduledTask(
+    taskId: string,
+  ): Promise<{ id: string; name: string; state: string; lastResultStatus?: string } | null> {
+    try {
+      const t = await this.request<{
+        Id: string;
+        Name: string;
+        State?: string;
+        LastExecutionResult?: { Status?: string };
+      }>('GET', `/ScheduledTasks/${taskId}`);
+      if (!t) return null;
+      return {
+        id: t.Id,
+        name: t.Name,
+        state: t.State ?? '',
+        lastResultStatus: t.LastExecutionResult?.Status,
+      };
+    } catch (err) {
+      if (err instanceof JellyfinError && err.status === 404) return null;
+      throw err;
+    }
+  }
+
+  /** Whether the server reports an available update (HasUpdateAvailable). */
+  async getUpdateAvailable(): Promise<boolean> {
+    const info = await this.request<{ HasUpdateAvailable?: boolean }>('GET', '/System/Info');
+    return info?.HasUpdateAvailable === true;
   }
 
   // --- Image URLs + cache ---

@@ -1,23 +1,27 @@
 :root {
   --bg-1: #101522;
   --bg-2: #1a2235;
-  --fg: #e9eef9;
-  --fg-muted: #9aa6bd;
+  --fg: var(--homey-text-color, #e9eef9);
+  --fg-muted: var(--homey-text-color-light, #9aa6bd);
   --brand: #00a4dc;
   --brand-2: #aa5cc3;
   --warn: #f1c40f;
   --ok: #2ecc71;
   --err: #e74c3c;
   --chip-bg: rgba(255, 255, 255, 0.08);
+  --track-bg: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
     --bg-1: #f6f8fb;
     --bg-2: #ffffff;
-    --fg: #1c2230;
-    --fg-muted: #6b7488;
+    --fg: var(--homey-text-color, #1c2230);
+    --fg-muted: var(--homey-text-color-light, #6b7488);
     --chip-bg: rgba(0, 0, 0, 0.06);
+    --track-bg: rgba(0, 0, 0, 0.08);
+    --card-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
   }
 }
 
@@ -39,7 +43,7 @@ html, body {
   background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
   overflow: hidden;
   isolation: isolate;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -206,7 +210,7 @@ html, body {
 .progress-wrap { display: flex; flex-direction: column; gap: 4px; }
 .progress {
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--track-bg);
   border-radius: 999px;
   position: relative;
   cursor: pointer;
@@ -292,3 +296,27 @@ html, body {
 }
 .ctrl.ghost.active { color: var(--warn); }
 .ctrl.ghost:hover { color: var(--fg); }
+
+.server-select {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  max-width: 45%;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--chip-bg);
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.server-select.hidden { display: none; }

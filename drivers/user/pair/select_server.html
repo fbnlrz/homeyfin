@@ -78,10 +78,12 @@
         }
         if (firstEnabled) $users.value = firstEnabled;
         $userGroup.style.display = '';
-        $info.textContent = '';
+        $info.textContent = firstEnabled ? '' : 'All users on this server are already added.';
         $btn.textContent = 'Add user';
         stage = 'pick-user';
-        $btn.disabled = false;
+        // Without a selectable user, $users.value would point at a disabled
+        // (already paired) option and adding would fail with a duplicate error.
+        $btn.disabled = firstEnabled === null;
       } catch (e) {
         $info.textContent = '';
         $err.textContent = (e && (e.message || e.toString())) || 'Unknown error';
@@ -108,6 +110,20 @@
         $btn.disabled = false;
       }
     }
+
+    // Switching servers after 'Load users' invalidates the loaded user list —
+    // reset to the pick-server stage so the add can't target the old server.
+    $servers.addEventListener('change', () => {
+      if ($servers.value === lastServerId) return;
+      stage = 'pick-server';
+      lastServerId = null;
+      $users.innerHTML = '';
+      $userGroup.style.display = 'none';
+      $err.textContent = '';
+      $info.textContent = '';
+      $btn.textContent = 'Load users';
+      $btn.disabled = false;
+    });
 
     $btn.addEventListener('click', () => {
       if (stage === 'pick-server') loadUsers();

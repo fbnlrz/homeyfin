@@ -1,0 +1,30 @@
+{
+  "title": {
+    "en": "Failed login attempt",
+    "de": "Fehlgeschlagener Anmeldeversuch",
+    "nl": "Mislukte aanmeldpoging"
+  },
+  "hint": {
+    "en": "Fires on a failed Jellyfin login attempt — useful for security notifications. Rate-limited to a few events per minute.",
+    "de": "Wird bei einem fehlgeschlagenen Jellyfin-Anmeldeversuch ausgelöst — geeignet für Sicherheits-Benachrichtigungen. Auf wenige Ereignisse pro Minute begrenzt.",
+    "nl": "Wordt geactiveerd bij een mislukte Jellyfin-aanmeldpoging — handig voor beveiligingsmeldingen. Beperkt tot enkele gebeurtenissen per minuut."
+  },
+  "args": [
+    {
+      "name": "device",
+      "type": "device",
+      "filter": "driver_id=server"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "user",
+      "type": "string",
+      "title": {
+        "en": "User",
+        "de": "Benutzer",
+        "nl": "Gebruiker"
+      }
+    }
+  ]
+}

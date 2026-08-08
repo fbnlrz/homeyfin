@@ -8,6 +8,7 @@
   "icon": "/assets/capabilities/clock.svg",
   "units": {
     "en": "s",
+    "de": "s",
     "nl": "s"
   },
   "getable": true,

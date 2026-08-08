@@ -7,9 +7,27 @@ function onHomeyReady(Homey) {
   const $ = (id) => document.getElementById(id);
   const root = $('root');
 
+  const LS_KEY = 'homeyfin.now_playing.server';
+  const lang = (navigator.language || 'en').slice(0, 2);
+  const TEXTS = {
+    nothing: { en: 'Nothing playing', de: 'Nichts wird abgespielt', nl: 'Niets aan het afspelen' },
+    noServer: { en: 'No server connected', de: 'Kein Server verbunden', nl: 'Geen server verbonden' },
+    offline: { en: 'Server offline', de: 'Server offline', nl: 'Server offline' },
+  };
+  const t = (key) => TEXTS[key][lang] || TEXTS[key].en;
+
   let lastStream = null;
+  let lastDeviceId = null;
   let dragging = false;
   let localTick = null;
+  let pollTimer = null;
+  let announcedReady = false;
+  let serverId = null;
+  try { serverId = localStorage.getItem(LS_KEY) || null; } catch (e) { /* storage unavailable */ }
+
+  function serverQuery() {
+    return serverId ? `?serverId=${encodeURIComponent(serverId)}` : '';
+  }
 
   function fmtTime(sec, sign = '') {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -32,13 +50,19 @@ function onHomeyReady(Homey) {
     if (!data || !data.hasStream || !data.stream) {
       root.classList.add('empty');
       root.classList.remove('playing', 'paused', 'transcoding');
-      $('empty-msg').textContent = data && data.server ? 'Nothing playing' : 'No server connected';
+      let msg;
+      if (!data || !data.server) msg = t('noServer');
+      else if (data.online === false) msg = t('offline');
+      else msg = t('nothing');
+      $('empty-msg').textContent = msg;
       lastStream = null;
+      lastDeviceId = null;
       return;
     }
     root.classList.remove('empty');
     const s = data.stream;
     lastStream = s;
+    lastDeviceId = s.deviceId || null;
 
     root.classList.toggle('playing', !s.isPaused);
     root.classList.toggle('paused', s.isPaused);
@@ -52,10 +76,10 @@ function onHomeyReady(Homey) {
     $('meta').textContent = metaParts.join(' · ');
 
     const poster = $('poster');
-    if (s.posterUrl) {
-      poster.style.backgroundImage = `url("${s.posterUrl}")`;
+    if (s.posterDataUri) {
+      poster.style.backgroundImage = `url("${s.posterDataUri}")`;
       poster.classList.add('has-image');
-      $('backdrop').style.backgroundImage = `url("${s.posterUrl}")`;
+      $('backdrop').style.backgroundImage = `url("${s.posterDataUri}")`;
     } else {
       poster.classList.remove('has-image');
     }
@@ -77,24 +101,79 @@ function onHomeyReady(Homey) {
       setProgress(lastStream.positionSeconds, lastStream.durationSeconds);
     }, 1000);
   }
+  function stopLocalTick() {
+    if (!localTick) return;
+    clearInterval(localTick);
+    localTick = null;
+  }
 
   async function refresh() {
     try {
-      const data = await Homey.api('GET', '/now_playing');
+      const data = await Homey.api('GET', '/now_playing' + serverQuery());
       render(data);
     } catch (err) {
       root.classList.add('empty');
       $('empty-msg').textContent = err && err.message ? err.message : 'Error';
     } finally {
-      Homey.ready();
+      if (!announcedReady) {
+        announcedReady = true;
+        Homey.ready();
+      }
     }
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(refresh, refreshSeconds * 1000);
+  }
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // Target the displayed session explicitly so a second stream appearing on the
+  // server can never receive a command meant for this one.
+  function controlBody(extra) {
+    const body = Object.assign({}, extra || {});
+    if (serverId) body.serverId = serverId;
+    if (lastDeviceId) body.deviceId = lastDeviceId;
+    return body;
   }
 
   async function call(method, path, body) {
     try {
-      await Homey.api(method, path, body || {});
+      await Homey.api(method, path, controlBody(body));
       refresh();
     } catch (e) { /* ignore network blips, next refresh will repaint */ }
+  }
+
+  // --- Server switcher (only visible with 2+ paired servers) ---
+  const serverSelect = $('server-select');
+  serverSelect.addEventListener('change', () => {
+    serverId = serverSelect.value;
+    try { localStorage.setItem(LS_KEY, serverId); } catch (e) { /* storage unavailable */ }
+    refresh();
+  });
+
+  async function loadServers() {
+    try {
+      const servers = await Homey.api('GET', '/servers');
+      if (!Array.isArray(servers) || servers.length <= 1) {
+        serverSelect.classList.add('hidden');
+        return;
+      }
+      if (!servers.some((s) => s.id === serverId)) serverId = servers[0].id;
+      serverSelect.innerHTML = '';
+      for (const s of servers) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        serverSelect.appendChild(opt);
+      }
+      serverSelect.value = serverId;
+      serverSelect.classList.remove('hidden');
+    } catch (e) { /* keep default server */ }
   }
 
   // --- Controls ---
@@ -105,7 +184,7 @@ function onHomeyReady(Homey) {
   $('btn-next').addEventListener('click', () => call('POST', '/playback/chapter', { direction: 'next' }));
   $('btn-fav').addEventListener('click', async () => {
     try {
-      const r = await Homey.api('POST', '/playback/favorite', {});
+      const r = await Homey.api('POST', '/playback/favorite', controlBody());
       $('btn-fav').classList.toggle('active', !!(r && r.favorite));
     } catch (e) { /* ignore */ }
   });
@@ -152,9 +231,26 @@ function onHomeyReady(Homey) {
     track.classList.remove('dragging');
   });
 
+  // Pause all timers while the dashboard is hidden; resume with a fresh fetch.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
+      stopLocalTick();
+    } else {
+      startLocalTick();
+      startPolling();
+      refresh();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    stopPolling();
+    stopLocalTick();
+  });
+
+  loadServers();
   startLocalTick();
   refresh();
-  setInterval(refresh, refreshSeconds * 1000);
+  startPolling();
 }
 
 if (typeof Homey !== 'undefined') {
